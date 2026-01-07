@@ -7,6 +7,7 @@ use App\Http\Controllers\TeamController;
 use App\Http\Controllers\InvitationController;
 use App\Http\Controllers\MemberController;
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\ModuleController;
 
 /*
 |--------------------------------------------------------------------------
@@ -129,5 +130,23 @@ Route::middleware([
         Route::get('/menu-items', [AdminController::class, 'menuItems'])->name('menu-items');
         Route::post('/menu-items', [AdminController::class, 'updateMenuItems'])->name('menu-items.update');
         Route::get('/exit-impersonation', [AdminController::class, 'exitImpersonation'])->name('exit-impersonation');
+    });
+
+    // Optional Module Routes
+    Route::prefix('modules')->name('modules.')->group(function () {
+        // Developer Tools
+        Route::get('/developer', [ModuleController::class, 'developer'])->name('developer');
+        
+        // Support Tickets
+        Route::get('/support', [ModuleController::class, 'supportIndex'])->name('support.index');
+        Route::get('/support/create', [ModuleController::class, 'supportCreate'])->name('support.create');
+        Route::post('/support', [ModuleController::class, 'supportStore'])->name('support.store');
+        Route::get('/support/{ticket_id}', [ModuleController::class, 'supportShow'])->name('support.show');
+        
+        // Transactions
+        Route::get('/transactions', [ModuleController::class, 'transactions'])->name('transactions');
+        
+        // Billing
+        Route::get('/billing', [ModuleController::class, 'billing'])->name('billing');
     });
 });
