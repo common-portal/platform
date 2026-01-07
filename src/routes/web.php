@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Auth\OtpAuthController;
 
 /*
 |--------------------------------------------------------------------------
@@ -12,10 +13,6 @@ Route::get('/', function () {
     return view('pages.homepage');
 })->name('home');
 
-Route::get('/login-register', function () {
-    return view('pages.login-register');
-})->name('login-register');
-
 // Language preference (available to guests too)
 Route::post('/language', function () {
     $language_code = request('language_code');
@@ -25,6 +22,23 @@ Route::post('/language', function () {
     session(['preferred_language' => $language_code]);
     return response()->json(['success' => true]);
 })->name('language.update');
+
+/*
+|--------------------------------------------------------------------------
+| Authentication Routes (OTP-Primary)
+|--------------------------------------------------------------------------
+*/
+
+Route::middleware('guest')->group(function () {
+    Route::get('/login-register', [OtpAuthController::class, 'showLoginRegister'])->name('login-register');
+    Route::post('/login-register', [OtpAuthController::class, 'sendOtp'])->name('otp.send');
+    Route::get('/verify', [OtpAuthController::class, 'showVerifyForm'])->name('otp.verify.form');
+    Route::post('/verify', [OtpAuthController::class, 'verifyOtp'])->name('otp.verify');
+    Route::post('/verify/resend', [OtpAuthController::class, 'resendOtp'])->name('otp.resend');
+    Route::post('/login/password', [OtpAuthController::class, 'loginWithPassword'])->name('login.password');
+});
+
+Route::post('/logout', [OtpAuthController::class, 'logout'])->name('logout')->middleware('auth');
 
 /*
 |--------------------------------------------------------------------------

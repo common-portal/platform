@@ -1,0 +1,278 @@
+<?php
+
+namespace App\Http\Controllers\Auth;
+
+use App\Http\Controllers\Controller;
+use App\Models\PlatformMember;
+use App\Models\TenantAccount;
+use App\Models\TenantAccountMembership;
+use App\Models\OneTimePasswordToken;
+use App\Services\OtpMailerService;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
+
+class OtpAuthController extends Controller
+{
+    /**
+     * Show the login/register form.
+     */
+    public function showLoginRegister()
+    {
+        return view('pages.login-register');
+    }
+
+    /**
+     * Handle email submission - send OTP.
+     * Creates new member + personal account if email doesn't exist.
+     */
+    public function sendOtp(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email|max:255',
+        ]);
+
+        $email = strtolower(trim($request->email));
+        $isNewMember = false;
+
+        DB::beginTransaction();
+
+        try {
+            $member = PlatformMember::where('login_email_address', $email)->first();
+
+            if (!$member) {
+                // New member - create member + personal account
+                $member = PlatformMember::create([
+                    'login_email_address' => $email,
+                    'preferred_language_code' => session('preferred_language', 'eng'),
+                ]);
+
+                // Create personal account
+                $personalAccount = TenantAccount::create([
+                    'account_display_name' => 'Personal',
+                    'account_type' => 'personal_individual',
+                    'primary_contact_email_address' => $email,
+                ]);
+
+                // Create membership as owner
+                TenantAccountMembership::create([
+                    'tenant_account_id' => $personalAccount->id,
+                    'platform_member_id' => $member->id,
+                    'account_membership_role' => 'account_owner',
+                    'granted_permission_slugs' => json_encode([
+                        'can_access_account_settings',
+                        'can_access_account_dashboard',
+                        'can_manage_team_members',
+                    ]),
+                    'membership_status' => 'membership_active',
+                    'membership_accepted_at_timestamp' => now(),
+                ]);
+
+                $isNewMember = true;
+            }
+
+            // Generate OTP
+            $otpData = OneTimePasswordToken::createForMember($member);
+
+            // Send OTP via email
+            $this->sendOtpEmail($member, $otpData['plain_code'], $isNewMember);
+
+            DB::commit();
+
+            // Store email in session for verification step
+            session(['otp_email' => $email, 'otp_member_id' => $member->id]);
+
+            return redirect()->route('otp.verify.form')->with('status', 
+                $isNewMember 
+                    ? 'Welcome! We\'ve sent a verification code to your email.'
+                    : 'We\'ve sent a verification code to your email.'
+            );
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->withErrors(['email' => 'Failed to send verification code. Please try again.']);
+        }
+    }
+
+    /**
+     * Show the OTP verification form.
+     */
+    public function showVerifyForm()
+    {
+        if (!session('otp_email')) {
+            return redirect()->route('login-register');
+        }
+
+        return view('pages.otp-verify', [
+            'email' => session('otp_email'),
+        ]);
+    }
+
+    /**
+     * Verify the OTP code.
+     */
+    public function verifyOtp(Request $request)
+    {
+        $request->validate([
+            'code' => 'required|string|size:6',
+        ]);
+
+        $memberId = session('otp_member_id');
+        $email = session('otp_email');
+
+        if (!$memberId || !$email) {
+            return redirect()->route('login-register')
+                ->withErrors(['email' => 'Session expired. Please start again.']);
+        }
+
+        $member = PlatformMember::find($memberId);
+
+        if (!$member) {
+            return redirect()->route('login-register')
+                ->withErrors(['email' => 'Member not found. Please start again.']);
+        }
+
+        // Find valid OTP tokens for this member
+        $validTokens = $member->one_time_password_tokens()
+            ->valid()
+            ->orderBy('created_at_timestamp', 'desc')
+            ->get();
+
+        $verified = false;
+        $matchedToken = null;
+
+        foreach ($validTokens as $token) {
+            if ($token->verifyCode($request->code)) {
+                $verified = true;
+                $matchedToken = $token;
+                break;
+            }
+        }
+
+        if (!$verified) {
+            return back()->withErrors(['code' => 'Invalid or expired code. Please try again.']);
+        }
+
+        // Mark token as used and invalidate others
+        $matchedToken->markAsUsed();
+        OneTimePasswordToken::invalidateAllForMember($member->id);
+
+        // Mark email as verified if not already
+        if (!$member->email_verified_at_timestamp) {
+            $member->update(['email_verified_at_timestamp' => now()]);
+        }
+
+        // Clear OTP session data
+        session()->forget(['otp_email', 'otp_member_id']);
+
+        // Log the member in
+        Auth::login($member, true);
+
+        // Set active account to first available
+        $firstAccount = $member->tenant_accounts()
+            ->wherePivot('membership_status', 'membership_active')
+            ->first();
+
+        if ($firstAccount) {
+            session(['active_account_id' => $firstAccount->id]);
+        }
+
+        return redirect()->route('home')->with('status', 'Welcome back!');
+    }
+
+    /**
+     * Handle password login (optional secondary method).
+     */
+    public function loginWithPassword(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email',
+            'password' => 'required|string|min:8',
+        ]);
+
+        $email = strtolower(trim($request->email));
+        $member = PlatformMember::where('login_email_address', $email)->first();
+
+        if (!$member || !$member->hashed_login_password) {
+            return back()->withErrors(['email' => 'Invalid credentials or password not set.']);
+        }
+
+        if (!Hash::check($request->password, $member->hashed_login_password)) {
+            return back()->withErrors(['password' => 'Invalid password.']);
+        }
+
+        Auth::login($member, $request->boolean('remember'));
+
+        // Set active account
+        $firstAccount = $member->tenant_accounts()
+            ->wherePivot('membership_status', 'membership_active')
+            ->first();
+
+        if ($firstAccount) {
+            session(['active_account_id' => $firstAccount->id]);
+        }
+
+        return redirect()->route('home');
+    }
+
+    /**
+     * Resend OTP code.
+     */
+    public function resendOtp()
+    {
+        $memberId = session('otp_member_id');
+        $email = session('otp_email');
+
+        if (!$memberId || !$email) {
+            return redirect()->route('login-register')
+                ->withErrors(['email' => 'Session expired. Please start again.']);
+        }
+
+        $member = PlatformMember::find($memberId);
+
+        if (!$member) {
+            return redirect()->route('login-register')
+                ->withErrors(['email' => 'Member not found.']);
+        }
+
+        // Generate new OTP
+        $otpData = OneTimePasswordToken::createForMember($member);
+
+        // Send OTP via email
+        $this->sendOtpEmail($member, $otpData['plain_code'], false);
+
+        return back()->with('status', 'A new verification code has been sent to your email.');
+    }
+
+    /**
+     * Send OTP email using the mailer service.
+     */
+    protected function sendOtpEmail(PlatformMember $member, string $code, bool $isNewMember): void
+    {
+        // Use the mailer service (from COMMON-PORTAL-MAILER-CODE-002.md)
+        // For now, we'll use a simple implementation
+        $subject = $isNewMember ? 'Welcome! Your verification code' : 'Your login verification code';
+        
+        \Illuminate\Support\Facades\Mail::raw(
+            "Your verification code is: {$code}\n\nThis code expires in 72 hours.",
+            function ($message) use ($member, $subject) {
+                $message->to($member->login_email_address)
+                    ->subject($subject);
+            }
+        );
+    }
+
+    /**
+     * Logout the member.
+     */
+    public function logout(Request $request)
+    {
+        Auth::logout();
+
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return redirect()->route('home');
+    }
+}
