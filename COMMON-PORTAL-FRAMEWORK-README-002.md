@@ -71,8 +71,10 @@ cp .env.example .env
 | Variable | Default |
 |----------|---------|
 | `APP_URL` | `http://localhost:8080` |
+| `APP_BASE_DOMAIN` | `common-portal.nsdb.com` |
 | `DB_HOST` | `postgres` |
 | `DB_DATABASE` | `platform` |
+| `MAIL_MAILER` | `smtp` |
 | `OPENAI_API_KEY` | *(required for translator)* |
 
 ---
@@ -84,8 +86,17 @@ cp .env.example .env
 ├── scripts/                # Setup scripts
 ├── src/                    # Laravel application
 │   ├── app/
+│   │   ├── Http/Controllers/   # Route controllers
+│   │   ├── Http/Middleware/    # Custom middleware
+│   │   ├── Models/             # Eloquent models
+│   │   ├── Providers/          # Service providers
+│   │   ├── Services/           # Business logic services
+│   │   └── Traits/             # Reusable traits
 │   ├── database/
-│   ├── resources/
+│   ├── resources/views/
+│   │   ├── layouts/            # Master layouts
+│   │   ├── components/         # Blade components
+│   │   └── pages/              # Page views
 │   └── routes/
 ├── docker-compose.yml      # Development
 ├── docker-compose.prod.yml # Production
@@ -111,14 +122,15 @@ cp .env.example .env
 
 For detailed specifications, see `COMMON-PORTAL-BRAINSTORMING-WISH-LIST-003.md`:
 
-| Concept | Section |
-|---------|---------|
-| Data Model | → Data Model (Consolidated) |
-| Authentication | → Authentication UX (OTP-primary) |
-| Permissions | → Permissions System |
-| Branding | → Branding Hierarchy |
-| Admin Panel | → Administrator Panel |
-| Sidebar | → Sidebar Menu Structure |
+| Concept | Section | Status |
+|---------|---------|--------|
+| Data Model | → Data Model (Consolidated) | ✅ Implemented |
+| Authentication | → Authentication UX (OTP-primary) | ✅ Implemented |
+| Permissions | → Permissions System | ✅ Implemented |
+| Branding | → Branding Hierarchy | ✅ Implemented |
+| Admin Panel | → Administrator Panel | ✅ Implemented |
+| Sidebar | → Sidebar Menu Structure | ✅ Implemented |
+| Multi-Tenant Subdomains | → Account-Level Branding | ✅ Implemented |
 
 ---
 

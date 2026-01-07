@@ -341,6 +341,7 @@ CREATE TABLE team_membership_invitations (
     tenant_account_id                       BIGINT NOT NULL REFERENCES tenant_accounts(id) ON DELETE CASCADE,
     invited_email_address                   VARCHAR(255) NOT NULL,
     invited_by_member_id                    BIGINT NOT NULL REFERENCES platform_members(id) ON DELETE CASCADE,
+    invited_permission_slugs                JSONB NOT NULL DEFAULT '[]',
     invitation_status                       invitation_status_enum NOT NULL DEFAULT 'invitation_pending',
     invitation_resend_count                 INTEGER NOT NULL DEFAULT 0,
     invitation_last_sent_at_timestamp       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -368,6 +369,7 @@ CREATE INDEX idx_invitations_pending
 | `tenant_account_id` | BIGINT | No | - | FK → tenant_accounts |
 | `invited_email_address` | VARCHAR(255) | No | - | Email being invited |
 | `invited_by_member_id` | BIGINT | No | - | FK → platform_members (who sent) |
+| `invited_permission_slugs` | JSONB | No | '[]' | Permissions to grant on acceptance |
 | `invitation_status` | ENUM | No | 'invitation_pending' | Current status |
 | `invitation_resend_count` | INTEGER | No | 0 | Times invitation was resent |
 | `invitation_last_sent_at_timestamp` | TIMESTAMP | No | NOW | Last time email sent |
