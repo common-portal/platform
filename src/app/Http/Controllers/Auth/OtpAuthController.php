@@ -7,7 +7,7 @@ use App\Models\PlatformMember;
 use App\Models\TenantAccount;
 use App\Models\TenantAccountMembership;
 use App\Models\OneTimePasswordToken;
-use App\Services\OtpMailerService;
+use App\Services\PlatformMailerService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -246,20 +246,18 @@ class OtpAuthController extends Controller
     }
 
     /**
-     * Send OTP email using the mailer service.
+     * Send OTP email using the PlatformMailerService.
+     * Reference: COMMON-PORTAL-MAILER-CODE-002.md
      */
     protected function sendOtpEmail(PlatformMember $member, string $code, bool $isNewMember): void
     {
-        // Use the mailer service (from COMMON-PORTAL-MAILER-CODE-002.md)
-        // For now, we'll use a simple implementation
-        $subject = $isNewMember ? 'Welcome! Your verification code' : 'Your login verification code';
+        $mailer = new PlatformMailerService();
         
-        \Illuminate\Support\Facades\Mail::raw(
-            "Your verification code is: {$code}\n\nThis code expires in 72 hours.",
-            function ($message) use ($member, $subject) {
-                $message->to($member->login_email_address)
-                    ->subject($subject);
-            }
+        $mailer->sendOtpEmail(
+            recipientEmail: $member->login_email_address,
+            code: $code,
+            isNewMember: $isNewMember,
+            recipientName: $member->full_name
         );
     }
 
