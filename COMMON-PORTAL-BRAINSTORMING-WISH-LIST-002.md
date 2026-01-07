@@ -635,11 +635,11 @@ Single page at `/login-register` — both Login and "Get Started" link here.
 ## System Services
 
 ### Mailer Service
-> **🔴 IMPORTANT:** Follow `COMMON-PORTAL-MAILER-CODE-001.md` exactly for implementation.
+> **🔴 IMPORTANT:** Follow `COMMON-PORTAL-MAILER-CODE-002.md` exactly for implementation.
 
 | Aspect | Description |
 |--------|-------------|
-| **Implementation** | See `COMMON-PORTAL-MAILER-CODE-001.md` |
+| **Implementation** | See `COMMON-PORTAL-MAILER-CODE-002.md` |
 | **Core Function** | `send_platform_email($to, $subject, $html, ...)` |
 | **Gateway** | MX.NSDB.COM centralized SMTP routing |
 | **Response** | `['success' => bool, 'message' => string]` |
@@ -744,4 +744,4 @@ This is an **open-source project** intended to be:
 | `COMMON-PORTAL-DIRECTORY-INDEX-001.md` | Directory structure overview |
 | `COMMON-PORTAL-DATABASE-SCHEMA-001.md` | PostgreSQL table definitions |
 | `COMMON-PORTAL-TRANSLATOR-CORE-CODE-001.md` | 🔴 Translator framework (follow exactly) |
-| `COMMON-PORTAL-MAILER-CODE-001.md` | 🔴 Mailer framework (follow exactly) |
+| `COMMON-PORTAL-MAILER-CODE-002.md` | 🔴 Mailer framework (follow exactly) |
