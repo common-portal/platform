@@ -30,6 +30,37 @@ Collected feature requests and ideas for the multi-tenant payment portal.
 |--------|------|---------|
 | `is_platform_administrator` | boolean | Grants access to platform-wide admin functions |
 
+### Accounts Table — Key Columns
+| Column | Type | Purpose |
+|--------|------|---------|
+| `account_type` | enum | `personal` or `business` |
+| `is_deleted` | boolean | Soft delete flag |
+| `deleted_at` | timestamp | When soft deleted |
+
+### Account Types
+| Type | Description |
+|------|-------------|
+| **Personal** | Created automatically on registration, cannot be deleted |
+| **Business** | Created manually by member, can be soft deleted |
+
+### Registration Flow (Updated)
+1. New email entered → member record created
+2. **Personal account** automatically created for that member
+3. Member becomes owner of their personal account
+4. OTP sent → member logs in to their personal account
+
+### Add Business Account
+- Link in sidebar: **"+ Add Business Account"** (below shared accounts dropdown)
+- Click → creates new business account
+- Redirects to Account Settings to define account name
+- New business account added to member's shared accounts
+
+### Soft Delete (Business Accounts Only)
+- Located in Account Settings → **Danger Zone** section
+- Modal confirmation: "This cannot be reversed. This affects all team members."
+- **Personal accounts cannot be deleted**
+- Soft delete sets `is_deleted = true`, hides account from all members
+
 ### Relationships
 - A **member** can belong to multiple **accounts**
 - An **account** can have multiple **members**
