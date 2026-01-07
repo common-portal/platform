@@ -202,8 +202,10 @@ Single page at `/login-register` — both Login and "Get Started" link here.
 ### Email-First Flow
 1. User enters email address
 2. System checks if email exists in members table
-3. If exists → send OTP to email
-4. Display OTP input screen (4 or 6 digit PIN)
+3. **If exists** → send OTP to email (login)
+4. **If NOT exists** → register new member + new account, send OTP (registration)
+5. Display OTP input screen (4 or 6 digit PIN)
+6. New member becomes **owner** of the new account
 
 ### OTP (One-Time Password) Rules
 | Rule | Description |
@@ -226,6 +228,26 @@ Single page at `/login-register` — both Login and "Get Started" link here.
 - User might request re-send before first arrives
 - First OTP might arrive after second
 - All should work until one succeeds
+
+### Optional Password ("Fast Access")
+| Aspect | Description |
+|--------|-------------|
+| **Primary auth** | OTP (always available) |
+| **Secondary auth** | Password (optional, set by member) |
+| **Where to set** | Member Profile → Edit Login Password (inside authenticated area) |
+| **Login page link** | "Fast access with password" at bottom of login/register |
+| **Forgot password** | Reverts to OTP flow |
+
+### Password Flow
+1. Link "Fast access with password" always visible at bottom
+2. If member has set a password → can use email + password to login
+3. If no password set → link still shows, but won't work for that member
+4. Forgot password? → Use standard OTP flow to get in, then reset password inside
+
+### Why OTP-Primary?
+- No password to remember by default
+- More secure (no password to leak)
+- Password is convenience feature, not requirement
 
 ---
 
