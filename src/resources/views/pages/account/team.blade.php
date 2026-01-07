@@ -62,9 +62,10 @@
                     </div>
                 </div>
 
-                {{-- Permissions (editable for non-owners) --}}
+                {{-- Permissions (editable for non-owners, active members only) --}}
                 @if($membership->account_membership_role !== 'account_owner')
                 <div class="mt-4 pt-4 border-t" style="border-color: var(--sidebar-hover-background-color);">
+                    @if($membership->isActive())
                     <form method="POST" action="{{ route('account.team.permissions', $membership->id) }}">
                         @csrf
                         <p class="text-sm font-medium mb-2">Permissions:</p>
@@ -89,28 +90,28 @@
                             </button>
                             
                             @if($membership->platform_member_id !== auth()->id())
-                                @if($membership->isActive())
-                                <button type="button" 
-                                        onclick="if(confirm('Revoke access for this member?')) document.getElementById('revoke-{{ $membership->id }}').submit();"
-                                        class="px-3 py-1 rounded text-sm"
-                                        style="background-color: var(--status-error-color); color: white;">
-                                    Revoke Access
-                                </button>
-                                @elseif($membership->isRevoked())
-                                <button type="button" 
-                                        onclick="document.getElementById('reactivate-{{ $membership->id }}').submit();"
-                                        class="px-3 py-1 rounded text-sm"
-                                        style="background-color: var(--status-success-color); color: white;">
-                                    Restore Access
-                                </button>
-                                @endif
+                            <button type="button" 
+                                    onclick="if(confirm('Revoke access for this member?')) document.getElementById('revoke-{{ $membership->id }}').submit();"
+                                    class="px-3 py-1 rounded text-sm"
+                                    style="background-color: var(--status-error-color); color: white;">
+                                Revoke Access
+                            </button>
                             @endif
                         </div>
                     </form>
-                    
-                    {{-- Hidden forms for revoke/reactivate --}}
                     <form id="revoke-{{ $membership->id }}" method="POST" action="{{ route('account.team.revoke', $membership->id) }}" class="hidden">@csrf</form>
+                    @elseif($membership->isRevoked())
+                    <p class="text-sm opacity-60 mb-3">This member's access has been revoked.</p>
+                    @if($membership->platform_member_id !== auth()->id())
+                    <button type="button" 
+                            onclick="document.getElementById('reactivate-{{ $membership->id }}').submit();"
+                            class="px-3 py-1 rounded text-sm"
+                            style="background-color: var(--status-success-color); color: white;">
+                        Restore Access
+                    </button>
                     <form id="reactivate-{{ $membership->id }}" method="POST" action="{{ route('account.team.reactivate', $membership->id) }}" class="hidden">@csrf</form>
+                    @endif
+                    @endif
                 </div>
                 @else
                 <p class="mt-4 text-sm opacity-60">Account owner has full access to all features.</p>

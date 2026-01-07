@@ -2,13 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\TenantAccount;
 use App\Models\TenantAccountMembership;
-use App\Models\PlatformMember;
 use App\Models\TeamMembershipInvitation;
-use App\Services\PlatformMailerService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 class TeamController extends Controller
 {
