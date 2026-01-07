@@ -5,7 +5,6 @@ namespace App\Providers;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\View;
 use App\Models\PlatformSetting;
-use App\Models\TenantAccount;
 
 class ViewComposerServiceProvider extends ServiceProvider
 {
@@ -28,6 +27,10 @@ class ViewComposerServiceProvider extends ServiceProvider
 
         View::composer('components.sidebar-menu', function ($view) {
             $this->composeSidebarMenu($view);
+        });
+
+        View::composer('pages.homepage', function ($view) {
+            $this->composeHomepage($view);
         });
 
         View::composer('components.language-selector', function ($view) {
@@ -146,5 +149,34 @@ class ViewComposerServiceProvider extends ServiceProvider
         }
 
         return in_array($permission, $userPermissions);
+    }
+
+    /**
+     * Compose homepage variables.
+     */
+    protected function composeHomepage($view): void
+    {
+        $user = auth()->user();
+        $activeAccountId = session('active_account_id');
+        $activeAccount = null;
+        $memberRole = null;
+        $teamMemberCount = 1;
+
+        if ($user && $activeAccountId) {
+            $activeAccount = $user->tenant_accounts()
+                ->where('tenant_accounts.id', $activeAccountId)
+                ->first();
+
+            if ($activeAccount) {
+                $memberRole = $activeAccount->pivot->account_membership_role ?? 'account_team_member';
+                $teamMemberCount = $activeAccount->members()->count();
+            }
+        }
+
+        $view->with([
+            'activeAccount' => $activeAccount,
+            'memberRole' => $memberRole,
+            'teamMemberCount' => $teamMemberCount,
+        ]);
     }
 }

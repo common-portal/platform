@@ -16,6 +16,16 @@ Route::get('/login-register', function () {
     return view('pages.login-register');
 })->name('login-register');
 
+// Language preference (available to guests too)
+Route::post('/language', function () {
+    $language_code = request('language_code');
+    if (auth()->check()) {
+        auth()->user()->update(['preferred_language_code' => $language_code]);
+    }
+    session(['preferred_language' => $language_code]);
+    return response()->json(['success' => true]);
+})->name('language.update');
+
 /*
 |--------------------------------------------------------------------------
 | Authenticated Routes
@@ -74,8 +84,11 @@ Route::middleware([
     });
 
     // Administrator Routes (platform admins only)
-    Route::prefix('administrator')->name('admin.')->middleware('can:admin')->group(function () {
+    Route::prefix('administrator')->name('admin.')->group(function () {
         Route::get('/', function () {
+            if (!auth()->user()->is_platform_administrator) {
+                abort(403);
+            }
             return view('pages.administrator.index');
         })->name('index');
         

@@ -24,7 +24,7 @@
 
 <script>
     function changeLanguage(languageCode) {
-        fetch('/member/language', {
+        fetch('/language', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
