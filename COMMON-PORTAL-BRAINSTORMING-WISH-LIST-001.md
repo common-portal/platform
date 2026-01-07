@@ -74,6 +74,13 @@ Collected feature requests and ideas for the multi-tenant payment portal.
 - **Results list** — rows of member details
 - **Member row actions** — view/edit member details, see which accounts they belong to
 
+#### Admin Member Editing
+Platform administrators can edit for any member:
+| Field | Action |
+|-------|--------|
+| **Login Email** | Change member's email address |
+| **Login Password** | Reset/set member's password (stored as bcrypt hash) |
+
 ### Accounts Tab
 - **Keyword search** — find accounts by name
 - **Results list** — rows of account details with "Manage →" button
