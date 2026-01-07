@@ -57,6 +57,49 @@ Collected feature requests and ideas for the multi-tenant payment portal.
 
 ---
 
+## Administrator Panel
+
+### Tabs (Core)
+| Tab | Purpose |
+|-----|---------|
+| **Stats** | Platform-wide statistics (total members, total accounts, etc.) |
+| **Members** | Search and manage all members across the platform |
+| **Accounts** | Search and manage all accounts, with impersonation capability |
+| **Global** | Global platform settings |
+
+*(Additional tabs like Sweep Fees, Audit are payment-specific — optional modules)*
+
+### Members Tab
+- **Keyword search** — find members by name, email
+- **Results list** — rows of member details
+- **Member row actions** — view/edit member details, see which accounts they belong to
+
+### Accounts Tab
+- **Keyword search** — find accounts by name
+- **Results list** — rows of account details with "Manage →" button
+- **Manage button** — triggers **Account Impersonation**
+
+### Account Impersonation Feature
+When an administrator clicks "Manage →" on an account:
+
+1. **Active Account switches** to the selected account
+2. **Admin View banner** appears at top (red): "ADMIN VIEW: Managing account | Exit Admin View"
+3. **Sidebar context changes** — admin can now access:
+   - Account settings
+   - Dashboard
+   - Team management
+   - Any other account-level menu items
+4. **Admin acts as account member** without being an actual member
+5. **Admin's own profile preserved** — still logged in as themselves
+6. **"Exit Admin View"** link returns to normal administrator context
+
+### Design Goals
+- Admins can troubleshoot/support any account without needing to be invited
+- Clear visual indicator (red banner) that admin is in impersonation mode
+- All actions logged for audit trail
+
+---
+
 ## Sidebar Menu Structure
 
 From top to bottom:
