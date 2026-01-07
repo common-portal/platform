@@ -35,6 +35,7 @@ Overview of the framework directory structure and purpose of each component.
 |-----------|---------|
 | `Member/` | Member-specific functionality — profile, auth, personal settings |
 | `Account/` | Account-level functionality — team, billing, branding settings |
+| `Administrator/` | Platform-wide admin — requires `is_platform_administrator = true` |
 | `Gateway/` | Public-facing endpoints for external integrations |
 | `Gateway/Api/` | Public API — incoming calls from **clients** |
 | `Gateway/Webhooks/` | Public webhooks — incoming calls from **partners** |

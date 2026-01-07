@@ -25,10 +25,16 @@ Collected feature requests and ideas for the multi-tenant payment portal.
 | `accounts` | Client organizations/companies |
 | `account_member` | Many-to-many pivot — members can share accounts |
 
+### Members Table — Key Columns
+| Column | Type | Purpose |
+|--------|------|---------|
+| `is_platform_administrator` | boolean | Grants access to platform-wide admin functions |
+
 ### Relationships
 - A **member** can belong to multiple **accounts**
 - An **account** can have multiple **members**
 - Members have roles within each account (owner, admin, user, etc.)
+- Platform administrators have global access regardless of account
 
 ---
 
@@ -39,9 +45,15 @@ Collected feature requests and ideas for the multi-tenant payment portal.
 |------|---------|
 | `/member` | Member-specific functionality (profile, auth, personal settings) |
 | `/account` | Account-level functionality (team, billing, branding settings) |
+| `/administrator` | Platform-wide admin functions (requires `is_platform_administrator = true`) |
 | `/gateway` | Public-facing endpoints for external integrations |
 | `/gateway/api` | Public API — incoming calls from **clients** |
 | `/gateway/webhooks` | Public webhooks — incoming calls from **partners** (payment processors, etc.) |
+
+### Administrator Access
+- Sidebar menu item "Administrator" only visible if member has `is_platform_administrator = true`
+- Platform admins can manage all accounts, members, and system settings
+- Separate from account-level admin roles
 
 ---
 
