@@ -66,8 +66,42 @@ Collected feature requests and ideas for the multi-tenant payment portal.
 | **Members** | Search and manage all members across the platform |
 | **Accounts** | Search and manage all accounts, with impersonation capability |
 | **Global** | Global platform settings |
+| **Platform Theme** | Define colors, styles, and select theme presets |
 
 *(Additional tabs like Sweep Fees, Audit are payment-specific — optional modules)*
+
+### Platform Theme Tab
+Full theming control for platform administrators.
+
+#### Theme Presets (~6 options)
+| Preset | Description |
+|--------|-------------|
+| Dark Mode | Dark backgrounds, light text |
+| Light Mode | Light backgrounds, dark text |
+| Grayscale | Neutral gray tones |
+| Dark Blue | Professional blue theme |
+| Light Orange | Warm orange accents |
+| Custom | Start from scratch |
+
+#### Customizable Elements
+| Element | CSS Variable |
+|---------|-------------|
+| Sidebar background | `--sidebar-bg` |
+| Sidebar text | `--sidebar-text` |
+| Sidebar hover | `--sidebar-hover` |
+| Primary color | `--brand-primary` |
+| Secondary color | `--brand-secondary` |
+| Success color | `--color-success` |
+| Warning color | `--color-warning` |
+| Error color | `--color-error` |
+| Link color | `--link-color` |
+| Button background | `--btn-bg` |
+| Button text | `--btn-text` |
+
+#### Workflow
+1. Select a preset theme as starting point
+2. Refine individual colors as needed
+3. Save → applies platform-wide
 
 ### Members Tab
 - **Keyword search** — find members by name, email
