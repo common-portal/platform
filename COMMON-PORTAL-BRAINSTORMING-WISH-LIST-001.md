@@ -103,6 +103,18 @@ Full theming control for platform administrators.
 2. Refine individual colors as needed
 3. Save → applies platform-wide
 
+#### Favicon & Meta (Social Sharing)
+| Upload | Purpose |
+|--------|---------|
+| **Favicon** | Browser tab icon, shared across all pages |
+| **Meta Card Image** | Large preview image for social media sharing (Open Graph) |
+| **Meta Description** | Default description text for link previews |
+
+These apply globally to all pages — when any link is shared on social media, the card preview shows:
+- Platform favicon
+- Uploaded card image
+- Defined description text
+
 ### Members Tab
 - **Keyword search** — find members by name, email
 - **Results list** — rows of member details
