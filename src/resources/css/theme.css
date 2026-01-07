@@ -1,0 +1,82 @@
+/*
+ * Common Portal — Theme CSS Variables
+ * 
+ * These variables are loaded from platform_settings and can be
+ * overridden per-tenant via account branding.
+ * 
+ * Reference: COMMON-PORTAL-BRAINSTORMING-WISH-LIST-003.md → Platform Theme Tab
+ */
+
+:root {
+    /* Sidebar */
+    --sidebar-background-color: #1a1a2e;
+    --sidebar-text-color: #e0e0e0;
+    --sidebar-hover-background-color: #2a2a4e;
+    --sidebar-width: 260px;
+    --sidebar-collapsed-width: 0px;
+
+    /* Brand Colors */
+    --brand-primary-color: #00ff88;
+    --brand-secondary-color: #0088ff;
+
+    /* Status Colors */
+    --status-success-color: #22c55e;
+    --status-warning-color: #eab308;
+    --status-error-color: #ef4444;
+
+    /* UI Elements */
+    --hyperlink-text-color: #3b82f6;
+    --button-background-color: #00ff88;
+    --button-text-color: #1a1a2e;
+    --button-hover-background-color: #00cc6a;
+
+    /* Main Content Area */
+    --content-background-color: #0f0f1a;
+    --content-text-color: #e0e0e0;
+    --card-background-color: #1a1a2e;
+    --card-border-color: #2a2a4e;
+
+    /* Header/Footer */
+    --header-background-color: #1a1a2e;
+    --footer-background-color: #1a1a2e;
+
+    /* Form Elements */
+    --input-background-color: #0f0f1a;
+    --input-border-color: #2a2a4e;
+    --input-text-color: #e0e0e0;
+    --input-focus-border-color: #00ff88;
+
+    /* Admin Banner (impersonation mode) */
+    --admin-banner-background-color: #dc2626;
+    --admin-banner-text-color: #ffffff;
+
+    /* Transitions */
+    --transition-speed: 0.2s;
+}
+
+/* Light Mode Preset (can be toggled via platform settings) */
+.theme-light {
+    --sidebar-background-color: #f8fafc;
+    --sidebar-text-color: #1e293b;
+    --sidebar-hover-background-color: #e2e8f0;
+
+    --brand-primary-color: #059669;
+    --brand-secondary-color: #0284c7;
+
+    --content-background-color: #ffffff;
+    --content-text-color: #1e293b;
+    --card-background-color: #f8fafc;
+    --card-border-color: #e2e8f0;
+
+    --header-background-color: #f8fafc;
+    --footer-background-color: #f8fafc;
+
+    --input-background-color: #ffffff;
+    --input-border-color: #e2e8f0;
+    --input-text-color: #1e293b;
+    --input-focus-border-color: #059669;
+
+    --button-background-color: #059669;
+    --button-text-color: #ffffff;
+    --button-hover-background-color: #047857;
+}
