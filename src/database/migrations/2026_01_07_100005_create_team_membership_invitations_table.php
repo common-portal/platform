@@ -17,6 +17,7 @@ return new class extends Migration
 
         Schema::create('team_membership_invitations', function (Blueprint $table) {
             $table->id();
+            $table->string('record_unique_identifier', 64)->unique();
             $table->foreignId('tenant_account_id')->constrained('tenant_accounts')->onDelete('cascade');
             $table->string('invited_email_address', 255);
             $table->foreignId('invited_by_member_id')->constrained('platform_members')->onDelete('cascade');

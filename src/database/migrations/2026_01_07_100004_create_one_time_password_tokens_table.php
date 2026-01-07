@@ -14,6 +14,7 @@ return new class extends Migration
     {
         Schema::create('one_time_password_tokens', function (Blueprint $table) {
             $table->id();
+            $table->string('record_unique_identifier', 64)->unique();
             $table->foreignId('platform_member_id')->constrained('platform_members')->onDelete('cascade');
             $table->string('hashed_verification_code', 255);
             $table->timestamp('token_expires_at_timestamp');

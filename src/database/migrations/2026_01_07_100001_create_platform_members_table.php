@@ -14,6 +14,7 @@ return new class extends Migration
     {
         Schema::create('platform_members', function (Blueprint $table) {
             $table->id();
+            $table->string('record_unique_identifier', 64)->unique();
             $table->string('login_email_address', 255)->unique();
             $table->string('hashed_login_password', 255)->nullable();
             $table->string('member_first_name', 255)->default('');

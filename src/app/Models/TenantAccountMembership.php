@@ -5,10 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use App\Traits\HasRecordUniqueIdentifier;
 
 class TenantAccountMembership extends Model
 {
-    use HasFactory;
+    use HasFactory, HasRecordUniqueIdentifier;
 
     protected $table = 'tenant_account_memberships';
 
@@ -16,6 +17,7 @@ class TenantAccountMembership extends Model
     const UPDATED_AT = 'updated_at_timestamp';
 
     protected $fillable = [
+        'record_unique_identifier',
         'tenant_account_id',
         'platform_member_id',
         'account_membership_role',

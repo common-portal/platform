@@ -5,10 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Cache;
+use App\Traits\HasRecordUniqueIdentifier;
 
 class PlatformSetting extends Model
 {
-    use HasFactory;
+    use HasFactory, HasRecordUniqueIdentifier;
 
     protected $table = 'platform_settings';
 
@@ -16,6 +17,7 @@ class PlatformSetting extends Model
     const UPDATED_AT = 'updated_at_timestamp';
 
     protected $fillable = [
+        'record_unique_identifier',
         'setting_key',
         'setting_value',
     ];

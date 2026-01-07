@@ -18,6 +18,7 @@ return new class extends Migration
 
         Schema::create('tenant_account_memberships', function (Blueprint $table) {
             $table->id();
+            $table->string('record_unique_identifier', 64)->unique();
             $table->foreignId('tenant_account_id')->constrained('tenant_accounts')->onDelete('cascade');
             $table->foreignId('platform_member_id')->constrained('platform_members')->onDelete('cascade');
             $table->jsonb('granted_permission_slugs')->default('[]');

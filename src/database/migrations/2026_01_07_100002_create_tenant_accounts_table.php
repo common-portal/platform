@@ -17,6 +17,7 @@ return new class extends Migration
 
         Schema::create('tenant_accounts', function (Blueprint $table) {
             $table->id();
+            $table->string('record_unique_identifier', 64)->unique();
             $table->string('account_display_name', 255);
             $table->string('whitelabel_subdomain_slug', 100)->nullable()->unique();
             $table->string('branding_logo_image_path', 500)->nullable();

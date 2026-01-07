@@ -6,10 +6,11 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use App\Traits\HasRecordUniqueIdentifier;
 
 class TenantAccount extends Model
 {
-    use HasFactory;
+    use HasFactory, HasRecordUniqueIdentifier;
 
     protected $table = 'tenant_accounts';
 
@@ -17,6 +18,7 @@ class TenantAccount extends Model
     const UPDATED_AT = 'updated_at_timestamp';
 
     protected $fillable = [
+        'record_unique_identifier',
         'account_display_name',
         'account_type',
         'whitelabel_subdomain_slug',

@@ -5,10 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use App\Traits\HasRecordUniqueIdentifier;
 
 class TeamMembershipInvitation extends Model
 {
-    use HasFactory;
+    use HasFactory, HasRecordUniqueIdentifier;
 
     protected $table = 'team_membership_invitations';
 
@@ -16,6 +17,7 @@ class TeamMembershipInvitation extends Model
     const UPDATED_AT = 'updated_at_timestamp';
 
     protected $fillable = [
+        'record_unique_identifier',
         'tenant_account_id',
         'invited_email_address',
         'invited_by_member_id',

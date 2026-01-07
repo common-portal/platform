@@ -4,10 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\HasRecordUniqueIdentifier;
 
 class CachedTextTranslation extends Model
 {
-    use HasFactory;
+    use HasFactory, HasRecordUniqueIdentifier;
 
     protected $table = 'cached_text_translations';
 
@@ -15,6 +16,7 @@ class CachedTextTranslation extends Model
     const UPDATED_AT = null;
 
     protected $fillable = [
+        'record_unique_identifier',
         'translation_hash',
         'original_english_text',
         'target_language_iso3',

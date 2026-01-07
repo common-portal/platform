@@ -13,6 +13,7 @@ return new class extends Migration
     {
         Schema::create('platform_settings', function (Blueprint $table) {
             $table->id();
+            $table->string('record_unique_identifier', 64)->unique();
             $table->string('setting_key', 255)->unique();
             $table->text('setting_value');
             $table->timestamp('created_at_timestamp')->useCurrent();

@@ -5,10 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Crypt;
+use App\Traits\HasRecordUniqueIdentifier;
 
 class ExternalServiceApiCredential extends Model
 {
-    use HasFactory;
+    use HasFactory, HasRecordUniqueIdentifier;
 
     protected $table = 'external_service_api_credentials';
 
@@ -16,6 +17,7 @@ class ExternalServiceApiCredential extends Model
     const UPDATED_AT = 'updated_at_timestamp';
 
     protected $fillable = [
+        'record_unique_identifier',
         'external_service_name',
         'encrypted_api_key',
         'is_currently_active_service',

@@ -14,6 +14,7 @@ return new class extends Migration
     {
         Schema::create('cached_text_translations', function (Blueprint $table) {
             $table->id();
+            $table->string('record_unique_identifier', 64)->unique();
             $table->string('translation_hash', 64)->unique();
             $table->text('original_english_text');
             $table->string('target_language_iso3', 3);

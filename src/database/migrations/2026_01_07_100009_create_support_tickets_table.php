@@ -17,6 +17,7 @@ return new class extends Migration
 
         Schema::create('support_tickets', function (Blueprint $table) {
             $table->id();
+            $table->string('record_unique_identifier', 64)->unique();
             $table->foreignId('tenant_account_id')->constrained('tenant_accounts')->onDelete('cascade');
             $table->foreignId('created_by_member_id')->constrained('platform_members')->onDelete('cascade');
             $table->string('ticket_subject_line', 500);

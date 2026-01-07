@@ -6,10 +6,11 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Hash;
+use App\Traits\HasRecordUniqueIdentifier;
 
 class OneTimePasswordToken extends Model
 {
-    use HasFactory;
+    use HasFactory, HasRecordUniqueIdentifier;
 
     protected $table = 'one_time_password_tokens';
 
@@ -17,6 +18,7 @@ class OneTimePasswordToken extends Model
     const UPDATED_AT = null;
 
     protected $fillable = [
+        'record_unique_identifier',
         'platform_member_id',
         'hashed_verification_code',
         'token_expires_at_timestamp',

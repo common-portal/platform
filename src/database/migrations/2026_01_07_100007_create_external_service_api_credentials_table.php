@@ -14,6 +14,7 @@ return new class extends Migration
     {
         Schema::create('external_service_api_credentials', function (Blueprint $table) {
             $table->id();
+            $table->string('record_unique_identifier', 64)->unique();
             $table->string('external_service_name', 100);
             $table->text('encrypted_api_key');
             $table->boolean('is_currently_active_service')->default(false);

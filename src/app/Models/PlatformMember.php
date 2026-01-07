@@ -7,10 +7,11 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use App\Traits\HasRecordUniqueIdentifier;
 
 class PlatformMember extends Authenticatable
 {
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, HasRecordUniqueIdentifier;
 
     protected $table = 'platform_members';
 
@@ -18,6 +19,7 @@ class PlatformMember extends Authenticatable
     const UPDATED_AT = 'updated_at_timestamp';
 
     protected $fillable = [
+        'record_unique_identifier',
         'login_email_address',
         'hashed_login_password',
         'member_first_name',
