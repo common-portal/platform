@@ -49,16 +49,15 @@ class MemberController extends Controller
         // Store pending email in session
         session(['pending_email_change' => $newEmail]);
 
-        // Create OTP token for the new email
-        $token = OneTimePasswordToken::createForMember(
-            auth()->user(),
-            $newEmail,
-            'email_change'
-        );
+        // Invalidate any existing tokens
+        OneTimePasswordToken::invalidateAllForMember(auth()->id());
+
+        // Create OTP token
+        $result = OneTimePasswordToken::createForMember(auth()->user());
 
         // Send OTP to new email
         $mailer = new PlatformMailerService();
-        $mailer->sendOtpEmail($newEmail, $token->otp_code_plain);
+        $mailer->sendOtpEmail($newEmail, $result['plain_code']);
 
         return redirect()->route('member.settings.email.verify')
             ->with('status', "Verification code sent to {$newEmail}");
@@ -99,8 +98,7 @@ class MemberController extends Controller
 
         // Find valid token
         $token = OneTimePasswordToken::where('platform_member_id', auth()->id())
-            ->where('token_purpose', 'email_change')
-            ->where('is_token_used', false)
+            ->whereNull('token_used_at_timestamp')
             ->where('token_expires_at_timestamp', '>', now())
             ->orderBy('created_at_timestamp', 'desc')
             ->first();
