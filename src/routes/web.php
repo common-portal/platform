@@ -49,7 +49,6 @@ Route::post('/logout', [OtpAuthController::class, 'logout'])->name('logout')->mi
 Route::middleware([
     'auth:sanctum',
     config('jetstream.auth_session'),
-    'verified',
 ])->group(function () {
     
     // Dashboard (redirect to homepage for now)
@@ -76,6 +75,16 @@ Route::middleware([
         })->name('create');
         
         Route::get('/switch/{account_id}', function ($account_id) {
+            // Verify user has active membership in this account
+            $hasAccess = auth()->user()->tenant_accounts()
+                ->where('tenant_accounts.id', $account_id)
+                ->wherePivot('membership_status', 'membership_active')
+                ->exists();
+            
+            if (!$hasAccess) {
+                abort(403, 'You do not have access to this account.');
+            }
+            
             session(['active_account_id' => $account_id]);
             return redirect()->back();
         })->name('switch');
@@ -86,15 +95,6 @@ Route::middleware([
         Route::get('/settings', function () {
             return view('pages.member.settings');
         })->name('settings');
-        
-        Route::post('/language', function () {
-            $language_code = request('language_code');
-            if (auth()->check()) {
-                auth()->user()->update(['preferred_language_code' => $language_code]);
-            }
-            session(['preferred_language' => $language_code]);
-            return response()->json(['success' => true]);
-        })->name('language');
     });
 
     // Administrator Routes (platform admins only)
