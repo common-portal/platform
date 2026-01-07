@@ -74,6 +74,20 @@ CREATE INDEX idx_platform_members_is_admin
 | `created_at_timestamp` | TIMESTAMP | No | NOW | Record creation |
 | `updated_at_timestamp` | TIMESTAMP | No | NOW | Last update |
 
+### Relationships Summary
+- A **platform_member** can belong to multiple **tenant_accounts** (via tenant_account_memberships)
+- A **tenant_account** can have multiple **platform_members** (via tenant_account_memberships)
+- Each platform_member has one **personal_individual** account (auto-created on registration)
+- Platform members can create/join multiple **business_organization** accounts
+- **is_platform_administrator = true** bypasses all account-level permissions
+
+### Personal Account Relationship (Important)
+The 1:1 relationship between a member and their personal account is **implicit**, not enforced by FK:
+- On registration, system creates `tenant_accounts` row with `account_type = 'personal_individual'`
+- Then creates `tenant_account_memberships` row with `account_membership_role = 'account_owner'`
+- Personal account is identified by: `account_type = 'personal_individual'` AND member is `account_owner`
+- This design allows the standard membership table to handle all relationships uniformly
+
 ---
 
 ## `tenant_accounts`
@@ -158,8 +172,7 @@ CREATE TABLE tenant_account_memberships (
     account_membership_role                 account_membership_role_enum NOT NULL DEFAULT 'account_team_member',
     granted_permission_slugs                JSONB NOT NULL DEFAULT '[]',
     membership_status                       membership_status_enum NOT NULL DEFAULT 'awaiting_acceptance',
-    invitation_sent_at_timestamp            TIMESTAMP NULL,
-    invitation_accepted_at_timestamp        TIMESTAMP NULL,
+    membership_accepted_at_timestamp        TIMESTAMP NULL,
     membership_revoked_at_timestamp         TIMESTAMP NULL,
     created_at_timestamp                    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at_timestamp                    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -188,8 +201,7 @@ CREATE INDEX idx_memberships_active
 | `account_membership_role` | ENUM | No | 'account_team_member' | Role in account |
 | `granted_permission_slugs` | JSONB | No | '[]' | Array of permission slugs |
 | `membership_status` | ENUM | No | 'awaiting_acceptance' | Current status |
-| `invitation_sent_at_timestamp` | TIMESTAMP | Yes | NULL | When invitation sent |
-| `invitation_accepted_at_timestamp` | TIMESTAMP | Yes | NULL | When accepted |
+| `membership_accepted_at_timestamp` | TIMESTAMP | Yes | NULL | When member accepted invitation |
 | `membership_revoked_at_timestamp` | TIMESTAMP | Yes | NULL | When revoked |
 | `created_at_timestamp` | TIMESTAMP | No | NOW | Record creation |
 | `updated_at_timestamp` | TIMESTAMP | No | NOW | Last update |
@@ -289,6 +301,7 @@ CREATE TABLE team_membership_invitations (
     invited_email_address                   VARCHAR(255) NOT NULL,
     invited_by_member_id                    BIGINT NOT NULL REFERENCES platform_members(id) ON DELETE CASCADE,
     invitation_status                       invitation_status_enum NOT NULL DEFAULT 'invitation_pending',
+    invitation_resend_count                 INTEGER NOT NULL DEFAULT 0,
     invitation_last_sent_at_timestamp       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     invitation_accepted_at_timestamp        TIMESTAMP NULL,
     created_at_timestamp                    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -314,6 +327,7 @@ CREATE INDEX idx_invitations_pending
 | `invited_email_address` | VARCHAR(255) | No | - | Email being invited |
 | `invited_by_member_id` | BIGINT | No | - | FK → platform_members (who sent) |
 | `invitation_status` | ENUM | No | 'invitation_pending' | Current status |
+| `invitation_resend_count` | INTEGER | No | 0 | Times invitation was resent |
 | `invitation_last_sent_at_timestamp` | TIMESTAMP | No | NOW | Last time email sent |
 | `invitation_accepted_at_timestamp` | TIMESTAMP | Yes | NULL | When accepted |
 | `created_at_timestamp` | TIMESTAMP | No | NOW | Record creation |
@@ -367,7 +381,7 @@ CREATE UNIQUE INDEX idx_platform_settings_key
 INSERT INTO platform_settings (setting_key, setting_value) VALUES
 ('platform_display_name', 'Common Portal'),
 ('active_theme_preset_name', 'dark_mode'),
-('sidebar_menu_item_visibility_toggles', '{"account": true, "dashboard": true, "team": true, "developer": false, "support": false}'),
+('sidebar_menu_item_visibility_toggles', '{"can_access_account_settings": true, "can_access_account_dashboard": true, "can_manage_team_members": true, "can_access_developer_tools": false, "can_access_support_tickets": false}'),
 ('custom_theme_color_overrides', '{"--sidebar-background-color": "#1a1a2e", "--brand-primary-color": "#00ff88"}');
 ```
 
@@ -422,6 +436,7 @@ CREATE TABLE support_tickets (
     tenant_account_id               BIGINT NOT NULL REFERENCES tenant_accounts(id) ON DELETE CASCADE,
     created_by_member_id            BIGINT NOT NULL REFERENCES platform_members(id) ON DELETE CASCADE,
     ticket_subject_line             VARCHAR(500) NOT NULL,
+    ticket_description_body         TEXT NOT NULL,
     ticket_status                   ticket_status_enum NOT NULL DEFAULT 'ticket_open',
     assigned_to_administrator_id    BIGINT NULL REFERENCES platform_members(id) ON DELETE SET NULL,
     created_at_timestamp            TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -447,6 +462,7 @@ CREATE INDEX idx_tickets_open
 | `tenant_account_id` | BIGINT | No | - | FK → tenant_accounts |
 | `created_by_member_id` | BIGINT | No | - | FK → platform_members (creator) |
 | `ticket_subject_line` | VARCHAR(500) | No | - | Ticket subject |
+| `ticket_description_body` | TEXT | No | - | Full ticket description/body |
 | `ticket_status` | ENUM | No | 'ticket_open' | Current status |
 | `assigned_to_administrator_id` | BIGINT | Yes | NULL | FK → platform_members (admin) |
 | `created_at_timestamp` | TIMESTAMP | No | NOW | Record creation |
