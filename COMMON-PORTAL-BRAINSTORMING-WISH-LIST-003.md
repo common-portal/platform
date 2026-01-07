@@ -732,6 +732,10 @@ This is an **open-source project** intended to be:
 - PostgreSQL (managed or local Docker)
 - Migrations in `src/database/migrations/`
 - Soft deletes via `is_soft_deleted` flag (not Laravel's SoftDeletes trait)
+- **Dual-ID Schema:** Every table has `id` (BIGSERIAL) + `record_unique_identifier` (VARCHAR(64) UNIQUE)
+  - Use `id` for internal FK relationships
+  - Use `record_unique_identifier` for APIs, URLs, external integrations
+  - Auto-generated via `HasRecordUniqueIdentifier` trait
 
 ---
 

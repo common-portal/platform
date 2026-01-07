@@ -2,7 +2,38 @@
 
 PostgreSQL database schema for the multi-tenant portal platform.
 
-> **See also:** `COMMON-PORTAL-BRAINSTORMING-WISH-LIST-002.md` for feature context and business logic.
+> **See also:** `COMMON-PORTAL-BRAINSTORMING-WISH-LIST-003.md` for feature context and business logic.
+
+---
+
+## 🔴 Dual-ID Schema Pattern (Framework Standard)
+
+**Every table has TWO identifiers:**
+
+| Column | Type | Purpose |
+|--------|------|---------|
+| `id` | BIGSERIAL | Internal primary key for FK relationships, fast joins |
+| `record_unique_identifier` | VARCHAR(64) UNIQUE | External-safe identifier for APIs, URLs, data portability |
+
+### Why Both?
+| Use Case | Which ID |
+|----------|----------|
+| Foreign key references | `id` (auto-increment) |
+| API responses / URLs | `record_unique_identifier` (hash) |
+| Data migrations | `record_unique_identifier` survives ID changes |
+| External integrations | `record_unique_identifier` (opaque, no enumeration) |
+
+### Auto-Generation
+The `record_unique_identifier` is auto-generated on model creation via the `HasRecordUniqueIdentifier` trait:
+```php
+// Generated as: md5(random_int + microtime + uniqid)
+$model->record_unique_identifier = md5(random_int(100000, 999999) . microtime(true) . uniqid('', true));
+```
+
+### Lookup Helper
+```php
+$member = PlatformMember::findByUniqueIdentifier('a8f3b2c1d4e5f6...');
+```
 
 ---
 
@@ -39,6 +70,7 @@ Individual users who can log in to the platform.
 ```sql
 CREATE TABLE platform_members (
     id                              BIGSERIAL PRIMARY KEY,
+    record_unique_identifier        VARCHAR(64) NOT NULL UNIQUE,
     login_email_address             VARCHAR(255) NOT NULL UNIQUE,
     hashed_login_password           VARCHAR(255) NULL,
     member_first_name               VARCHAR(255) NOT NULL DEFAULT '',
@@ -64,6 +96,7 @@ CREATE INDEX idx_platform_members_is_admin
 | Column | Type | Nullable | Default | Description |
 |--------|------|----------|---------|-------------|
 | `id` | BIGSERIAL | No | auto | Primary key |
+| `record_unique_identifier` | VARCHAR(64) | No | auto | External-safe unique hash |
 | `login_email_address` | VARCHAR(255) | No | - | Unique login email |
 | `hashed_login_password` | VARCHAR(255) | Yes | NULL | bcrypt hash (optional — OTP is primary auth) |
 | `member_first_name` | VARCHAR(255) | No | '' | First name(s) |
@@ -103,6 +136,7 @@ CREATE TYPE account_type_enum AS ENUM (
 
 CREATE TABLE tenant_accounts (
     id                              BIGSERIAL PRIMARY KEY,
+    record_unique_identifier        VARCHAR(64) NOT NULL UNIQUE,
     account_display_name            VARCHAR(255) NOT NULL,
     account_type                    account_type_enum NOT NULL DEFAULT 'personal_individual',
     whitelabel_subdomain_slug       VARCHAR(100) NULL UNIQUE,
@@ -129,6 +163,7 @@ CREATE INDEX idx_tenant_accounts_not_deleted
 | Column | Type | Nullable | Default | Description |
 |--------|------|----------|---------|-------------|
 | `id` | BIGSERIAL | No | auto | Primary key |
+| `record_unique_identifier` | VARCHAR(64) | No | auto | External-safe unique hash |
 | `account_display_name` | VARCHAR(255) | No | - | Display name |
 | `account_type` | ENUM | No | 'personal_individual' | Account type |
 | `whitelabel_subdomain_slug` | VARCHAR(100) | Yes | NULL | Custom subdomain |
@@ -168,6 +203,7 @@ CREATE TYPE membership_status_enum AS ENUM (
 
 CREATE TABLE tenant_account_memberships (
     id                                      BIGSERIAL PRIMARY KEY,
+    record_unique_identifier                VARCHAR(64) NOT NULL UNIQUE,
     tenant_account_id                       BIGINT NOT NULL REFERENCES tenant_accounts(id) ON DELETE CASCADE,
     platform_member_id                      BIGINT NOT NULL REFERENCES platform_members(id) ON DELETE CASCADE,
     account_membership_role                 account_membership_role_enum NOT NULL DEFAULT 'account_team_member',
@@ -197,6 +233,7 @@ CREATE INDEX idx_memberships_active
 | Column | Type | Nullable | Default | Description |
 |--------|------|----------|---------|-------------|
 | `id` | BIGSERIAL | No | auto | Primary key |
+| `record_unique_identifier` | VARCHAR(64) | No | auto | External-safe unique hash |
 | `tenant_account_id` | BIGINT | No | - | FK → tenant_accounts |
 | `platform_member_id` | BIGINT | No | - | FK → platform_members |
 | `account_membership_role` | ENUM | No | 'account_team_member' | Role in account |
@@ -250,6 +287,7 @@ OTP tokens for passwordless authentication.
 ```sql
 CREATE TABLE one_time_password_tokens (
     id                              BIGSERIAL PRIMARY KEY,
+    record_unique_identifier        VARCHAR(64) NOT NULL UNIQUE,
     platform_member_id              BIGINT NOT NULL REFERENCES platform_members(id) ON DELETE CASCADE,
     hashed_verification_code        VARCHAR(255) NOT NULL,
     token_expires_at_timestamp      TIMESTAMP NOT NULL,
@@ -270,6 +308,7 @@ CREATE INDEX idx_otp_valid
 | Column | Type | Nullable | Default | Description |
 |--------|------|----------|---------|-------------|
 | `id` | BIGSERIAL | No | auto | Primary key |
+| `record_unique_identifier` | VARCHAR(64) | No | auto | External-safe unique hash |
 | `platform_member_id` | BIGINT | No | - | FK → platform_members |
 | `hashed_verification_code` | VARCHAR(255) | No | - | bcrypt hash of 4-6 digit PIN |
 | `token_expires_at_timestamp` | TIMESTAMP | No | - | 72 hours from creation |
@@ -298,6 +337,7 @@ CREATE TYPE invitation_status_enum AS ENUM (
 
 CREATE TABLE team_membership_invitations (
     id                                      BIGSERIAL PRIMARY KEY,
+    record_unique_identifier                VARCHAR(64) NOT NULL UNIQUE,
     tenant_account_id                       BIGINT NOT NULL REFERENCES tenant_accounts(id) ON DELETE CASCADE,
     invited_email_address                   VARCHAR(255) NOT NULL,
     invited_by_member_id                    BIGINT NOT NULL REFERENCES platform_members(id) ON DELETE CASCADE,
@@ -324,6 +364,7 @@ CREATE INDEX idx_invitations_pending
 | Column | Type | Nullable | Default | Description |
 |--------|------|----------|---------|-------------|
 | `id` | BIGSERIAL | No | auto | Primary key |
+| `record_unique_identifier` | VARCHAR(64) | No | auto | External-safe unique hash |
 | `tenant_account_id` | BIGINT | No | - | FK → tenant_accounts |
 | `invited_email_address` | VARCHAR(255) | No | - | Email being invited |
 | `invited_by_member_id` | BIGINT | No | - | FK → platform_members (who sent) |
@@ -343,6 +384,7 @@ Key-value store for global platform configuration.
 ```sql
 CREATE TABLE platform_settings (
     id                              BIGSERIAL PRIMARY KEY,
+    record_unique_identifier        VARCHAR(64) NOT NULL UNIQUE,
     setting_key                     VARCHAR(255) NOT NULL UNIQUE,
     setting_value                   TEXT NOT NULL,
     created_at_timestamp            TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -358,6 +400,7 @@ CREATE UNIQUE INDEX idx_platform_settings_key
 | Column | Type | Nullable | Default | Description |
 |--------|------|----------|---------|-------------|
 | `id` | BIGSERIAL | No | auto | Primary key |
+| `record_unique_identifier` | VARCHAR(64) | No | auto | External-safe unique hash |
 | `setting_key` | VARCHAR(255) | No | - | Unique setting key |
 | `setting_value` | TEXT | No | - | Value (JSON for complex) |
 | `created_at_timestamp` | TIMESTAMP | No | NOW | Record creation |
@@ -395,6 +438,7 @@ API keys for external services (translation, etc.).
 ```sql
 CREATE TABLE external_service_api_credentials (
     id                              BIGSERIAL PRIMARY KEY,
+    record_unique_identifier        VARCHAR(64) NOT NULL UNIQUE,
     external_service_name           VARCHAR(100) NOT NULL,
     encrypted_api_key               TEXT NOT NULL,
     is_currently_active_service     BOOLEAN NOT NULL DEFAULT FALSE,
@@ -412,6 +456,7 @@ CREATE INDEX idx_api_credentials_active
 | Column | Type | Nullable | Default | Description |
 |--------|------|----------|---------|-------------|
 | `id` | BIGSERIAL | No | auto | Primary key |
+| `record_unique_identifier` | VARCHAR(64) | No | auto | External-safe unique hash |
 | `external_service_name` | VARCHAR(100) | No | - | e.g., "openai", "deepl" |
 | `encrypted_api_key` | TEXT | No | - | Encrypted API key |
 | `is_currently_active_service` | BOOLEAN | No | FALSE | Which service to use |
@@ -429,6 +474,7 @@ Translation cache for the translator service. Stores OpenAI translations to avoi
 ```sql
 CREATE TABLE cached_text_translations (
     id                              BIGSERIAL PRIMARY KEY,
+    record_unique_identifier        VARCHAR(64) NOT NULL UNIQUE,
     translation_hash                VARCHAR(64) NOT NULL UNIQUE,
     original_english_text           TEXT NOT NULL,
     target_language_iso3            VARCHAR(3) NOT NULL,
@@ -448,6 +494,7 @@ CREATE UNIQUE INDEX idx_translations_unique
 | Column | Type | Nullable | Default | Description |
 |--------|------|----------|---------|-------------|
 | `id` | BIGSERIAL | No | auto | Primary key |
+| `record_unique_identifier` | VARCHAR(64) | No | auto | External-safe unique hash |
 | `translation_hash` | VARCHAR(64) | No | - | Unique hash for deduplication |
 | `original_english_text` | TEXT | No | - | Source English text |
 | `target_language_iso3` | VARCHAR(3) | No | - | ISO 639-3 language code |
@@ -476,6 +523,7 @@ CREATE TYPE ticket_status_enum AS ENUM (
 
 CREATE TABLE support_tickets (
     id                              BIGSERIAL PRIMARY KEY,
+    record_unique_identifier        VARCHAR(64) NOT NULL UNIQUE,
     tenant_account_id               BIGINT NOT NULL REFERENCES tenant_accounts(id) ON DELETE CASCADE,
     created_by_member_id            BIGINT NOT NULL REFERENCES platform_members(id) ON DELETE CASCADE,
     ticket_subject_line             VARCHAR(500) NOT NULL,
@@ -502,6 +550,7 @@ CREATE INDEX idx_tickets_open
 | Column | Type | Nullable | Default | Description |
 |--------|------|----------|---------|-------------|
 | `id` | BIGSERIAL | No | auto | Primary key |
+| `record_unique_identifier` | VARCHAR(64) | No | auto | External-safe unique hash |
 | `tenant_account_id` | BIGINT | No | - | FK → tenant_accounts |
 | `created_by_member_id` | BIGINT | No | - | FK → platform_members (creator) |
 | `ticket_subject_line` | VARCHAR(500) | No | - | Ticket subject |
