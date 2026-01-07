@@ -138,6 +138,12 @@ Full theming control for platform administrators.
 2. Refine individual colors as needed
 3. Save → applies platform-wide
 
+#### Platform Branding
+| Setting | Purpose |
+|---------|---------|
+| **Platform Logo** | Logo image in upper-left corner of sidebar |
+| **Platform Name** | Brand name text displayed next to logo (e.g., "TheCashier.com") |
+
 #### Favicon & Meta (Social Sharing)
 | Upload | Purpose |
 |--------|---------|
