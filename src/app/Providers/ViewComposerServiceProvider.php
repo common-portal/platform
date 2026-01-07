@@ -122,6 +122,8 @@ class ViewComposerServiceProvider extends ServiceProvider
             'canManageTeamMembers' => $this->canAccessMenuItem('can_manage_team_members', $membership, $menuToggles, $user),
             'canAccessDeveloperTools' => $this->canAccessMenuItem('can_access_developer_tools', $membership, $menuToggles, $user),
             'canAccessSupportTickets' => $this->canAccessMenuItem('can_access_support_tickets', $membership, $menuToggles, $user),
+            'canViewTransactionHistory' => $this->canAccessMenuItem('can_view_transaction_history', $membership, $menuToggles, $user),
+            'canViewBillingHistory' => $this->canAccessMenuItem('can_view_billing_history', $membership, $menuToggles, $user),
         ]);
     }
 

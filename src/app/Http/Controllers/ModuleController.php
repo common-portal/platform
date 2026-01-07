@@ -3,15 +3,44 @@
 namespace App\Http\Controllers;
 
 use App\Models\SupportTicket;
+use App\Models\TenantAccountMembership;
 use Illuminate\Http\Request;
 
 class ModuleController extends Controller
 {
     /**
+     * Check if user has permission for a module.
+     */
+    protected function checkModulePermission(string $permission): bool
+    {
+        $user = auth()->user();
+        $activeAccountId = session('active_account_id');
+
+        // Platform admins bypass all checks
+        if ($user->is_platform_administrator) {
+            return true;
+        }
+
+        if (!$activeAccountId) {
+            return false;
+        }
+
+        $membership = $user->account_memberships()
+            ->where('tenant_account_id', $activeAccountId)
+            ->first();
+
+        return $membership && $membership->hasPermission($permission);
+    }
+
+    /**
      * Developer Tools page - API docs and keys.
      */
     public function developer()
     {
+        if (!$this->checkModulePermission('can_access_developer_tools')) {
+            abort(403, 'You do not have permission to access Developer Tools.');
+        }
+
         $activeAccountId = session('active_account_id');
         
         if (!$activeAccountId) {
@@ -37,6 +66,10 @@ class ModuleController extends Controller
      */
     public function supportIndex()
     {
+        if (!$this->checkModulePermission('can_access_support_tickets')) {
+            abort(403, 'You do not have permission to access Support Tickets.');
+        }
+
         $activeAccountId = session('active_account_id');
         
         if (!$activeAccountId) {
@@ -57,6 +90,10 @@ class ModuleController extends Controller
      */
     public function supportCreate()
     {
+        if (!$this->checkModulePermission('can_access_support_tickets')) {
+            abort(403, 'You do not have permission to access Support Tickets.');
+        }
+
         return view('pages.modules.support-create');
     }
 
@@ -65,6 +102,10 @@ class ModuleController extends Controller
      */
     public function supportStore(Request $request)
     {
+        if (!$this->checkModulePermission('can_access_support_tickets')) {
+            abort(403, 'You do not have permission to access Support Tickets.');
+        }
+
         $request->validate([
             'ticket_subject_line' => 'required|string|max:500',
             'ticket_description_body' => 'required|string|max:10000',
@@ -93,6 +134,10 @@ class ModuleController extends Controller
      */
     public function supportShow($ticket_id)
     {
+        if (!$this->checkModulePermission('can_access_support_tickets')) {
+            abort(403, 'You do not have permission to access Support Tickets.');
+        }
+
         $activeAccountId = session('active_account_id');
         
         $ticket = SupportTicket::where('id', $ticket_id)
@@ -110,6 +155,10 @@ class ModuleController extends Controller
      */
     public function transactions()
     {
+        if (!$this->checkModulePermission('can_view_transaction_history')) {
+            abort(403, 'You do not have permission to view Transaction History.');
+        }
+
         $activeAccountId = session('active_account_id');
         
         if (!$activeAccountId) {
@@ -129,6 +178,10 @@ class ModuleController extends Controller
      */
     public function billing()
     {
+        if (!$this->checkModulePermission('can_view_billing_history')) {
+            abort(403, 'You do not have permission to view Billing History.');
+        }
+
         $activeAccountId = session('active_account_id');
         
         if (!$activeAccountId) {
