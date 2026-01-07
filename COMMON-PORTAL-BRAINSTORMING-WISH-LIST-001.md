@@ -185,8 +185,9 @@ Permissions tied to sidebar menu items. Easy to extend.
 ### Disable Team Member
 - Anyone with `team` permission can disable other members
 - **Cannot disable yourself** — must be done by another team member
-- Disabled members lose access to that account
-- Can be re-enabled later by team admin
+- **What "disabled" means:** Account no longer appears in member's shared accounts dropdown
+- Member still exists, just can't select/access that account
+- Can be re-enabled later by team admin → account reappears in dropdown
 
 ### Per-Member Per-Account Permissions
 | Scenario | Description |
