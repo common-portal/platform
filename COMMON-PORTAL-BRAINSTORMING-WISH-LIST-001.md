@@ -91,9 +91,14 @@ Platform administrator can enable/disable sidebar menu items globally.
 - API keys management
 
 #### Support (when enabled)
-- Create support tickets
-- View ticket history
-- Track ticket status
+Role-based access within the Support menu item:
+
+| Role | Access |
+|------|--------|
+| **Regular Member** | Create tickets, view own ticket history, track status |
+| **Platform Administrator** | All above + manage ALL tickets (reply, close, assign) |
+
+No separate admin tab — platform admins manage tickets directly in Support sidebar item.
 
 #### How It Works
 - Checkbox toggles menu item on/off for entire platform
