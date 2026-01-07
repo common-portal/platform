@@ -4,7 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\TenantAccountMembership;
 use App\Models\TeamMembershipInvitation;
+use App\Models\PlatformMember;
+use App\Services\PlatformMailerService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class TeamController extends Controller
 {
@@ -189,7 +192,7 @@ class TeamController extends Controller
     }
 
     /**
-     * Show invite form (placeholder for Phase 6).
+     * Show invite form.
      */
     public function showInvite()
     {
@@ -198,6 +201,11 @@ class TeamController extends Controller
         if (!$activeAccountId) {
             return redirect()->route('home')->withErrors(['account' => 'No active account selected.']);
         }
+
+        $account = auth()->user()->tenant_accounts()
+            ->where('tenant_accounts.id', $activeAccountId)
+            ->where('is_soft_deleted', false)
+            ->first();
 
         $currentMembership = auth()->user()->account_memberships()
             ->where('tenant_account_id', $activeAccountId)
@@ -208,17 +216,176 @@ class TeamController extends Controller
         }
 
         return view('pages.account.team-invite', [
+            'account' => $account,
             'allPermissions' => TenantAccountMembership::allPermissionSlugs(),
             'defaultPermissions' => TenantAccountMembership::defaultTeamMemberPermissions(),
         ]);
     }
 
     /**
-     * Send invitation (placeholder for Phase 6).
+     * Send invitation email.
      */
     public function sendInvite(Request $request)
     {
-        // Full implementation in Phase 6
-        return back()->with('status', 'Invitation functionality coming in Phase 6.');
+        $request->validate([
+            'email' => 'required|email|max:255',
+            'permissions' => 'array',
+            'permissions.*' => 'string|in:' . implode(',', TenantAccountMembership::allPermissionSlugs()),
+        ]);
+
+        $activeAccountId = session('active_account_id');
+        
+        if (!$activeAccountId) {
+            return back()->withErrors(['account' => 'No active account selected.']);
+        }
+
+        $currentMembership = auth()->user()->account_memberships()
+            ->where('tenant_account_id', $activeAccountId)
+            ->first();
+
+        if (!$currentMembership || !$currentMembership->canManageTeam()) {
+            return back()->withErrors(['permission' => 'You do not have permission to invite team members.']);
+        }
+
+        $email = strtolower(trim($request->email));
+
+        // Check if already a member
+        $existingMember = PlatformMember::where('login_email_address', $email)->first();
+        if ($existingMember) {
+            $existingMembership = TenantAccountMembership::where('tenant_account_id', $activeAccountId)
+                ->where('platform_member_id', $existingMember->id)
+                ->first();
+            
+            if ($existingMembership) {
+                return back()->withErrors(['email' => 'This person is already a member of this account.']);
+            }
+        }
+
+        // Check if pending invitation exists
+        $existingInvitation = TeamMembershipInvitation::where('tenant_account_id', $activeAccountId)
+            ->where('invited_email_address', $email)
+            ->where('invitation_status', 'invitation_pending')
+            ->first();
+
+        if ($existingInvitation) {
+            return back()->withErrors(['email' => 'A pending invitation already exists for this email. Use resend if needed.']);
+        }
+
+        $account = auth()->user()->tenant_accounts()
+            ->where('tenant_accounts.id', $activeAccountId)
+            ->first();
+
+        DB::beginTransaction();
+
+        try {
+            // Create invitation
+            $invitation = TeamMembershipInvitation::create([
+                'tenant_account_id' => $activeAccountId,
+                'invited_email_address' => $email,
+                'invited_by_member_id' => auth()->id(),
+                'invited_permission_slugs' => $request->permissions ?? TenantAccountMembership::defaultTeamMemberPermissions(),
+                'invitation_status' => 'invitation_pending',
+                'invitation_last_sent_at_timestamp' => now(),
+            ]);
+
+            // Send invitation email
+            $acceptUrl = route('invitation.accept', ['token' => $invitation->record_unique_identifier]);
+            $mailer = new PlatformMailerService();
+            $mailer->sendInvitationEmail(
+                recipientEmail: $email,
+                inviterName: auth()->user()->full_name,
+                accountName: $account->account_display_name,
+                acceptUrl: $acceptUrl
+            );
+
+            DB::commit();
+
+            return redirect()->route('account.team')
+                ->with('status', "Invitation sent to {$email}!");
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->withErrors(['email' => 'Failed to send invitation. Please try again.']);
+        }
+    }
+
+    /**
+     * Resend an invitation.
+     */
+    public function resendInvite($invitation_id)
+    {
+        $activeAccountId = session('active_account_id');
+        
+        if (!$activeAccountId) {
+            return back()->withErrors(['account' => 'No active account selected.']);
+        }
+
+        $currentMembership = auth()->user()->account_memberships()
+            ->where('tenant_account_id', $activeAccountId)
+            ->first();
+
+        if (!$currentMembership || !$currentMembership->canManageTeam()) {
+            return back()->withErrors(['permission' => 'You do not have permission to manage invitations.']);
+        }
+
+        $invitation = TeamMembershipInvitation::where('id', $invitation_id)
+            ->where('tenant_account_id', $activeAccountId)
+            ->where('invitation_status', 'invitation_pending')
+            ->first();
+
+        if (!$invitation) {
+            return back()->withErrors(['invitation' => 'Invitation not found.']);
+        }
+
+        $account = auth()->user()->tenant_accounts()
+            ->where('tenant_accounts.id', $activeAccountId)
+            ->first();
+
+        // Send invitation email
+        $acceptUrl = route('invitation.accept', ['token' => $invitation->record_unique_identifier]);
+        $mailer = new PlatformMailerService();
+        $mailer->sendInvitationEmail(
+            recipientEmail: $invitation->invited_email_address,
+            inviterName: auth()->user()->full_name,
+            accountName: $account->account_display_name,
+            acceptUrl: $acceptUrl
+        );
+
+        $invitation->recordResend();
+
+        return back()->with('status', "Invitation resent to {$invitation->invited_email_address}!");
+    }
+
+    /**
+     * Cancel a pending invitation.
+     */
+    public function cancelInvite($invitation_id)
+    {
+        $activeAccountId = session('active_account_id');
+        
+        if (!$activeAccountId) {
+            return back()->withErrors(['account' => 'No active account selected.']);
+        }
+
+        $currentMembership = auth()->user()->account_memberships()
+            ->where('tenant_account_id', $activeAccountId)
+            ->first();
+
+        if (!$currentMembership || !$currentMembership->canManageTeam()) {
+            return back()->withErrors(['permission' => 'You do not have permission to manage invitations.']);
+        }
+
+        $invitation = TeamMembershipInvitation::where('id', $invitation_id)
+            ->where('tenant_account_id', $activeAccountId)
+            ->where('invitation_status', 'invitation_pending')
+            ->first();
+
+        if (!$invitation) {
+            return back()->withErrors(['invitation' => 'Invitation not found.']);
+        }
+
+        $invitation->expire();
+
+        return back()->with('status', 'Invitation cancelled.');
     }
 }

@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\OtpAuthController;
 use App\Http\Controllers\AccountController;
 use App\Http\Controllers\TeamController;
+use App\Http\Controllers\InvitationController;
 
 /*
 |--------------------------------------------------------------------------
@@ -24,6 +25,10 @@ Route::post('/language', function () {
     session(['preferred_language' => $language_code]);
     return response()->json(['success' => true]);
 })->name('language.update');
+
+// Invitation acceptance (public - works for logged in or guests)
+Route::get('/invitation/{token}', [InvitationController::class, 'show'])->name('invitation.accept');
+Route::post('/invitation/{token}/accept', [InvitationController::class, 'accept'])->name('invitation.accept.submit');
 
 /*
 |--------------------------------------------------------------------------
@@ -74,6 +79,8 @@ Route::middleware([
         Route::get('/team', [TeamController::class, 'index'])->name('team');
         Route::get('/team/invite', [TeamController::class, 'showInvite'])->name('team.invite');
         Route::post('/team/invite', [TeamController::class, 'sendInvite'])->name('team.invite.send');
+        Route::post('/team/invite/{invitation_id}/resend', [TeamController::class, 'resendInvite'])->name('team.invite.resend');
+        Route::post('/team/invite/{invitation_id}/cancel', [TeamController::class, 'cancelInvite'])->name('team.invite.cancel');
         Route::post('/team/{membership_id}/permissions', [TeamController::class, 'updatePermissions'])->name('team.permissions');
         Route::post('/team/{membership_id}/revoke', [TeamController::class, 'revoke'])->name('team.revoke');
         Route::post('/team/{membership_id}/reactivate', [TeamController::class, 'reactivate'])->name('team.reactivate');

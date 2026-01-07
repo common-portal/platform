@@ -21,6 +21,7 @@ class TeamMembershipInvitation extends Model
         'tenant_account_id',
         'invited_email_address',
         'invited_by_member_id',
+        'invited_permission_slugs',
         'invitation_status',
         'invitation_resend_count',
         'invitation_last_sent_at_timestamp',
@@ -28,6 +29,7 @@ class TeamMembershipInvitation extends Model
     ];
 
     protected $casts = [
+        'invited_permission_slugs' => 'array',
         'invitation_resend_count' => 'integer',
         'invitation_last_sent_at_timestamp' => 'datetime',
         'invitation_accepted_at_timestamp' => 'datetime',

@@ -133,15 +133,29 @@
                 <div class="flex justify-between items-center p-3 rounded" style="background-color: var(--content-background-color);">
                     <div>
                         <p class="font-medium">{{ $invitation->invited_email_address }}</p>
-                        <p class="text-sm opacity-60">Invited {{ $invitation->created_at_timestamp->diffForHumans() }}</p>
+                        <p class="text-sm opacity-60">
+                            Invited {{ $invitation->created_at_timestamp->diffForHumans() }}
+                            @if($invitation->invitation_resend_count > 0)
+                                · Resent {{ $invitation->invitation_resend_count }}x
+                            @endif
+                        </p>
                     </div>
                     <div class="flex space-x-2">
-                        <button class="px-3 py-1 rounded text-sm" style="background-color: var(--sidebar-hover-background-color);">
-                            Resend
-                        </button>
-                        <button class="px-3 py-1 rounded text-sm" style="background-color: var(--status-error-color); color: white;">
-                            Cancel
-                        </button>
+                        <form method="POST" action="{{ route('account.team.invite.resend', $invitation->id) }}" class="inline">
+                            @csrf
+                            <button type="submit" class="px-3 py-1 rounded text-sm" style="background-color: var(--sidebar-hover-background-color);">
+                                Resend
+                            </button>
+                        </form>
+                        <form method="POST" action="{{ route('account.team.invite.cancel', $invitation->id) }}" class="inline">
+                            @csrf
+                            <button type="submit" 
+                                    onclick="return confirm('Cancel this invitation?')"
+                                    class="px-3 py-1 rounded text-sm" 
+                                    style="background-color: var(--status-error-color); color: white;">
+                                Cancel
+                            </button>
+                        </form>
                     </div>
                 </div>
                 @endforeach
