@@ -5,13 +5,13 @@ Step-by-step guide to building the multi-tenant payment portal.
 ---
 
 ## Phase 0: Project Setup
-**Status:** ⬜ Not Started
+**Status:** ✅ Complete
 
 ### Steps
-- [ ] Run `make setup` to install Laravel + Jetstream + packages
-- [ ] Run `make up` to start Docker containers
-- [ ] Run `make migrate` to create database tables
-- [ ] Visit `http://localhost:8080` to verify it works
+- [x] Run `make setup` to install Laravel + Jetstream + packages
+- [x] Run `make up` to start Docker containers
+- [x] Run `make migrate` to create database tables
+- [x] Visit `http://localhost:8080` to verify it works
 
 ### Files Created
 After setup, `src/` will contain:
@@ -296,7 +296,7 @@ make logs      # View container logs
 
 | Phase | Description | Status |
 |-------|-------------|--------|
-| 0 | Project Setup | ⬜ |
+| 0 | Project Setup | ✅ |
 | 1 | Core Layout & Branding | ⬜ |
 | 2 | Authentication | ⬜ |
 | 3 | Multi-Tenant Subdomains | ⬜ |
