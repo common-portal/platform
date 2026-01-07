@@ -646,14 +646,30 @@ Central function for all outgoing emails (OTP, invitations, notifications).
 Laravel handles this natively — ensure all emails route through Mail facade.
 
 ### Translator Service
-Wraps all UI text for real-time translation.
+
+> **🔴 IMPORTANT:** Follow `COMMON-PORTAL-TRANSLATOR-CORE-CODE-001.md` exactly for implementation.
 
 | Aspect | Description |
 |--------|-------------|
-| **Purpose** | Translate text based on `platform_members.preferred_language_code` |
-| **Function** | Wrapper function around every text string |
-| **API Support** | OpenAI, Grok, DeepL, or other translation APIs |
-| **Config** | See Data Model → `external_service_api_credentials` table |
+| **Implementation** | See `COMMON-PORTAL-TRANSLATOR-CORE-CODE-001.md` |
+| **Core Functions** | `translator($text, $lang, $pdo)`, `language_selector()`, `__t($text)` |
+| **Language Storage** | Cookie-based with IP auto-detection on first visit |
+| **Member Preference** | Synced to `platform_members.preferred_language_code` |
+| **Caching** | PostgreSQL `translations` table with OpenAI fallback |
+| **Languages** | 100+ supported, top 10 shown first in selector |
+
+### Language Selector Locations
+| Location | Behavior |
+|----------|----------|
+| **Homepage** (sticky footer) | Available before login |
+| **Login/Register page** | Sticky footer selector |
+| **Sidebar menu** (bottom) | For logged-in members, syncs to profile |
+
+### Implementation Pattern
+```php
+<?= __t("Welcome to the platform") ?>
+<?= language_selector() ?>
+```
 
 ---
 
@@ -719,4 +735,5 @@ This is an **open-source project** intended to be:
 | `COMMON-PORTAL-FRAMEWORK-README-001.md` | Project setup instructions |
 | `COMMON-PORTAL-DEVELOPMENT-ROADMAP-001.md` | Phase-by-phase development plan |
 | `COMMON-PORTAL-DIRECTORY-INDEX-001.md` | Directory structure overview |
-| `COMMON-PORTAL-DATABASE-SCHEMA-001.md` | Database schema (to be created) |
+| `COMMON-PORTAL-DATABASE-SCHEMA-001.md` | PostgreSQL table definitions |
+| `COMMON-PORTAL-TRANSLATOR-CORE-CODE-001.md` | 🔴 Translator framework (follow exactly) |

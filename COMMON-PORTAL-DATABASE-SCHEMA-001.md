@@ -27,6 +27,7 @@ All table names, column names, and enum values follow the **Highly Descriptive N
 | `team_membership_invitations` | Team invitation tracking | Core |
 | `platform_settings` | Global platform configuration | Core |
 | `external_service_api_credentials` | API keys for external services | Core |
+| `cached_text_translations` | Translation cache for translator service | Core |
 | `support_tickets` | Support ticket system | Optional |
 
 ---
@@ -419,6 +420,48 @@ CREATE INDEX idx_api_credentials_active
 
 ---
 
+## `cached_text_translations`
+
+Translation cache for the translator service. Stores OpenAI translations to avoid repeated API calls.
+
+> **Implementation:** See `COMMON-PORTAL-TRANSLATOR-CORE-CODE-001.md` for full translator framework.
+
+```sql
+CREATE TABLE cached_text_translations (
+    id                              BIGSERIAL PRIMARY KEY,
+    translation_hash                VARCHAR(64) NOT NULL UNIQUE,
+    original_english_text           TEXT NOT NULL,
+    target_language_iso3            VARCHAR(3) NOT NULL,
+    translated_text                 TEXT NOT NULL,
+    created_at_timestamp            TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_translations_lookup 
+    ON cached_text_translations(target_language_iso3);
+
+CREATE UNIQUE INDEX idx_translations_unique 
+    ON cached_text_translations(md5(original_english_text), target_language_iso3);
+```
+
+### Column Details
+
+| Column | Type | Nullable | Default | Description |
+|--------|------|----------|---------|-------------|
+| `id` | BIGSERIAL | No | auto | Primary key |
+| `translation_hash` | VARCHAR(64) | No | - | Unique hash for deduplication |
+| `original_english_text` | TEXT | No | - | Source English text |
+| `target_language_iso3` | VARCHAR(3) | No | - | ISO 639-3 language code |
+| `translated_text` | TEXT | No | - | Cached translation result |
+| `created_at_timestamp` | TIMESTAMP | No | NOW | When cached |
+
+### Usage Notes
+- Populated automatically by `translator()` function on OpenAI API calls
+- Queried first before making API calls (cache-first pattern)
+- No `updated_at` — translations are immutable once cached
+- Hash prevents duplicate entries for same text+language combo
+
+---
+
 ## `support_tickets` (Optional Module)
 
 Support ticket system. Only created if Support module is enabled.
@@ -488,6 +531,8 @@ platform_members
 platform_settings (standalone key-value store)
 
 external_service_api_credentials (standalone)
+
+cached_text_translations (standalone - translator cache)
 ```
 
 ---
@@ -503,7 +548,8 @@ Run migrations in this order to satisfy foreign key constraints:
 5. `team_membership_invitations`
 6. `platform_settings`
 7. `external_service_api_credentials`
-8. `support_tickets` (optional)
+8. `cached_text_translations`
+9. `support_tickets` (optional)
 
 ---
 
