@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\OtpAuthController;
 use App\Http\Controllers\AccountController;
+use App\Http\Controllers\TeamController;
 
 /*
 |--------------------------------------------------------------------------
@@ -70,9 +71,12 @@ Route::middleware([
             return view('pages.account.dashboard');
         })->name('dashboard');
         
-        Route::get('/team', function () {
-            return view('pages.account.team');
-        })->name('team');
+        Route::get('/team', [TeamController::class, 'index'])->name('team');
+        Route::get('/team/invite', [TeamController::class, 'showInvite'])->name('team.invite');
+        Route::post('/team/invite', [TeamController::class, 'sendInvite'])->name('team.invite.send');
+        Route::post('/team/{membership_id}/permissions', [TeamController::class, 'updatePermissions'])->name('team.permissions');
+        Route::post('/team/{membership_id}/revoke', [TeamController::class, 'revoke'])->name('team.revoke');
+        Route::post('/team/{membership_id}/reactivate', [TeamController::class, 'reactivate'])->name('team.reactivate');
         
         Route::get('/switch/{account_id}', function ($account_id) {
             // Verify user has active membership in this account (exclude soft-deleted)
