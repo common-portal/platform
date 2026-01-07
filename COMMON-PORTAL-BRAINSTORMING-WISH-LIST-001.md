@@ -195,6 +195,40 @@ Public landing page at root domain (e.g., `commonportal.com`).
 
 ---
 
+## Login/Register Authentication
+
+Single page at `/login-register` — both Login and "Get Started" link here.
+
+### Email-First Flow
+1. User enters email address
+2. System checks if email exists in members table
+3. If exists → send OTP to email
+4. Display OTP input screen (4 or 6 digit PIN)
+
+### OTP (One-Time Password) Rules
+| Rule | Description |
+|------|-------------|
+| **PIN Length** | 4 or 6 digits |
+| **Validity Period** | 72 hours |
+| **Re-send behavior** | Does NOT invalidate previous OTP |
+| **Multiple OTPs** | All pending OTPs remain valid (old PIN may arrive after new) |
+| **On success** | Validating one OTP invalidates all other pending OTPs for that member |
+
+### UX Flow
+1. Enter email → "Send Code"
+2. Check inbox for PIN
+3. Enter PIN (4-6 digit input boxes)
+4. "Resend Code" option available
+5. On valid PIN → logged in, redirected to dashboard
+
+### Why Allow Multiple Valid OTPs?
+- Email delivery can be delayed
+- User might request re-send before first arrives
+- First OTP might arrive after second
+- All should work until one succeeds
+
+---
+
 ## Notes
 
 - Each directory should have a small README explaining its purpose
