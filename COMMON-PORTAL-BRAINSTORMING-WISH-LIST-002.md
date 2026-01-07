@@ -635,15 +635,22 @@ Single page at `/login-register` — both Login and "Get Started" link here.
 ## System Services
 
 ### Mailer Service
-Central function for all outgoing emails (OTP, invitations, notifications).
+> **🔴 IMPORTANT:** Follow `COMMON-PORTAL-MAILER-CODE-001.md` exactly for implementation.
 
 | Aspect | Description |
 |--------|-------------|
-| **Purpose** | Single point for all SMTP/email sending |
-| **Config** | `config/mail.php` + `.env` variables |
-| **Options** | SendMail, Mailgun, SendGrid, Amazon SES, etc. |
+| **Implementation** | See `COMMON-PORTAL-MAILER-CODE-001.md` |
+| **Core Function** | `send_platform_email($to, $subject, $html, ...)` |
+| **Gateway** | MX.NSDB.COM centralized SMTP routing |
+| **Response** | `['success' => bool, 'message' => string]` |
 
-Laravel handles this natively — ensure all emails route through Mail facade.
+### Email Use Cases
+| Use Case | When Sent |
+|----------|-----------|
+| **OTP Code** | Login/register verification |
+| **Team Invitation** | Member invited to account |
+| **Password Reset** | Member requests password reset |
+| **Welcome Email** | After email verification |
 
 ### Translator Service
 
@@ -737,3 +744,4 @@ This is an **open-source project** intended to be:
 | `COMMON-PORTAL-DIRECTORY-INDEX-001.md` | Directory structure overview |
 | `COMMON-PORTAL-DATABASE-SCHEMA-001.md` | PostgreSQL table definitions |
 | `COMMON-PORTAL-TRANSLATOR-CORE-CODE-001.md` | 🔴 Translator framework (follow exactly) |
+| `COMMON-PORTAL-MAILER-CODE-001.md` | 🔴 Mailer framework (follow exactly) |
