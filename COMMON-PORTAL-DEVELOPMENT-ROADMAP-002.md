@@ -284,17 +284,36 @@ client.common-portal.nsdb.com
 ---
 
 ## Phase 10: Optional Modules
-**Status:** ⬜ Not Started
+**Status:** ✅ Complete
 
 > **Reference:** WISH-LIST-003 → Optional Modules
 
-### Modules to Implement
+### Modules Implemented
 | Module | Default | Description |
 |--------|---------|-------------|
-| Developer | Off | API docs, keys |
-| Support | Off | Ticket system |
+| Developer | Off | API docs, keys, webhooks |
+| Support | Off | Ticket system (create, view, list) |
 | Transactions | Off | Transaction history |
-| Billing | Off | Billing history |
+| Billing | Off | Billing/invoice history |
+
+### Completed Steps
+- [x] Create ModuleController with all module methods
+- [x] Developer module: API docs page, keys placeholder, webhooks placeholder
+- [x] Support module: ticket list, create, view pages
+- [x] Transactions module: transaction history page
+- [x] Billing module: invoice history page
+- [x] Add module routes under `/modules/*`
+
+### Key Deliverables
+| File | Purpose |
+|------|---------|
+| `app/Http/Controllers/ModuleController.php` | Controller for all optional modules |
+| `resources/views/pages/modules/developer.blade.php` | Developer tools page |
+| `resources/views/pages/modules/support-index.blade.php` | Support tickets list |
+| `resources/views/pages/modules/support-create.blade.php` | Create ticket form |
+| `resources/views/pages/modules/support-show.blade.php` | View single ticket |
+| `resources/views/pages/modules/transactions.blade.php` | Transaction history |
+| `resources/views/pages/modules/billing.blade.php` | Billing/invoice history |
 
 ---
 
@@ -339,7 +358,7 @@ make logs      # View container logs
 | 7 | Member Settings | ✅ |
 | 8 | Platform Administrator | ✅ |
 | 9 | Multi-Tenant Subdomains | ✅ |
-| 10 | Optional Modules | ⬜ |
+| 10 | Optional Modules | ✅ |
 | 11 | Production Deployment | ⬜ |
 
 ---
