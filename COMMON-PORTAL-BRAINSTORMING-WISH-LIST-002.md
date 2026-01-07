@@ -387,6 +387,33 @@ When an administrator clicks "Manage →" on an account:
 
 ---
 
+## Responsive Design (Mobile-Friendly)
+
+### Breakpoint Behavior
+| Screen Size | Sidebar Behavior |
+|-------------|------------------|
+| **Desktop** (≥992px) | Full sidebar visible, always open |
+| **Tablet** (768px–991px) | Sidebar collapsed, expandable on click |
+| **Mobile** (<768px) | Sidebar hidden, burger menu icon in header |
+
+### Burger Menu (Mobile)
+- **Trigger:** Hamburger icon (☰) appears in top-left when sidebar collapses
+- **Behavior:** Tap to slide sidebar in from left as overlay
+- **Dismiss:** Tap outside sidebar or tap X to close
+- **Content:** Same menu items as desktop sidebar
+
+### Tailwind Breakpoint Reference
+| Class Prefix | Min Width |
+|--------------|-----------|
+| `sm:` | 640px |
+| `md:` | 768px |
+| `lg:` | 1024px |
+| `xl:` | 1280px |
+
+Use `lg:` breakpoint for sidebar collapse (≈992px equivalent).
+
+---
+
 ## Sidebar Menu Structure
 
 From top to bottom:
