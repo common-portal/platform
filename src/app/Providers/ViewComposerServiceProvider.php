@@ -62,7 +62,7 @@ class ViewComposerServiceProvider extends ServiceProvider
         $activeAccountId = session('active_account_id');
         $userAccounts = collect();
         $activeAccount = null;
-        $permissions = [];
+        $membership = null;
 
         if ($user) {
             $userAccounts = $user->tenant_accounts()
@@ -81,10 +81,6 @@ class ViewComposerServiceProvider extends ServiceProvider
                 $membership = $user->account_memberships()
                     ->where('tenant_account_id', $activeAccountId)
                     ->first();
-                
-                if ($membership) {
-                    $permissions = $membership->granted_permission_slugs ?? [];
-                }
             }
         }
 
@@ -97,11 +93,12 @@ class ViewComposerServiceProvider extends ServiceProvider
             'userAccounts' => $userAccounts,
             'activeAccountId' => $activeAccountId,
             'activeAccount' => $activeAccount,
-            'canAccessAccountSettings' => $this->canAccessMenuItem('can_access_account_settings', $permissions, $menuToggles, $user),
-            'canAccessAccountDashboard' => $this->canAccessMenuItem('can_access_account_dashboard', $permissions, $menuToggles, $user),
-            'canManageTeamMembers' => $this->canAccessMenuItem('can_manage_team_members', $permissions, $menuToggles, $user),
-            'canAccessDeveloperTools' => $this->canAccessMenuItem('can_access_developer_tools', $permissions, $menuToggles, $user),
-            'canAccessSupportTickets' => $this->canAccessMenuItem('can_access_support_tickets', $permissions, $menuToggles, $user),
+            'membership' => $membership,
+            'canAccessAccountSettings' => $this->canAccessMenuItem('can_access_account_settings', $membership, $menuToggles, $user),
+            'canAccessAccountDashboard' => $this->canAccessMenuItem('can_access_account_dashboard', $membership, $menuToggles, $user),
+            'canManageTeamMembers' => $this->canAccessMenuItem('can_manage_team_members', $membership, $menuToggles, $user),
+            'canAccessDeveloperTools' => $this->canAccessMenuItem('can_access_developer_tools', $membership, $menuToggles, $user),
+            'canAccessSupportTickets' => $this->canAccessMenuItem('can_access_support_tickets', $membership, $menuToggles, $user),
         ]);
     }
 
@@ -138,18 +135,26 @@ class ViewComposerServiceProvider extends ServiceProvider
 
     /**
      * Check if user can access a menu item.
+     * Checks: 1) Platform toggle enabled, 2) User permission or admin override
      */
-    protected function canAccessMenuItem(string $permission, array $userPermissions, array $menuToggles, $user): bool
+    protected function canAccessMenuItem(string $permission, $membership, array $menuToggles, $user): bool
     {
+        // Check platform-level toggle first
         if (!($menuToggles[$permission] ?? true)) {
             return false;
         }
 
+        // Platform admins bypass all permission checks
         if ($user && $user->is_platform_administrator) {
             return true;
         }
 
-        return in_array($permission, $userPermissions);
+        // Check membership permission
+        if ($membership) {
+            return $membership->hasPermission($permission);
+        }
+
+        return false;
     }
 
     /**

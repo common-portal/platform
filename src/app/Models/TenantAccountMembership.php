@@ -149,4 +149,69 @@ class TenantAccountMembership extends Model
     {
         return $query->where('membership_status', 'membership_active');
     }
+
+    /**
+     * Check if member can manage team (owner, admin, or has permission).
+     */
+    public function canManageTeam(): bool
+    {
+        return $this->hasPermission('can_manage_team_members');
+    }
+
+    /**
+     * Update permissions with self-protection check.
+     * A member cannot remove their own can_manage_team_members permission.
+     */
+    public function updatePermissions(array $newPermissions, int $editorMemberId): array
+    {
+        $isSelf = $this->platform_member_id === $editorMemberId;
+        $currentHasTeamAccess = $this->hasPermission('can_manage_team_members');
+        $newHasTeamAccess = in_array('can_manage_team_members', $newPermissions);
+
+        // Self-protection: cannot remove own team access
+        if ($isSelf && $currentHasTeamAccess && !$newHasTeamAccess) {
+            return [
+                'success' => false,
+                'message' => 'You cannot remove your own team management access. Ask another team manager.',
+            ];
+        }
+
+        $this->update(['granted_permission_slugs' => $newPermissions]);
+
+        return ['success' => true, 'message' => 'Permissions updated successfully.'];
+    }
+
+    /**
+     * Get all available permission slugs.
+     */
+    public static function allPermissionSlugs(): array
+    {
+        return [
+            'can_access_account_settings',
+            'can_access_account_dashboard',
+            'can_manage_team_members',
+            'can_access_developer_tools',
+            'can_access_support_tickets',
+            'can_view_transaction_history',
+            'can_view_billing_history',
+        ];
+    }
+
+    /**
+     * Get default permissions for new team members.
+     */
+    public static function defaultTeamMemberPermissions(): array
+    {
+        return [
+            'can_access_account_dashboard',
+        ];
+    }
+
+    /**
+     * Get full permissions for owners/admins.
+     */
+    public static function fullPermissions(): array
+    {
+        return self::allPermissionSlugs();
+    }
 }
