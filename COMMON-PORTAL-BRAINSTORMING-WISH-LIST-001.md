@@ -177,7 +177,10 @@ Platform administrators can edit for any member:
 When an administrator clicks "Manage →" on an account:
 
 1. **Active Account switches** to the selected account
-2. **Admin View banner** appears at top (red): "ADMIN VIEW: Managing account | Exit Admin View"
+2. **Red Admin Banner** appears at very top of screen (above everything else):
+   - Text: "ADMIN VIEW: Managing account | Exit Admin View"
+   - Shows which account is being impersonated
+   - Sticky/fixed position — always visible while impersonating
 3. **Sidebar context changes** — admin can now access:
    - Account settings
    - Dashboard
@@ -185,7 +188,7 @@ When an administrator clicks "Manage →" on an account:
    - Any other account-level menu items
 4. **Admin acts as account member** without being an actual member
 5. **Admin's own profile preserved** — still logged in as themselves
-6. **"Exit Admin View"** link returns to normal administrator context
+6. **"Exit Admin View"** link in red banner → returns to admin's default account
 
 ### Design Goals
 - Admins can troubleshoot/support any account without needing to be invited
