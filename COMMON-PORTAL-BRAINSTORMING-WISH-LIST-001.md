@@ -304,6 +304,41 @@ Single page at `/login-register` — both Login and "Get Started" link here.
 
 ---
 
+## System Services
+
+### Mailer Service
+Central function for all outgoing emails (OTP, invitations, notifications).
+
+| Aspect | Description |
+|--------|-------------|
+| **Purpose** | Single point for all SMTP/email sending |
+| **Configurable** | Users can plug in their own mail service |
+| **Options** | SendMail, Mailgun, SendGrid, Amazon SES, etc. |
+| **Location** | Dedicated service class/function |
+
+Laravel already supports this via `config/mail.php` and `.env` — just need to ensure all emails route through it.
+
+### Translator Service
+Wraps all hard-coded text for real-time translation.
+
+| Aspect | Description |
+|--------|-------------|
+| **Purpose** | Translate UI text based on member's language preference |
+| **Function** | Wrapper function around every text string |
+| **API Support** | OpenAI, Grok, or other translation APIs |
+| **API Key Storage** | Database table or config for user-provided API keys |
+
+#### API Key Management
+| Field | Description |
+|-------|-------------|
+| `service_name` | e.g., "openai", "grok", "deepl" |
+| `api_key` | Encrypted API key |
+| `is_active` | Which service to use |
+
+Users can provide their own API keys for translation services.
+
+---
+
 ## Notes
 
 - Each directory should have a small README explaining its purpose
