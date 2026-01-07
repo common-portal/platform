@@ -1,4 +1,6 @@
-<x-layouts.platform>
+@extends('layouts.platform')
+
+@section('content')
     {{-- Homepage --}}
     {{-- Reference: COMMON-PORTAL-BRAINSTORMING-WISH-LIST-003.md → Homepage Structure --}}
 
@@ -113,5 +115,4 @@
         @endguest
 
     </div>
-
-</x-layouts.platform>
+@endsection
