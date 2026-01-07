@@ -82,6 +82,7 @@ class AccountController extends Controller
         if ($activeAccountId) {
             $account = auth()->user()->tenant_accounts()
                 ->where('tenant_accounts.id', $activeAccountId)
+                ->where('is_soft_deleted', false)
                 ->first();
 
             if ($account) {
@@ -187,6 +188,7 @@ class AccountController extends Controller
         // Switch to personal account
         $personalAccount = auth()->user()->tenant_accounts()
             ->where('account_type', 'personal_individual')
+            ->where('is_soft_deleted', false)
             ->wherePivot('membership_status', 'membership_active')
             ->first();
 
