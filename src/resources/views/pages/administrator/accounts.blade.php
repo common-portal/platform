@@ -41,8 +41,11 @@
                         @endif
                     </td>
                     <td class="py-4 text-sm">
-                        @if($account->owner)
-                            {{ $account->owner->full_name }}
+                        @php
+                            $owner = $account->account_memberships->firstWhere('account_membership_role', 'account_owner')?->platform_member;
+                        @endphp
+                        @if($owner)
+                            {{ $owner->full_name }}
                         @else
                             <span class="opacity-60">—</span>
                         @endif

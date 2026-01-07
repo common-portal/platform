@@ -211,7 +211,7 @@ class AdminController extends Controller
     public function accounts()
     {
         $accounts = TenantAccount::where('is_soft_deleted', false)
-            ->with('owner')
+            ->with(['account_memberships.platform_member'])
             ->orderBy('created_at_timestamp', 'desc')
             ->paginate(20);
 
