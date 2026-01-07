@@ -9,110 +9,110 @@ Collected feature requests and ideas for the multi-tenant portal platform.
 ### Table Overview
 | Table | Purpose |
 |-------|---------|
-| `members` | Individual users (login credentials, profile) |
-| `accounts` | Client organizations/companies (personal or business) |
-| `account_member` | Pivot — members ↔ accounts with role, permissions, status |
-| `otps` | One-time passwords for authentication |
-| `invitations` | Team invitations with status tracking |
+| `platform_members` | Individual users (login credentials, profile) |
+| `tenant_accounts` | Client organizations/companies (personal or business) |
+| `tenant_account_memberships` | Relationship — members ↔ accounts with role, permissions, status |
+| `one_time_password_tokens` | Authentication OTPs with expiration tracking |
+| `team_membership_invitations` | Team invitations with status tracking |
 | `support_tickets` | Support ticket system (optional module) |
 | `platform_settings` | Global platform configuration (theme, branding, toggles) |
-| `api_keys` | External service API keys (translation, etc.) |
+| `external_service_api_credentials` | API keys for translation and other services |
 
 ---
 
-### `members` Table
+### `platform_members` Table
 | Column | Type | Purpose |
 |--------|------|---------|
 | `id` | bigint | Primary key |
-| `email` | string | Login email (unique) |
-| `password` | string | Optional bcrypt hash (nullable — OTP primary) |
-| `first_name` | string | Member's first name(s) |
-| `last_name` | string | Member's last name(s) |
-| `avatar` | string | Profile image path |
-| `preferred_language` | string | Language code for translation |
+| `login_email_address` | string | Login email (unique) |
+| `hashed_login_password` | string | Optional bcrypt hash (nullable — OTP primary) |
+| `member_first_name` | string | Member's first name(s) |
+| `member_last_name` | string | Member's last name(s) |
+| `profile_avatar_image_path` | string | Profile image file path |
+| `preferred_language_code` | string | Language code for translation (e.g., "en", "es") |
 | `is_platform_administrator` | boolean | Grants platform-wide admin access |
-| `email_verified_at` | timestamp | When email was verified via OTP |
-| `created_at` | timestamp | |
-| `updated_at` | timestamp | |
+| `email_verified_at_timestamp` | timestamp | When email was verified via OTP |
+| `created_at_timestamp` | timestamp | |
+| `updated_at_timestamp` | timestamp | |
 
 ---
 
-### `accounts` Table
+### `tenant_accounts` Table
 | Column | Type | Purpose |
 |--------|------|---------|
 | `id` | bigint | Primary key |
-| `name` | string | Account display name |
-| `account_type` | enum | `personal` or `business` |
-| `subdomain` | string | Custom subdomain for white-label (nullable) |
-| `logo` | string | Account logo path (nullable) |
-| `primary_contact_name` | string | |
-| `primary_contact_email` | string | |
-| `is_deleted` | boolean | Soft delete flag (default: false) |
-| `deleted_at` | timestamp | When soft deleted (nullable) |
-| `created_at` | timestamp | |
-| `updated_at` | timestamp | |
+| `account_display_name` | string | Account display name |
+| `account_type` | enum | `personal_individual` or `business_organization` |
+| `whitelabel_subdomain_slug` | string | Custom subdomain for white-label (nullable) |
+| `branding_logo_image_path` | string | Account logo file path (nullable) |
+| `primary_contact_full_name` | string | |
+| `primary_contact_email_address` | string | |
+| `is_soft_deleted` | boolean | Soft delete flag (default: false) |
+| `soft_deleted_at_timestamp` | timestamp | When soft deleted (nullable) |
+| `created_at_timestamp` | timestamp | |
+| `updated_at_timestamp` | timestamp | |
 
 #### Account Types
 | Type | Description |
 |------|-------------|
-| **Personal** | Auto-created on registration, cannot be deleted, one per member |
-| **Business** | Manually created, can be soft deleted, shareable |
+| **personal_individual** | Auto-created on registration, cannot be deleted, one per member |
+| **business_organization** | Manually created, can be soft deleted, shareable |
 
 ---
 
-### `account_member` Pivot Table
+### `tenant_account_memberships` Table
 | Column | Type | Purpose |
 |--------|------|---------|
 | `id` | bigint | Primary key |
-| `account_id` | bigint | FK → accounts |
-| `member_id` | bigint | FK → members |
-| `role` | enum | `owner`, `admin`, `member` |
-| `permissions` | json | Array of permission slugs (e.g., `["dashboard", "team"]`) |
-| `status` | enum | `pending`, `active`, `disabled` |
-| `invited_at` | timestamp | When invitation was sent |
-| `accepted_at` | timestamp | When member first logged in (nullable) |
-| `disabled_at` | timestamp | When disabled (nullable) |
-| `created_at` | timestamp | |
-| `updated_at` | timestamp | |
+| `tenant_account_id` | bigint | FK → tenant_accounts |
+| `platform_member_id` | bigint | FK → platform_members |
+| `account_membership_role` | enum | `account_owner`, `account_administrator`, `account_team_member` |
+| `granted_permission_slugs` | json | Array of permission slugs |
+| `membership_status` | enum | `awaiting_acceptance`, `membership_active`, `membership_revoked` |
+| `invitation_sent_at_timestamp` | timestamp | When invitation was sent |
+| `invitation_accepted_at_timestamp` | timestamp | When member first logged in (nullable) |
+| `membership_revoked_at_timestamp` | timestamp | When disabled (nullable) |
+| `created_at_timestamp` | timestamp | |
+| `updated_at_timestamp` | timestamp | |
 
-#### Pivot Status Flow
+#### Membership Status Flow
 | Status | Description |
 |--------|-------------|
-| **Pending** | Invitation sent, member has not yet logged in |
-| **Active** | Member has accepted and logged in |
-| **Disabled** | Access revoked, account hidden from member's dropdown |
+| **awaiting_acceptance** | Invitation sent, member has not yet logged in |
+| **membership_active** | Member has accepted and logged in |
+| **membership_revoked** | Access revoked, account hidden from member's dropdown |
 
 ---
 
-### `otps` Table
+### `one_time_password_tokens` Table
 | Column | Type | Purpose |
 |--------|------|---------|
 | `id` | bigint | Primary key |
-| `member_id` | bigint | FK → members |
-| `code` | string | 4-6 digit PIN (hashed) |
-| `expires_at` | timestamp | 72 hours from creation |
-| `used_at` | timestamp | When successfully validated (nullable) |
-| `created_at` | timestamp | |
+| `platform_member_id` | bigint | FK → platform_members |
+| `hashed_verification_code` | string | 4-6 digit PIN (bcrypt hashed) |
+| `token_expires_at_timestamp` | timestamp | 72 hours from creation |
+| `token_used_at_timestamp` | timestamp | When successfully validated (nullable) |
+| `created_at_timestamp` | timestamp | |
 
 #### OTP Rules
-- Multiple OTPs can be valid simultaneously (re-send doesn't invalidate old)
-- On successful validation, all other pending OTPs for that member are invalidated
+- Multiple tokens can be valid simultaneously (re-send doesn't invalidate old)
+- On successful validation, all other pending tokens for that member are invalidated
 - 72-hour validity period
 
 ---
 
-### `invitations` Table
+### `team_membership_invitations` Table
 | Column | Type | Purpose |
 |--------|------|---------|
 | `id` | bigint | Primary key |
-| `account_id` | bigint | FK → accounts |
-| `email` | string | Invited email address |
-| `invited_by` | bigint | FK → members (who sent invitation) |
-| `status` | enum | `pending`, `accepted`, `expired` |
-| `last_sent_at` | timestamp | Last time invitation email was sent |
-| `accepted_at` | timestamp | When accepted (nullable) |
-| `created_at` | timestamp | |
-| `updated_at` | timestamp | |
+| `tenant_account_id` | bigint | FK → tenant_accounts |
+| `invited_email_address` | string | Invited email address |
+| `invited_by_member_id` | bigint | FK → platform_members (who sent invitation) |
+| `invitation_status` | enum | `invitation_pending`, `invitation_accepted`, `invitation_expired` |
+| `invitation_last_sent_at_timestamp` | timestamp | Last time invitation email was sent |
+| `invitation_accepted_at_timestamp` | timestamp | When accepted (nullable) |
+| `created_at_timestamp` | timestamp | |
+| `updated_at_timestamp` | timestamp | |
 
 ---
 
@@ -120,34 +120,34 @@ Collected feature requests and ideas for the multi-tenant portal platform.
 | Column | Type | Purpose |
 |--------|------|---------|
 | `id` | bigint | Primary key |
-| `key` | string | Setting key (unique) |
-| `value` | text | Setting value (JSON for complex values) |
-| `created_at` | timestamp | |
-| `updated_at` | timestamp | |
+| `setting_key` | string | Setting key (unique) |
+| `setting_value` | text | Setting value (JSON for complex values) |
+| `created_at_timestamp` | timestamp | |
+| `updated_at_timestamp` | timestamp | |
 
 #### Platform Settings Keys
 | Key | Value Type | Purpose |
 |-----|------------|---------|
-| `platform_name` | string | Brand name next to logo |
-| `platform_logo` | string | Logo file path |
-| `favicon` | string | Favicon file path |
-| `meta_image` | string | Open Graph card image path |
-| `meta_description` | string | Default meta description |
-| `theme_preset` | string | Active theme preset name |
-| `theme_colors` | json | Custom CSS variable overrides |
-| `menu_items` | json | Toggleable menu items (on/off) |
+| `platform_display_name` | string | Brand name next to logo |
+| `platform_logo_image_path` | string | Logo file path |
+| `platform_favicon_image_path` | string | Favicon file path |
+| `social_sharing_preview_image_path` | string | Open Graph card image path |
+| `social_sharing_meta_description` | string | Default meta description |
+| `active_theme_preset_name` | string | Active theme preset name |
+| `custom_theme_color_overrides` | json | Custom CSS variable overrides |
+| `sidebar_menu_item_visibility_toggles` | json | Toggleable menu items (on/off) |
 
 ---
 
-### `api_keys` Table
+### `external_service_api_credentials` Table
 | Column | Type | Purpose |
 |--------|------|---------|
 | `id` | bigint | Primary key |
-| `service_name` | string | e.g., "openai", "grok", "deepl" |
-| `api_key` | string | Encrypted API key |
-| `is_active` | boolean | Which service to use |
-| `created_at` | timestamp | |
-| `updated_at` | timestamp | |
+| `external_service_name` | string | e.g., "openai", "grok", "deepl" |
+| `encrypted_api_key` | string | Encrypted API key |
+| `is_currently_active_service` | boolean | Which service to use |
+| `created_at_timestamp` | timestamp | |
+| `updated_at_timestamp` | timestamp | |
 
 ---
 
@@ -155,22 +155,22 @@ Collected feature requests and ideas for the multi-tenant portal platform.
 | Column | Type | Purpose |
 |--------|------|---------|
 | `id` | bigint | Primary key |
-| `account_id` | bigint | FK → accounts |
-| `member_id` | bigint | FK → members (who created) |
-| `subject` | string | Ticket subject |
-| `status` | enum | `open`, `in_progress`, `resolved`, `closed` |
-| `assigned_to` | bigint | FK → members (platform admin, nullable) |
-| `created_at` | timestamp | |
-| `updated_at` | timestamp | |
+| `tenant_account_id` | bigint | FK → tenant_accounts |
+| `created_by_member_id` | bigint | FK → platform_members (who created) |
+| `ticket_subject_line` | string | Ticket subject |
+| `ticket_status` | enum | `ticket_open`, `ticket_in_progress`, `ticket_resolved`, `ticket_closed` |
+| `assigned_to_administrator_id` | bigint | FK → platform_members (platform admin, nullable) |
+| `created_at_timestamp` | timestamp | |
+| `updated_at_timestamp` | timestamp | |
 
 ---
 
 ### Relationships Summary
-- A **member** can belong to multiple **accounts** (via pivot)
-- An **account** can have multiple **members** (via pivot)
-- Each member has one **personal account** (auto-created)
-- Members can create/join multiple **business accounts**
-- **Platform administrators** bypass all account-level permissions
+- A **platform_member** can belong to multiple **tenant_accounts** (via tenant_account_memberships)
+- A **tenant_account** can have multiple **platform_members** (via tenant_account_memberships)
+- Each platform_member has one **personal_individual** account (auto-created on registration)
+- Platform members can create/join multiple **business_organization** accounts
+- **is_platform_administrator = true** bypasses all account-level permissions
 
 ---
 
@@ -311,17 +311,17 @@ Full theming control for platform administrators.
 #### Customizable Elements
 | Element | CSS Variable |
 |---------|-------------|
-| Sidebar background | `--sidebar-bg` |
-| Sidebar text | `--sidebar-text` |
-| Sidebar hover | `--sidebar-hover` |
-| Primary color | `--brand-primary` |
-| Secondary color | `--brand-secondary` |
-| Success color | `--color-success` |
-| Warning color | `--color-warning` |
-| Error color | `--color-error` |
-| Link color | `--link-color` |
-| Button background | `--btn-bg` |
-| Button text | `--btn-text` |
+| Sidebar background | `--sidebar-background-color` |
+| Sidebar text | `--sidebar-text-color` |
+| Sidebar hover | `--sidebar-hover-background-color` |
+| Primary color | `--brand-primary-color` |
+| Secondary color | `--brand-secondary-color` |
+| Success color | `--status-success-color` |
+| Warning color | `--status-warning-color` |
+| Error color | `--status-error-color` |
+| Link color | `--hyperlink-text-color` |
+| Button background | `--button-background-color` |
+| Button text | `--button-text-color` |
 
 #### Workflow
 1. Select a preset theme as starting point
@@ -432,28 +432,28 @@ From top to bottom:
 ## Permissions System
 
 ### Account-Level Permissions
-Stored in `account_member.permissions` as JSON array. Tied to sidebar menu items.
+Stored in `tenant_account_memberships.granted_permission_slugs` as JSON array. Tied to sidebar menu items.
 
 | Permission Slug | Controls Access To |
 |-----------------|-------------------|
-| `account_management` | Account Settings page |
-| `dashboard` | Dashboard page |
-| `team` | Team management page |
-| `developer` | Developer page (when enabled) |
-| `support` | Support page (when enabled) |
-| `transactions` | Transactions page (when enabled) |
-| `billing` | Billing page (when enabled) |
+| `can_access_account_settings` | Account Settings page |
+| `can_access_account_dashboard` | Dashboard page |
+| `can_manage_team_members` | Team management page |
+| `can_access_developer_tools` | Developer page (when enabled) |
+| `can_access_support_tickets` | Support page (when enabled) |
+| `can_view_transaction_history` | Transactions page (when enabled) |
+| `can_view_billing_history` | Billing page (when enabled) |
 
 ### Permission Logic
-1. **Platform toggle** — Is menu item enabled globally? (via `platform_settings.menu_items`)
-2. **Member permission** — Does member have permission in current account? (via `account_member.permissions`)
+1. **Platform toggle** — Is menu item enabled globally? (via `platform_settings.sidebar_menu_item_visibility_toggles`)
+2. **Member permission** — Does member have permission in current account? (via `tenant_account_memberships.granted_permission_slugs`)
 3. **Show menu item** — Only if BOTH are true
 
 ### Per-Member Per-Account
 | Scenario | Description |
 |----------|-------------|
-| **Member in Account A** | Has `["dashboard", "team"]` permissions |
-| **Same Member in Account B** | Has `["dashboard"]` only |
+| **Member in Account A** | Has `["can_access_account_dashboard", "can_manage_team_members"]` |
+| **Same Member in Account B** | Has `["can_access_account_dashboard"]` only |
 | **Result** | Different menu items visible depending on active account |
 
 ### Platform Administrator Override
@@ -464,13 +464,13 @@ Stored in `account_member.permissions` as JSON array. Tied to sidebar menu items
 ### Team Page Actions
 | Action | Who Can Do It | Description |
 |--------|---------------|-------------|
-| **Invite** | `team` permission | Send invitation to email |
-| **Resend** | `team` permission | Resend pending invitation |
-| **Edit Permissions** | `team` permission | Modify member's permission array |
-| **Disable** | `team` permission | Set status to `disabled` (cannot self-disable) |
-| **Re-enable** | `team` permission | Set status back to `active` |
+| **Invite** | `can_manage_team_members` | Send invitation to email |
+| **Resend** | `can_manage_team_members` | Resend pending invitation |
+| **Edit Permissions** | `can_manage_team_members` | Modify member's permission array |
+| **Disable** | `can_manage_team_members` | Set status to `membership_revoked` (cannot self-disable) |
+| **Re-enable** | `can_manage_team_members` | Set status back to `membership_active` |
 
-*(See Data Model → `account_member` and `invitations` tables for status tracking)*
+*(See Data Model → `tenant_account_memberships` and `team_membership_invitations` tables for status tracking)*
 
 ---
 
@@ -585,14 +585,49 @@ Wraps all UI text for real-time translation.
 
 | Aspect | Description |
 |--------|-------------|
-| **Purpose** | Translate text based on `members.preferred_language` |
+| **Purpose** | Translate text based on `platform_members.preferred_language_code` |
 | **Function** | Wrapper function around every text string |
 | **API Support** | OpenAI, Grok, DeepL, or other translation APIs |
-| **Config** | See Data Model → `api_keys` table |
+| **Config** | See Data Model → `external_service_api_credentials` table |
 
 ---
 
 ## Technical Notes
+
+### 🔴 HIGH PRIORITY: Naming Convention Policy
+
+**This is a framework-wide policy for all code contributions.**
+
+All table names, column names, function names, method names, variable names, and parameters MUST be:
+
+| Principle | Description |
+|-----------|-------------|
+| **Highly Descriptive** | Names should be self-documenting |
+| **No Abbreviations** | Write `button` not `btn`, `background` not `bg` |
+| **No Generic Names** | Avoid `data`, `info`, `item`, `value` without context |
+| **Action-Based Permissions** | Use `can_access_*`, `can_manage_*`, `can_view_*` |
+| **Context-Prefixed** | Include table/entity context when helpful |
+| **LLM-Readable** | An AI should understand purpose without tracing code |
+| **Human-Readable** | A new developer should understand without documentation |
+
+#### Examples
+| ❌ Avoid | ✅ Prefer |
+|----------|----------|
+| `$user` | `$current_platform_member` |
+| `$acct` | `$active_tenant_account` |
+| `getData()` | `fetch_member_account_memberships()` |
+| `process()` | `validate_one_time_password_token()` |
+| `status` | `membership_status` or `invitation_status` |
+| `type` | `account_type` or `ticket_status` |
+
+#### Rationale
+This is an **open-source project** intended to be:
+1. Easily understood by LLMs assisting with development
+2. Self-documenting without extensive comments
+3. Readable by developers unfamiliar with the codebase
+4. Maintainable long-term without tribal knowledge
+
+---
 
 ### Laravel Packages (Already Installed)
 | Package | Purpose |
@@ -608,7 +643,7 @@ Wraps all UI text for real-time translation.
 ### Database
 - PostgreSQL (managed or local Docker)
 - Migrations in `src/database/migrations/`
-- Soft deletes via `is_deleted` flag (not Laravel's `deleted_at` trait)
+- Soft deletes via `is_soft_deleted` flag (not Laravel's SoftDeletes trait)
 
 ---
 
