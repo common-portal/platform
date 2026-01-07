@@ -108,6 +108,7 @@ class AccountController extends Controller
             'account_display_name' => 'required|string|max:255',
             'primary_contact_full_name' => 'nullable|string|max:255',
             'primary_contact_email_address' => 'nullable|email|max:255',
+            'whitelabel_subdomain_slug' => 'nullable|string|max:50|alpha_dash|unique:tenant_accounts,whitelabel_subdomain_slug,' . session('active_account_id'),
         ]);
 
         $activeAccountId = session('active_account_id');
@@ -133,11 +134,20 @@ class AccountController extends Controller
             return back()->withErrors(['account' => 'You do not have permission to edit this account.']);
         }
 
-        $account->update([
+        $updateData = [
             'account_display_name' => $request->account_display_name,
             'primary_contact_full_name' => $request->primary_contact_full_name,
             'primary_contact_email_address' => $request->primary_contact_email_address,
-        ]);
+        ];
+
+        // Only business accounts can have subdomains
+        if ($account->account_type === 'business_entity') {
+            $updateData['whitelabel_subdomain_slug'] = $request->whitelabel_subdomain_slug 
+                ? strtolower($request->whitelabel_subdomain_slug) 
+                : null;
+        }
+
+        $account->update($updateData);
 
         return back()->with('status', 'Account settings updated successfully!');
     }

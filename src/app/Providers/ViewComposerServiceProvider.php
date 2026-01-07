@@ -5,6 +5,7 @@ namespace App\Providers;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\View;
 use App\Models\PlatformSetting;
+use App\Models\TenantAccount;
 
 class ViewComposerServiceProvider extends ServiceProvider
 {
@@ -43,14 +44,36 @@ class ViewComposerServiceProvider extends ServiceProvider
      */
     protected function composePlatformLayout($view): void
     {
+        // Check for subdomain tenant branding override
+        $subdomainTenant = $this->getSubdomainTenant();
+        
         $view->with([
-            'platformName' => PlatformSetting::getValue('platform_display_name', 'Common Portal'),
-            'platformLogo' => PlatformSetting::getValue('platform_logo_image_path', '/images/platform-defaults/platform-logo.png'),
+            'platformName' => $subdomainTenant?->account_display_name 
+                ?? PlatformSetting::getValue('platform_display_name', 'Common Portal'),
+            'platformLogo' => $subdomainTenant?->branding_logo_image_path 
+                ?? PlatformSetting::getValue('platform_logo_image_path', '/images/platform-defaults/platform-logo.png'),
             'favicon' => PlatformSetting::getValue('platform_favicon_image_path', '/images/platform-defaults/favicon.png'),
             'metaImage' => PlatformSetting::getValue('social_sharing_preview_image_path', '/images/platform-defaults/meta-card-preview.png'),
             'metaDescription' => PlatformSetting::getValue('social_sharing_meta_description', 'A white-label, multi-tenant portal platform.'),
             'themeColors' => $this->getThemeColors(),
+            'subdomainTenant' => $subdomainTenant,
         ]);
+    }
+
+    /**
+     * Get subdomain tenant if accessing via whitelabel subdomain.
+     */
+    protected function getSubdomainTenant(): ?TenantAccount
+    {
+        $tenantId = session('subdomain_tenant_id');
+        
+        if (!$tenantId) {
+            return null;
+        }
+
+        return TenantAccount::where('id', $tenantId)
+            ->where('is_soft_deleted', false)
+            ->first();
     }
 
     /**

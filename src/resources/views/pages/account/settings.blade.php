@@ -61,6 +61,26 @@
                        {{ $canEdit ? '' : 'disabled' }}>
             </div>
 
+            @if($account->account_type === 'business_entity')
+            <div class="mb-4">
+                <label class="block text-sm font-medium mb-2">Whitelabel Subdomain</label>
+                <div class="flex items-center">
+                    <input type="text" 
+                           name="whitelabel_subdomain_slug" 
+                           value="{{ old('whitelabel_subdomain_slug', $account->whitelabel_subdomain_slug) }}"
+                           class="flex-1 px-4 py-2 rounded-l-md border-0"
+                           style="background-color: var(--content-background-color); color: var(--content-text-color);"
+                           placeholder="yourcompany"
+                           pattern="[a-z0-9\-]+"
+                           {{ $canEdit ? '' : 'disabled' }}>
+                    <span class="px-3 py-2 rounded-r-md text-sm opacity-70" style="background-color: var(--sidebar-hover-background-color);">
+                        .{{ request()->getHost() }}
+                    </span>
+                </div>
+                <p class="text-xs opacity-60 mt-1">Optional. Lowercase letters, numbers, and hyphens only.</p>
+            </div>
+            @endif
+
             @if($canEdit)
             <button type="submit" 
                     class="px-6 py-2 rounded-md font-medium"
