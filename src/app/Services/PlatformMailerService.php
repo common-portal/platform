@@ -3,26 +3,28 @@
 namespace App\Services;
 
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use App\Models\PlatformSetting;
 
 /**
- * MAILER FRAMEWORK - MX.NSDB.COM Gateway API
- * Reference: COMMON-PORTAL-MAILER-CODE-002.md
+ * MAILER FRAMEWORK - Laravel Mail + SMTP
+ * 
+ * Uses Laravel's built-in Mail system with SMTP config from .env
+ * Easy to change credentials: just update MAIL_* variables in .env
  */
 class PlatformMailerService
 {
-    protected string $apiEndpoint = 'https://mx.nsdb.com:8443/common_mailer_gateway_api.php';
-    protected string $apiUsername = 'mailer@nsdb.com';
     protected string $defaultFromName;
-    protected string $defaultFromEmail = 'noreply@commonportal.com';
+    protected string $defaultFromEmail;
 
     public function __construct()
     {
-        $this->defaultFromName = PlatformSetting::getValue('platform_display_name', 'Common Portal');
+        $this->defaultFromName = PlatformSetting::getValue('platform_display_name', config('app.name', 'Common Portal'));
+        $this->defaultFromEmail = config('mail.from.address', 'noreply@commonportal.com');
     }
 
     /**
-     * Send email via MX.NSDB.COM gateway
+     * Send email via Laravel Mail (SMTP configured in .env)
      *
      * @param string $recipientEmail Required - recipient email
      * @param string $subject Required - subject line
@@ -44,56 +46,26 @@ class PlatformMailerService
         string $replyToEmail = '',
         string $replyToName = ''
     ): array {
-        $payload = [
-            'mx_nsdb_com_username' => $this->apiUsername,
-            'email_to_emailaddress' => $recipientEmail,
-            'email_subject' => $subject,
-            'email_html_message' => $htmlMessage,
-            'email_from_name' => $fromName ?: $this->defaultFromName,
-            'email_from_emailaddress' => $fromEmail ?: $this->defaultFromEmail,
-        ];
-
-        if ($recipientName) {
-            $payload['email_to_name'] = $recipientName;
-        }
-        if ($replyToEmail) {
-            $payload['email_replyto_emailaddress'] = $replyToEmail;
-        }
-        if ($replyToName) {
-            $payload['email_replyto_name'] = $replyToName;
-        }
-
         try {
-            $ch = curl_init($this->apiEndpoint);
-            curl_setopt_array($ch, [
-                CURLOPT_POST => true,
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_TIMEOUT => 30,
-                CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
-                CURLOPT_POSTFIELDS => json_encode($payload),
-            ]);
+            $fromName = $fromName ?: $this->defaultFromName;
+            $fromEmail = $fromEmail ?: $this->defaultFromEmail;
 
-            $response = curl_exec($ch);
-            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            $error = curl_error($ch);
-            curl_close($ch);
+            Mail::html($htmlMessage, function ($message) use ($recipientEmail, $recipientName, $subject, $fromName, $fromEmail, $replyToEmail, $replyToName) {
+                $message->to($recipientEmail, $recipientName ?: null)
+                    ->subject($subject)
+                    ->from($fromEmail, $fromName);
 
-            if ($error) {
-                Log::error('PlatformMailer cURL error', ['error' => $error, 'recipient' => $recipientEmail]);
-                return ['success' => false, 'message' => 'cURL error: ' . $error];
-            }
+                if ($replyToEmail) {
+                    $message->replyTo($replyToEmail, $replyToName ?: null);
+                }
+            });
 
-            if ($httpCode >= 200 && $httpCode < 300) {
-                Log::info('PlatformMailer sent', ['recipient' => $recipientEmail, 'subject' => $subject]);
-                return ['success' => true, 'message' => 'Email sent successfully'];
-            }
-
-            Log::error('PlatformMailer API error', ['http_code' => $httpCode, 'recipient' => $recipientEmail]);
-            return ['success' => false, 'message' => 'API error: HTTP ' . $httpCode];
+            Log::info('PlatformMailer sent', ['recipient' => $recipientEmail, 'subject' => $subject]);
+            return ['success' => true, 'message' => 'Email sent successfully'];
 
         } catch (\Exception $e) {
-            Log::error('PlatformMailer exception', ['error' => $e->getMessage(), 'recipient' => $recipientEmail]);
-            return ['success' => false, 'message' => 'Exception: ' . $e->getMessage()];
+            Log::error('PlatformMailer error', ['error' => $e->getMessage(), 'recipient' => $recipientEmail]);
+            return ['success' => false, 'message' => 'Mail error: ' . $e->getMessage()];
         }
     }
 
