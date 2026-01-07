@@ -171,6 +171,17 @@ Permissions tied to sidebar menu items. Easy to extend.
 3. **If email NOT exists** → new member created, account added, OTP sent
 4. Invited member sees new account in "Active Account" dropdown on next login
 
+### Invitation Status Tracking
+| Status | Description |
+|--------|-------------|
+| **Pending** | Invitation sent, member has not yet logged in |
+| **Active** | Member has received invitation and logged in (verified) |
+
+### Team Page Actions
+- **Resend Invitation** — available for pending members
+- Platform admins OR anyone with `team` permission can resend
+- Track when invitation was last sent
+
 ### Per-Member Per-Account Permissions
 | Scenario | Description |
 |----------|-------------|
