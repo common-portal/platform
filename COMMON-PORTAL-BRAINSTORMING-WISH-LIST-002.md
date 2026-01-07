@@ -414,6 +414,44 @@ Use `lg:` breakpoint for sidebar collapse (≈992px equivalent).
 
 ---
 
+## Action Button UX Patterns
+
+All submit buttons, action buttons, and links that trigger a process (without page navigation) must follow this pattern:
+
+### On Click Behavior
+| Step | Action |
+|------|--------|
+| 1. **Disable** | Button becomes `disabled` immediately on click |
+| 2. **Spinner** | Button text replaced with processing spinner icon |
+| 3. **Process** | Backend/async function executes |
+| 4. **Revert** | On return (success or error), button re-enables and spinner removed |
+
+### Visual States
+| State | Appearance |
+|-------|------------|
+| **Default** | Normal button styling, clickable |
+| **Processing** | Disabled, grayed out, spinner icon visible |
+| **Success** | Revert to default (optionally flash green briefly) |
+| **Error** | Revert to default, show error message nearby |
+
+### Why This Pattern?
+- **Prevents double-clicks** — Users can't submit twice
+- **Visual feedback** — User knows action is in progress
+- **Better UX** — No confusion about whether click registered
+
+### Implementation Notes
+- Use a reusable wrapper/component for all action buttons
+- Spinner should be inline (replace button text, not separate)
+- Timeout fallback: auto-revert after 30s if no response (edge case)
+
+### Applies To
+- Form submit buttons
+- "Save", "Update", "Delete" buttons
+- "Send Invitation", "Resend Code" links
+- Any button that triggers an async operation
+
+---
+
 ## Sidebar Menu Structure
 
 From top to bottom:
