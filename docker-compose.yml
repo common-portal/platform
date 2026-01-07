@@ -1,19 +1,13 @@
-version: '3.8'
-
 services:
   app:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: docker/Dockerfile.dev
     container_name: platform-app
     restart: unless-stopped
     ports:
       - "8080:80"
     environment:
-      - APP_ENV=${APP_ENV:-local}
-      - APP_DEBUG=${APP_DEBUG:-true}
-      - APP_KEY=${APP_KEY}
-      - APP_URL=${APP_URL:-http://localhost:8080}
       - DB_CONNECTION=pgsql
       - DB_HOST=postgres
       - DB_PORT=5432
@@ -22,9 +16,6 @@ services:
       - DB_PASSWORD=${DB_PASSWORD:-secret}
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - CACHE_DRIVER=redis
-      - SESSION_DRIVER=redis
-      - QUEUE_CONNECTION=redis
     depends_on:
       postgres:
         condition: service_healthy
@@ -32,7 +23,6 @@ services:
         condition: service_started
     volumes:
       - ./src:/var/www/html
-      - storage:/var/www/html/storage/app
     networks:
       - platform-network
 
@@ -68,17 +58,15 @@ services:
     networks:
       - platform-network
 
-  # Queue worker for background jobs
+  # Queue worker for background jobs (uses same image as app)
   queue:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: docker/Dockerfile.dev
     container_name: platform-queue
     restart: unless-stopped
     command: php artisan queue:work --sleep=3 --tries=3
     environment:
-      - APP_ENV=${APP_ENV:-local}
-      - APP_KEY=${APP_KEY}
       - DB_CONNECTION=pgsql
       - DB_HOST=postgres
       - DB_PORT=5432
@@ -87,7 +75,6 @@ services:
       - DB_PASSWORD=${DB_PASSWORD:-secret}
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - QUEUE_CONNECTION=redis
     depends_on:
       - app
     volumes:
@@ -98,7 +85,6 @@ services:
 volumes:
   pgdata:
   redisdata:
-  storage:
 
 networks:
   platform-network:
