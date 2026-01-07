@@ -182,6 +182,12 @@ Permissions tied to sidebar menu items. Easy to extend.
 - Platform admins OR anyone with `team` permission can resend
 - Track when invitation was last sent
 
+### Disable Team Member
+- Anyone with `team` permission can disable other members
+- **Cannot disable yourself** — must be done by another team member
+- Disabled members lose access to that account
+- Can be re-enabled later by team admin
+
 ### Per-Member Per-Account Permissions
 | Scenario | Description |
 |----------|-------------|
