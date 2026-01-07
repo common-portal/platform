@@ -153,7 +153,6 @@ class PlatformMember extends Authenticatable
             return false;
         }
 
-        $permissions = $membership->granted_permission_slugs ?? [];
-        return in_array($permission_slug, $permissions);
+        return $membership->hasPermission($permission_slug);
     }
 }

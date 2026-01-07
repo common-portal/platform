@@ -23,10 +23,9 @@ return new class extends Migration
             $table->string('preferred_language_code', 10)->default('en');
             $table->boolean('is_platform_administrator')->default(false);
             $table->timestamp('email_verified_at_timestamp')->nullable();
+            $table->rememberToken();
             $table->timestamp('created_at_timestamp')->useCurrent();
             $table->timestamp('updated_at_timestamp')->useCurrent();
-
-            $table->index('login_email_address', 'idx_platform_members_login_email');
         });
 
         // Partial index for platform administrators

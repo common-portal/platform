@@ -113,7 +113,7 @@ class TenantAccountMembership extends Model
      */
     public function hasPermission(string $permission_slug): bool
     {
-        if ($this->account_membership_role === 'account_owner') {
+        if (in_array($this->account_membership_role, ['account_owner', 'account_administrator'])) {
             return true;
         }
 
