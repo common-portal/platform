@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\OtpAuthController;
+use App\Http\Controllers\AccountController;
 
 /*
 |--------------------------------------------------------------------------
@@ -58,9 +59,12 @@ Route::middleware([
 
     // Account Routes
     Route::prefix('account')->name('account.')->group(function () {
-        Route::get('/settings', function () {
-            return view('pages.account.settings');
-        })->name('settings');
+        Route::get('/settings', [AccountController::class, 'showSettings'])->name('settings');
+        Route::post('/settings', [AccountController::class, 'updateSettings'])->name('settings.update');
+        Route::delete('/delete', [AccountController::class, 'destroy'])->name('delete');
+        
+        Route::get('/create', [AccountController::class, 'showCreate'])->name('create');
+        Route::post('/create', [AccountController::class, 'store'])->name('store');
         
         Route::get('/dashboard', function () {
             return view('pages.account.dashboard');
@@ -70,14 +74,11 @@ Route::middleware([
             return view('pages.account.team');
         })->name('team');
         
-        Route::get('/create', function () {
-            return view('pages.account.create');
-        })->name('create');
-        
         Route::get('/switch/{account_id}', function ($account_id) {
-            // Verify user has active membership in this account
+            // Verify user has active membership in this account (exclude soft-deleted)
             $hasAccess = auth()->user()->tenant_accounts()
                 ->where('tenant_accounts.id', $account_id)
+                ->where('is_soft_deleted', false)
                 ->wherePivot('membership_status', 'membership_active')
                 ->exists();
             

@@ -66,6 +66,7 @@ class ViewComposerServiceProvider extends ServiceProvider
 
         if ($user) {
             $userAccounts = $user->tenant_accounts()
+                ->where('is_soft_deleted', false)
                 ->wherePivot('membership_status', 'membership_active')
                 ->get();
 
