@@ -74,7 +74,7 @@
                            pattern="[a-z0-9\-]+"
                            {{ $canEdit ? '' : 'disabled' }}>
                     <span class="px-3 py-2 rounded-r-md text-sm opacity-70" style="background-color: var(--sidebar-hover-background-color);">
-                        .{{ request()->getHost() }}
+                        .{{ config('app.base_domain', 'common-portal.nsdb.com') }}
                     </span>
                 </div>
                 <p class="text-xs opacity-60 mt-1">Optional. Lowercase letters, numbers, and hyphens only.</p>

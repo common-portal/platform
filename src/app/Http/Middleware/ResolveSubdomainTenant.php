@@ -43,10 +43,11 @@ class ResolveSubdomainTenant
     /**
      * Extract subdomain from host.
      * 
+     * Base domain: common-portal.nsdb.com (4 parts)
      * Examples:
-     * - client.commonportal.com → client
-     * - www.commonportal.com → null (www is ignored)
-     * - commonportal.com → null
+     * - client.common-portal.nsdb.com → client
+     * - www.common-portal.nsdb.com → null (www is ignored)
+     * - common-portal.nsdb.com → null
      * - localhost → null
      */
     protected function extractSubdomain(string $host): ?string
@@ -56,17 +57,21 @@ class ResolveSubdomainTenant
             return null;
         }
 
+        // Get base domain from config (default: common-portal.nsdb.com = 4 parts)
+        $baseDomain = config('app.base_domain', 'common-portal.nsdb.com');
+        $baseParts = count(explode('.', $baseDomain));
+
         $parts = explode('.', $host);
 
-        // Need at least 3 parts for subdomain (sub.domain.tld)
-        if (count($parts) < 3) {
+        // Need more parts than base domain for a subdomain
+        if (count($parts) <= $baseParts) {
             return null;
         }
 
         $subdomain = $parts[0];
 
         // Ignore common non-tenant subdomains
-        $ignored = ['www', 'api', 'admin', 'mail', 'smtp', 'ftp'];
+        $ignored = ['www', 'api', 'admin', 'mail', 'smtp', 'ftp', 'common-portal'];
         if (in_array(strtolower($subdomain), $ignored)) {
             return null;
         }
