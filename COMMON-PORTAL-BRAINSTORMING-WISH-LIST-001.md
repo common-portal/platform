@@ -171,6 +171,30 @@ These items are specific to payment portals, not all common portals:
 
 ---
 
+## Homepage Structure
+
+Public landing page at root domain (e.g., `commonportal.com`).
+
+### Header (Sticky)
+| Position | Element |
+|----------|---------|
+| **Left** | Platform logo |
+| **Center** | Contact link |
+| **Right** | Login link + "Get Started" button |
+
+### Footer (Sticky)
+| Position | Element |
+|----------|---------|
+| **Left** | Language selector dropdown |
+| **Right** | "Powered by NSDB Common Portal" |
+
+### Mainframe (Body)
+- Default: simple, blank layout
+- Placeholder content: "NSDB Common Portal" branding
+- White-label ready — tenants can customize content later
+
+---
+
 ## Notes
 
 - Each directory should have a small README explaining its purpose
