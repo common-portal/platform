@@ -108,7 +108,14 @@ class AccountController extends Controller
             'account_display_name' => 'required|string|max:255',
             'primary_contact_full_name' => 'nullable|string|max:255',
             'primary_contact_email_address' => 'nullable|email|max:255',
-            'whitelabel_subdomain_slug' => 'nullable|string|max:50|alpha_dash|unique:tenant_accounts,whitelabel_subdomain_slug,' . session('active_account_id'),
+            'whitelabel_subdomain_slug' => [
+                'nullable',
+                'string',
+                'max:50',
+                'alpha_dash',
+                'unique:tenant_accounts,whitelabel_subdomain_slug,' . session('active_account_id'),
+                'not_in:www,api,admin,mail,smtp,ftp,app,portal,dashboard,login,auth',
+            ],
         ]);
 
         $activeAccountId = session('active_account_id');
@@ -141,7 +148,7 @@ class AccountController extends Controller
         ];
 
         // Only business accounts can have subdomains
-        if ($account->account_type === 'business_entity') {
+        if ($account->isBusinessAccount()) {
             $updateData['whitelabel_subdomain_slug'] = $request->whitelabel_subdomain_slug 
                 ? strtolower($request->whitelabel_subdomain_slug) 
                 : null;

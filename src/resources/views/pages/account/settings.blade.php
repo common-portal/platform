@@ -61,7 +61,7 @@
                        {{ $canEdit ? '' : 'disabled' }}>
             </div>
 
-            @if($account->account_type === 'business_entity')
+            @if($account->isBusinessAccount())
             <div class="mb-4">
                 <label class="block text-sm font-medium mb-2">Whitelabel Subdomain</label>
                 <div class="flex items-center">
