@@ -158,6 +158,24 @@ Permissions tied to sidebar menu items. Easy to extend.
 - **Easy to add permissions** — New permissions automatically appear in Team management UI
 - **Role assignment** — Members can be assigned permissions per-account
 
+### Invitation Flow
+1. Account owner/admin invites email address via Team page
+2. **If email exists** → account added to member's shared accounts list
+3. **If email NOT exists** → new member created, account added, OTP sent
+4. Invited member sees new account in "Active Account" dropdown on next login
+
+### Per-Member Per-Account Permissions
+| Scenario | Description |
+|----------|-------------|
+| **Member in Account A** | Has `dashboard`, `team` permissions |
+| **Same Member in Account B** | Has only `dashboard` permission |
+| **Result** | Member sees different menu items depending on active account |
+
+### Platform Administrator Override
+- `is_platform_administrator = true` **bypasses all account-level permissions**
+- Platform admins have full access to every menu item in every account
+- Separate from account-level roles (owner, admin, user)
+
 ---
 
 ## Excluded (Not Core)
