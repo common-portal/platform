@@ -267,6 +267,16 @@ Single page at `/login-register` — both Login and "Get Started" link here.
 - More secure (no password to leak)
 - Password is convenience feature, not requirement
 
+### Password Security (PCI DSS Compliance)
+| Requirement | Implementation |
+|-------------|----------------|
+| **Hashing algorithm** | bcrypt (Laravel default) |
+| **Never store plaintext** | Passwords always one-way hashed |
+| **PCI DSS 8.3.2** | Strong cryptography for credential storage |
+| **Laravel method** | `Hash::make($password)` / `Hash::check()` |
+
+**Note:** Laravel handles PCI-compliant password hashing automatically via bcrypt. No additional configuration required.
+
 ---
 
 ## Notes
