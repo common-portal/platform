@@ -5,6 +5,7 @@ use App\Http\Controllers\Auth\OtpAuthController;
 use App\Http\Controllers\AccountController;
 use App\Http\Controllers\TeamController;
 use App\Http\Controllers\InvitationController;
+use App\Http\Controllers\MemberController;
 
 /*
 |--------------------------------------------------------------------------
@@ -104,9 +105,14 @@ Route::middleware([
 
     // Member Routes
     Route::prefix('member')->name('member.')->group(function () {
-        Route::get('/settings', function () {
-            return view('pages.member.settings');
-        })->name('settings');
+        Route::get('/settings', [MemberController::class, 'showSettings'])->name('settings');
+        Route::post('/settings/profile', [MemberController::class, 'updateProfile'])->name('settings.profile');
+        Route::post('/settings/email', [MemberController::class, 'requestEmailChange'])->name('settings.email');
+        Route::get('/settings/email/verify', [MemberController::class, 'showEmailVerifyForm'])->name('settings.email.verify');
+        Route::post('/settings/email/verify', [MemberController::class, 'verifyEmailChange'])->name('settings.email.verify.submit');
+        Route::post('/settings/password', [MemberController::class, 'updatePassword'])->name('settings.password');
+        Route::delete('/settings/password', [MemberController::class, 'removePassword'])->name('settings.password.remove');
+        Route::post('/settings/language', [MemberController::class, 'updateLanguage'])->name('settings.language');
     });
 
     // Administrator Routes (platform admins only)
