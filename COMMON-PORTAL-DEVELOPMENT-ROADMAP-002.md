@@ -77,18 +77,26 @@ Phase-by-phase implementation plan aligned with `COMMON-PORTAL-BRAINSTORMING-WIS
 ---
 
 ## Phase 3: Authentication (OTP-Primary)
-**Status:** ⬜ Not Started
+**Status:** ✅ Complete
 
 > **Reference:** WISH-LIST-003 → Authentication UX, Registration & Account Flow
 
-### Steps
-- [ ] Build `/login-register` page (combined login/register)
-- [ ] Implement OTP flow as primary authentication
-- [ ] Implement password login as optional secondary
-- [ ] Auto-create personal account on registration
-- [ ] Integrate mailer for OTP delivery (MAILER-CODE-002)
+### Completed Steps
+- [x] Build `/login-register` page (combined login/register)
+- [x] Implement OTP flow as primary authentication
+- [x] Implement password login as optional secondary
+- [x] Auto-create personal account on registration
+- [x] Integrate mailer for OTP delivery (SMTP via Laravel Mail)
 
-### OTP Flow (from WISH-LIST-003)
+### Key Deliverables
+| Component | File | Status |
+|-----------|------|--------|
+| OTP Auth Controller | `Controllers/Auth/OtpAuthController.php` | ✅ |
+| Platform Mailer Service | `Services/PlatformMailerService.php` | ✅ |
+| Login/Register Page | `pages/login-register.blade.php` | ✅ |
+| OTP Verify Page | `pages/otp-verify.blade.php` | ✅ |
+
+### OTP Flow (Implemented)
 1. Email entered → check if member exists
 2. **New member:** Create member + personal account + send OTP
 3. **Existing member:** Send OTP
@@ -97,18 +105,26 @@ Phase-by-phase implementation plan aligned with `COMMON-PORTAL-BRAINSTORMING-WIS
 ---
 
 ## Phase 4: Account System
-**Status:** ⬜ Not Started
+**Status:** ✅ Complete
 
 > **Reference:** WISH-LIST-003 → Registration & Account Flow, Account Types
 
-### Steps
-- [ ] Implement personal account (auto-created, cannot delete)
-- [ ] Implement business account creation ("+ Add Business Account")
-- [ ] Build account switcher dropdown in sidebar
-- [ ] Implement soft delete for business accounts (Danger Zone)
-- [ ] Account-level branding (logo, subdomain)
+### Completed Steps
+- [x] Implement personal account (auto-created, cannot delete)
+- [x] Implement business account creation ("+ Add Business Account")
+- [x] Build account switcher dropdown in sidebar
+- [x] Implement soft delete for business accounts (Danger Zone)
+- [x] Account-level branding (logo, subdomain)
 
-### Account Types (from WISH-LIST-003)
+### Key Deliverables
+| Component | File | Status |
+|-----------|------|--------|
+| Account Controller | `Controllers/AccountController.php` | ✅ |
+| Account Settings Page | `pages/account/settings.blade.php` | ✅ |
+| Create Account Page | `pages/account/create.blade.php` | ✅ |
+| Account Switcher | `components/sidebar-menu.blade.php` | ✅ |
+
+### Account Types (Implemented)
 | Type | Behavior |
 |------|----------|
 | `personal_individual` | Auto-created, one per member, cannot delete |
@@ -117,17 +133,24 @@ Phase-by-phase implementation plan aligned with `COMMON-PORTAL-BRAINSTORMING-WIS
 ---
 
 ## Phase 5: Permissions & Sidebar
-**Status:** ⬜ Not Started
+**Status:** ✅ Complete
 
 > **Reference:** WISH-LIST-003 → Permissions System, Sidebar Menu
 
-### Steps
-- [ ] Implement permission slugs in `tenant_account_memberships.granted_permission_slugs`
-- [ ] Build permission-based sidebar visibility
-- [ ] Implement platform toggle for menu items (`platform_settings.sidebar_menu_item_visibility_toggles`)
-- [ ] Platform administrator override (`is_platform_administrator = true`)
+### Completed Steps
+- [x] Implement permission slugs in `tenant_account_memberships.granted_permission_slugs`
+- [x] Build permission-based sidebar visibility
+- [x] Implement platform toggle for menu items (`platform_settings.sidebar_menu_item_visibility_toggles`)
+- [x] Platform administrator override (`is_platform_administrator = true`)
+- [x] Self-protection (cannot remove own team management access)
 
-### Permission Slugs (from WISH-LIST-003)
+### Key Deliverables
+| Component | File | Status |
+|-----------|------|--------|
+| Permission Helpers | `Models/TenantAccountMembership.php` | ✅ |
+| Sidebar Visibility | `Providers/ViewComposerServiceProvider.php` | ✅ |
+
+### Permission Slugs (Implemented)
 | Slug | Controls |
 |------|----------|
 | `can_access_account_settings` | Account Settings page |
@@ -141,18 +164,30 @@ Phase-by-phase implementation plan aligned with `COMMON-PORTAL-BRAINSTORMING-WIS
 ---
 
 ## Phase 6: Team Management & Invitations
-**Status:** ⬜ Not Started
+**Status:** ✅ Complete
 
 > **Reference:** WISH-LIST-003 → Team Page Actions, `team_membership_invitations` Table
 
-### Steps
-- [ ] Build Team page with member list
-- [ ] Implement invitation flow (email → accept → membership)
-- [ ] Edit member permissions
-- [ ] Disable/re-enable members
-- [ ] Resend invitation functionality
+### Completed Steps
+- [x] Build Team page with member list
+- [x] Implement invitation flow (email → accept → membership)
+- [x] Edit member permissions
+- [x] Disable/re-enable members
+- [x] Resend invitation functionality
+- [x] Cancel invitation functionality
+- [x] Pending invitation redirect after login
 
-### Team Actions (from WISH-LIST-003)
+### Key Deliverables
+| Component | File | Status |
+|-----------|------|--------|
+| Team Controller | `Controllers/TeamController.php` | ✅ |
+| Invitation Controller | `Controllers/InvitationController.php` | ✅ |
+| Team Page | `pages/account/team.blade.php` | ✅ |
+| Team Invite Page | `pages/account/team-invite.blade.php` | ✅ |
+| Accept Invitation Page | `pages/invitation-accept.blade.php` | ✅ |
+| Migration | `invited_permission_slugs` column | ✅ |
+
+### Team Actions (Implemented)
 | Action | Permission Required |
 |--------|---------------------|
 | Invite | `can_manage_team_members` |
@@ -163,48 +198,88 @@ Phase-by-phase implementation plan aligned with `COMMON-PORTAL-BRAINSTORMING-WIS
 ---
 
 ## Phase 7: Member Settings
-**Status:** ⬜ Not Started
+**Status:** ✅ Complete
 
 > **Reference:** WISH-LIST-003 → Sidebar Menu → Member Profile
 
-### Steps
-- [ ] Profile tab (avatar, first name, last name)
-- [ ] Login Email tab (change email with OTP verification)
-- [ ] Login Password tab (optional password management)
-- [ ] Language preference (synced to translator)
+### Completed Steps
+- [x] Profile tab (first name, last name)
+- [x] Login Email tab (change email with OTP verification)
+- [x] Login Password tab (set, update, remove password)
+- [x] Language preference (synced to session)
+
+### Key Deliverables
+| Component | File | Status |
+|-----------|------|--------|
+| Member Controller | `Controllers/MemberController.php` | ✅ |
+| Member Settings Page | `pages/member/settings.blade.php` | ✅ |
+| Email Verify Page | `pages/member/verify-email.blade.php` | ✅ |
 
 ---
 
 ## Phase 8: Platform Administrator
-**Status:** ⬜ Not Started
+**Status:** ✅ Complete
 
 > **Reference:** WISH-LIST-003 → Administrator Access, Platform-Level Branding
 
-### Steps
-- [ ] Administrator sidebar section (visible only if `is_platform_administrator = true`)
-- [ ] Platform Theme page (logo, colors, favicon, meta)
-- [ ] Menu Items toggle page
-- [ ] Platform Members management
+### Completed Steps
+- [x] Administrator sidebar section (visible only if `is_platform_administrator = true`)
+- [x] Dashboard with platform stats
+- [x] Platform Theme page (name, description, theme preset)
+- [x] Menu Items toggle page
+- [x] Platform Members management (toggle admin, impersonate)
+- [x] Accounts list with impersonation
+- [x] Impersonation mode with exit functionality
 
-### Admin Pages (from WISH-LIST-003)
-| Tab | Function |
-|-----|----------|
-| Platform Theme | Logo, colors, favicon, OG image |
-| Menu Items | Toggle optional modules |
-| Platform Members | Manage all platform members |
+### Key Deliverables
+| Component | File | Status |
+|-----------|------|--------|
+| Admin Controller | `Controllers/AdminController.php` | ✅ |
+| Admin Dashboard | `pages/administrator/index.blade.php` | ✅ |
+| Members Page | `pages/administrator/members.blade.php` | ✅ |
+| Accounts Page | `pages/administrator/accounts.blade.php` | ✅ |
+| Theme Page | `pages/administrator/theme.blade.php` | ✅ |
+| Menu Items Page | `pages/administrator/menu-items.blade.php` | ✅ |
+
+### Admin Features (Implemented)
+| Feature | Function |
+|---------|----------|
+| Platform Stats | Members, accounts, invitations count |
+| Theme Settings | Platform name, description, dark/light theme |
+| Menu Items | Toggle sidebar feature visibility |
+| Member Management | Toggle admin status, impersonate users |
+| Account Management | View all accounts, impersonate accounts |
 
 ---
 
 ## Phase 9: Multi-Tenant Subdomains
-**Status:** ⬜ Not Started
+**Status:** ✅ Complete
 
 > **Reference:** WISH-LIST-003 → Branding Hierarchy → Account-Level Branding
 
-### Steps
-- [ ] Configure Stancl Tenancy
-- [ ] Subdomain routing (`clientname.commonportal.com`)
-- [ ] Account branding overrides platform branding on subdomain
-- [ ] CNAME/A record support for custom domains
+### Completed Steps
+- [x] Subdomain detection middleware (no Stancl Tenancy needed - KISS)
+- [x] Subdomain routing (`client.common-portal.nsdb.com`)
+- [x] Account branding overrides platform branding on subdomain
+- [x] Subdomain management in account settings (business accounts only)
+- [x] Reserved subdomain validation
+- [x] Configurable base domain via `APP_BASE_DOMAIN`
+
+### Key Deliverables
+| Component | File | Status |
+|-----------|------|--------|
+| Subdomain Middleware | `Middleware/ResolveSubdomainTenant.php` | ✅ |
+| Branding Override | `Providers/ViewComposerServiceProvider.php` | ✅ |
+| Subdomain Field | `pages/account/settings.blade.php` | ✅ |
+| Config | `config/app.php` → `base_domain` | ✅ |
+
+### Subdomain Flow
+```
+client.common-portal.nsdb.com
+  → Middleware extracts "client"
+  → Finds TenantAccount with whitelabel_subdomain_slug
+  → Applies branding overrides (name, logo)
+```
 
 ---
 
@@ -257,13 +332,13 @@ make logs      # View container logs
 | 0 | Project Setup | ✅ |
 | 1 | Database Schema & Models | ✅ |
 | 2 | Core Layout & Branding | ✅ |
-| 3 | Authentication (OTP-Primary) | ⬜ |
-| 4 | Account System | ⬜ |
-| 5 | Permissions & Sidebar | ⬜ |
-| 6 | Team Management & Invitations | ⬜ |
-| 7 | Member Settings | ⬜ |
-| 8 | Platform Administrator | ⬜ |
-| 9 | Multi-Tenant Subdomains | ⬜ |
+| 3 | Authentication (OTP-Primary) | ✅ |
+| 4 | Account System | ✅ |
+| 5 | Permissions & Sidebar | ✅ |
+| 6 | Team Management & Invitations | ✅ |
+| 7 | Member Settings | ✅ |
+| 8 | Platform Administrator | ✅ |
+| 9 | Multi-Tenant Subdomains | ✅ |
 | 10 | Optional Modules | ⬜ |
 | 11 | Production Deployment | ⬜ |
 
