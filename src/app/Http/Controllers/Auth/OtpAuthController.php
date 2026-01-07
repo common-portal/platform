@@ -178,6 +178,12 @@ class OtpAuthController extends Controller
             session(['active_account_id' => $firstAccount->id]);
         }
 
+        // Check for pending invitation
+        if ($pendingToken = session('pending_invitation_token')) {
+            session()->forget('pending_invitation_token');
+            return redirect()->route('invitation.accept', ['token' => $pendingToken]);
+        }
+
         return redirect()->route('home')->with('status', 'Welcome back!');
     }
 
@@ -211,6 +217,12 @@ class OtpAuthController extends Controller
 
         if ($firstAccount) {
             session(['active_account_id' => $firstAccount->id]);
+        }
+
+        // Check for pending invitation
+        if ($pendingToken = session('pending_invitation_token')) {
+            session()->forget('pending_invitation_token');
+            return redirect()->route('invitation.accept', ['token' => $pendingToken]);
         }
 
         return redirect()->route('home');

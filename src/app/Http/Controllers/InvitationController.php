@@ -4,9 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\TeamMembershipInvitation;
 use App\Models\TenantAccountMembership;
-use App\Models\PlatformMember;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class InvitationController extends Controller
