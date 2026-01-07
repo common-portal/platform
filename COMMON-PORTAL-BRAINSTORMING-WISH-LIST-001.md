@@ -67,8 +67,38 @@ Collected feature requests and ideas for the multi-tenant payment portal.
 | **Accounts** | Search and manage all accounts, with impersonation capability |
 | **Global** | Global platform settings |
 | **Platform Theme** | Define colors, styles, and select theme presets |
+| **Menu Items** | Toggle sidebar menu items on/off platform-wide |
 
 *(Additional tabs like Sweep Fees, Audit are payment-specific — optional modules)*
+
+### Menu Items Tab
+Platform administrator can enable/disable sidebar menu items globally.
+
+#### Toggleable Menu Items
+| Menu Item | Default | Description |
+|-----------|---------|-------------|
+| **Account** | ✅ On | Account settings page |
+| **Dashboard** | ✅ On | Account-level statistics |
+| **Team** | ✅ On | Team member management |
+| **Developer** | ⬜ Off | API documentation, integration tools |
+| **Support** | ⬜ Off | Support ticket generator |
+| **Transactions** | ⬜ Off | Transaction history page |
+| **Billing** | ⬜ Off | Billing history page |
+
+#### Developer Sub-tabs (when enabled)
+- API Documentation
+- Integration guides
+- API keys management
+
+#### Support (when enabled)
+- Create support tickets
+- View ticket history
+- Track ticket status
+
+#### How It Works
+- Checkbox toggles menu item on/off for entire platform
+- When off → menu item hidden from all accounts
+- Permissions still apply (member must have permission to see enabled items)
 
 ### Platform Theme Tab
 Full theming control for platform administrators.
