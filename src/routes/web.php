@@ -6,6 +6,7 @@ use App\Http\Controllers\AccountController;
 use App\Http\Controllers\TeamController;
 use App\Http\Controllers\InvitationController;
 use App\Http\Controllers\MemberController;
+use App\Http\Controllers\AdminController;
 
 /*
 |--------------------------------------------------------------------------
@@ -117,16 +118,16 @@ Route::middleware([
 
     // Administrator Routes (platform admins only)
     Route::prefix('administrator')->name('admin.')->group(function () {
-        Route::get('/', function () {
-            if (!auth()->user()->is_platform_administrator) {
-                abort(403);
-            }
-            return view('pages.administrator.index');
-        })->name('index');
-        
-        Route::get('/exit-impersonation', function () {
-            session()->forget(['impersonating_account_id', 'impersonating_account_name']);
-            return redirect()->route('home');
-        })->name('exit-impersonation');
+        Route::get('/', [AdminController::class, 'index'])->name('index');
+        Route::get('/members', [AdminController::class, 'members'])->name('members');
+        Route::post('/members/{member_id}/toggle-admin', [AdminController::class, 'toggleAdmin'])->name('members.toggle-admin');
+        Route::post('/members/{member_id}/impersonate', [AdminController::class, 'impersonate'])->name('members.impersonate');
+        Route::get('/accounts', [AdminController::class, 'accounts'])->name('accounts');
+        Route::post('/accounts/{account_id}/impersonate', [AdminController::class, 'impersonateAccount'])->name('accounts.impersonate');
+        Route::get('/theme', [AdminController::class, 'theme'])->name('theme');
+        Route::post('/theme', [AdminController::class, 'updateTheme'])->name('theme.update');
+        Route::get('/menu-items', [AdminController::class, 'menuItems'])->name('menu-items');
+        Route::post('/menu-items', [AdminController::class, 'updateMenuItems'])->name('menu-items.update');
+        Route::get('/exit-impersonation', [AdminController::class, 'exitImpersonation'])->name('exit-impersonation');
     });
 });
