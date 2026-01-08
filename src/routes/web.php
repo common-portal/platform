@@ -8,6 +8,7 @@ use App\Http\Controllers\InvitationController;
 use App\Http\Controllers\MemberController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\ModuleController;
+use App\Http\Controllers\SupportController;
 
 /*
 |--------------------------------------------------------------------------
@@ -35,6 +36,10 @@ Route::post('/language', function () {
 // Invitation acceptance (public - works for logged in or guests)
 Route::get('/invitation/{token}', [InvitationController::class, 'show'])->name('invitation.accept');
 Route::post('/invitation/{token}/accept', [InvitationController::class, 'accept'])->name('invitation.accept.submit');
+
+// Support page (public)
+Route::get('/support', [SupportController::class, 'index'])->name('support');
+Route::post('/support', [SupportController::class, 'submit'])->name('support.submit');
 
 /*
 |--------------------------------------------------------------------------
