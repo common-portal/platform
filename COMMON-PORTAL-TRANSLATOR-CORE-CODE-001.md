@@ -1,6 +1,6 @@
 # Translator Framework - Copy/Paste Ready
 
-> **One file. Two functions. 100+ languages. Just copy, paste, configure, done.**
+> **One file. Two functions. 100+ languages. Powered by xAI Grok. Just copy, paste, configure, done.**
 
 ---
 
@@ -8,7 +8,7 @@
 
 1. Copy the PHP code below into `translator.php`
 2. Create the database table (SQL provided)
-3. Set your `OPENAI_API_KEY` environment variable
+3. Set your `XAI_API_KEY` environment variable (get from https://console.x.ai)
 4. Configure `SITE_DOMAIN` and `COOKIE_NAME` constants
 5. Use `<?= __t("Your text") ?>` in templates
 
@@ -66,7 +66,7 @@ function _translator_languages() {
 }
 
 //=============================================================================
-// FUNCTION 1: translator() - Translates text with DB cache + OpenAI fallback
+// FUNCTION 1: translator() - Translates text with DB cache + xAI Grok fallback
 //=============================================================================
 function translator($text, $lang = null, $pdo = null) {
     if (empty($text)) return '';
@@ -119,11 +119,15 @@ function translator($text, $lang = null, $pdo = null) {
         }
     }
     
-    // OpenAI API fallback
-    $apiKey = getenv('OPENAI_API_KEY');
+    // xAI Grok API fallback
+    $apiKey = getenv('XAI_API_KEY');
     if (empty($apiKey)) return $text;
     
     $langName = $languages[$lang];
+    
+    // System prompt for HTML-preserving translations
+    $systemPrompt = "You are an HTML-preserving translator. Translate visible text into {$langName}, keeping ALL HTML tags, attributes, comments, scripts, styles, CDATA, doctype, and structure 100% unchanged. Never add, remove, modify, or reorder any HTML. Translate only human-readable text nodes and display attributes (alt, title, placeholder, aria-label). Leave code/scripts untouched. Output ONLY the translated content — no explanations, no markdown fences.";
+    
     $ch = curl_init('https://api.x.ai/v1/chat/completions');
     curl_setopt_array($ch, [
         CURLOPT_POST => true,
@@ -131,9 +135,9 @@ function translator($text, $lang = null, $pdo = null) {
         CURLOPT_TIMEOUT => 30,
         CURLOPT_HTTPHEADER => ['Authorization: Bearer ' . $apiKey, 'Content-Type: application/json'],
         CURLOPT_POSTFIELDS => json_encode([
-            'model' => 'grok-4-1-fast-reasoning',
+            'model' => 'grok-4-1-fast-non-reasoning',
             'messages' => [
-                ['role' => 'system', 'content' => "Translate to {$langName}. Keep HTML intact. Return only the translation."],
+                ['role' => 'system', 'content' => $systemPrompt],
                 ['role' => 'user', 'content' => $text]
             ],
             'temperature' => 0.2
@@ -296,8 +300,10 @@ $pdo = new PDO('pgsql:host=localhost;dbname=mydb', 'user', 'pass');
 ## Environment Variables
 
 ```bash
-OPENAI_API_KEY=sk-your-api-key-here
+XAI_API_KEY=xai-your-api-key-here
 ```
+
+Get your API key from https://console.x.ai
 
 ---
 
@@ -326,5 +332,35 @@ OPENAI_API_KEY=sk-your-api-key-here
 - `__t($text)` - Shorthand helper for templates
 - Auto IP-based language detection on first visit
 - Cookie persistence for language preference
-- PostgreSQL caching with OpenAI fallback
+- PostgreSQL caching with xAI Grok fallback
 - 100+ supported languages
+
+---
+
+## xAI Grok Configuration
+
+| Setting | Value |
+|---------|-------|
+| **API Endpoint** | `https://api.x.ai/v1/chat/completions` |
+| **Model** | `grok-4-1-fast-non-reasoning` |
+| **Pricing** | $0.20/M input, $0.50/M output |
+| **Context Window** | 2M tokens |
+| **Temperature** | 0.2 (low for consistent translations) |
+
+### Why grok-4-1-fast-non-reasoning?
+
+- **Faster**: Optimized for high-throughput, low-latency inference
+- **Cheaper**: ~15× cheaper than older Grok-3 models
+- **No reasoning overhead**: Unlike `-reasoning` variants, no extra thinking tokens
+- **Excellent instruction following**: Preserves HTML structure perfectly
+
+### System Prompt (HTML-Preserving)
+
+```
+You are an HTML-preserving translator. Translate visible text into {LANGUAGE}, 
+keeping ALL HTML tags, attributes, comments, scripts, styles, CDATA, doctype, 
+and structure 100% unchanged. Never add, remove, modify, or reorder any HTML. 
+Translate only human-readable text nodes and display attributes (alt, title, 
+placeholder, aria-label). Leave code/scripts untouched. Output ONLY the 
+translated content — no explanations, no markdown fences.
+```
