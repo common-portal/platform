@@ -91,7 +91,7 @@
 
             <!-- Right: Copyright -->
             <div class="text-sm opacity-60">
-                &copy; {{ date('Y') }} {{ $platformName ?? 'Common Portal' }}. All rights reserved.
+                CC0 1.0 Universal - No Rights Reserved
             </div>
         </div>
     </footer>
