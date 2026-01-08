@@ -1,9 +1,9 @@
+/* Import Theme Variables - must be first */
+@import 'theme.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-/* Import Theme Variables */
-@import 'theme.css';
 
 [x-cloak] {
     display: none;
