@@ -63,12 +63,12 @@
     <div class="flex min-h-screen {{ session('impersonating_account_id') ? 'pt-10' : '' }}">
         
         <!-- Sidebar -->
-        <aside id="sidebar" class="fixed lg:relative lg:flex flex-col h-screen transition-transform duration-300 ease-in-out z-40
+        <aside id="sidebar" class="fixed lg:sticky lg:top-0 flex flex-col h-screen transition-transform duration-300 ease-in-out z-40
                       -translate-x-full lg:translate-x-0"
-               style="width: var(--sidebar-width); background-color: var(--sidebar-background-color); color: var(--sidebar-text-color);">
+               style="width: var(--sidebar-width); min-width: var(--sidebar-width); background-color: var(--sidebar-background-color); color: var(--sidebar-text-color);">
             
             <!-- Platform Logo -->
-            <div class="p-4 border-b" style="border-color: var(--sidebar-hover-background-color);">
+            <div class="shrink-0 p-4 border-b" style="border-color: var(--sidebar-hover-background-color);">
                 <a href="/" class="flex items-center space-x-3">
                     <img src="{{ $platformLogo ?? '/images/platform-defaults/platform-logo.png' }}" 
                          alt="{{ $platformName ?? 'Common Portal' }}" 
@@ -82,8 +82,8 @@
                 @include('components.sidebar-menu')
             </nav>
 
-            <!-- Language Selector (Bottom) -->
-            <div class="p-4 border-t" style="border-color: var(--sidebar-hover-background-color);">
+            <!-- Language Selector (Sticky Bottom) -->
+            <div class="shrink-0 p-4 border-t mt-auto" style="border-color: var(--sidebar-hover-background-color); background-color: var(--sidebar-background-color);">
                 @include('components.language-selector')
             </div>
         </aside>
