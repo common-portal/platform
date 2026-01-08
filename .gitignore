@@ -3,6 +3,9 @@
 .env.backup
 .env.production
 
+# Secrets (user credentials - NEVER commit)
+.secrets/
+
 # IDE
 .idea/
 .vscode/
