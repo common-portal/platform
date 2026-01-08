@@ -96,7 +96,7 @@
         <div class="flex-1 flex flex-col min-h-screen">
             
             <!-- Mobile Header -->
-            <header class="md:hidden sticky top-0 z-20 flex items-center justify-between p-4"
+            <header class="mobile-header sticky top-0 z-20 flex items-center justify-between p-4"
                     style="background-color: var(--sidebar-background-color);">
                 <button onclick="toggleSidebar()" class="p-2 rounded-md hover:opacity-80" 
                         style="color: var(--sidebar-text-color);">
@@ -123,7 +123,29 @@
         </div>
     </div>
 
-    <!-- Sidebar Toggle Script -->
+    <!-- Sidebar Responsive CSS (explicit media query) -->
+    <style>
+        /* Mobile: sidebar hidden off-screen */
+        #sidebar {
+            transform: translateX(-100%);
+            position: fixed;
+        }
+        #sidebar.translate-x-0 {
+            transform: translateX(0);
+        }
+        /* Desktop (768px+): sidebar always visible, in document flow */
+        @media (min-width: 768px) {
+            #sidebar {
+                transform: translateX(0) !important;
+                position: relative !important;
+            }
+            .mobile-header {
+                display: none !important;
+            }
+        }
+    </style>
+
+    <!-- Sidebar Toggle Script (mobile only) -->
     <script>
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
