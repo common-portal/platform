@@ -16,7 +16,10 @@ use App\Http\Controllers\ModuleController;
 */
 
 Route::get('/', function () {
-    return view('pages.homepage');
+    if (auth()->check()) {
+        return view('pages.homepage-authenticated');
+    }
+    return view('pages.homepage-guest');
 })->name('home');
 
 // Language preference (available to guests too)
