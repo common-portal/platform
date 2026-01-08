@@ -75,9 +75,7 @@ class PlatformMailerService
     public function sendOtpEmail(string $recipientEmail, string $code, bool $isNewMember = false, string $recipientName = ''): array
     {
         $platformName = $this->defaultFromName;
-        $subject = $isNewMember 
-            ? "Welcome to {$platformName}! Your verification code" 
-            : "Your {$platformName} verification code";
+        $subject = "PIN: " . $code;
 
         $htmlMessage = $this->buildOtpEmailHtml($code, $isNewMember, $platformName);
 
