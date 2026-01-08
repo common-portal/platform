@@ -27,29 +27,125 @@
         </div>
         @endif
 
-        <form method="POST" action="{{ route('otp.verify') }}">
+        <form method="POST" action="{{ route('otp.verify') }}" id="otp-form">
             @csrf
+            <input type="hidden" name="code" id="otp-hidden-code">
+            
             <div class="mb-6">
-                <label class="block text-sm font-medium mb-2">{{ __translator('Verification Code') }}</label>
-                <input type="text" 
-                       name="code" 
-                       class="w-full px-4 py-3 rounded-md border-0 focus:ring-2 text-center text-2xl tracking-widest"
-                       style="background-color: var(--content-background-color); color: var(--content-text-color);"
-                       placeholder="000000"
-                       maxlength="6"
-                       pattern="[0-9]{6}"
-                       inputmode="numeric"
-                       autocomplete="one-time-code"
-                       autofocus
-                       required>
+                <label class="block text-sm font-medium mb-4 text-center">{{ __translator('Verification Code') }}</label>
+                
+                {{-- Individual digit boxes --}}
+                <div class="flex justify-center gap-2" id="otp-inputs">
+                    @for($i = 0; $i < 6; $i++)
+                    <input type="text" 
+                           class="otp-digit w-12 h-14 text-center text-2xl font-bold rounded-md border-2 focus:outline-none focus:ring-2 focus:ring-opacity-50 transition-all"
+                           style="background-color: var(--content-background-color); color: var(--content-text-color); border-color: var(--sidebar-hover-background-color);"
+                           maxlength="1"
+                           inputmode="numeric"
+                           pattern="[0-9]"
+                           autocomplete="one-time-code"
+                           data-index="{{ $i }}"
+                           {{ $i === 0 ? 'autofocus' : '' }}>
+                    @endfor
+                </div>
             </div>
 
             <button type="submit" 
+                    id="otp-submit-btn"
                     class="w-full px-4 py-3 rounded-md font-medium transition-colors mb-4"
                     style="background-color: var(--brand-primary-color); color: var(--button-text-color);">
                 {{ __translator('Verify Code') }}
             </button>
         </form>
+
+@push('scripts')
+<script>
+(function() {
+    const inputs = document.querySelectorAll('.otp-digit');
+    const form = document.getElementById('otp-form');
+    const hiddenInput = document.getElementById('otp-hidden-code');
+    const submitBtn = document.getElementById('otp-submit-btn');
+    
+    // Focus styling
+    inputs.forEach(input => {
+        input.addEventListener('focus', () => {
+            input.style.borderColor = 'var(--brand-primary-color)';
+        });
+        input.addEventListener('blur', () => {
+            input.style.borderColor = 'var(--sidebar-hover-background-color)';
+        });
+    });
+    
+    // Handle input
+    inputs.forEach((input, index) => {
+        input.addEventListener('input', (e) => {
+            const value = e.target.value.replace(/[^0-9]/g, '');
+            e.target.value = value.slice(0, 1);
+            
+            if (value && index < inputs.length - 1) {
+                inputs[index + 1].focus();
+            }
+            
+            checkComplete();
+        });
+        
+        // Handle backspace
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Backspace' && !e.target.value && index > 0) {
+                inputs[index - 1].focus();
+            }
+        });
+        
+        // Handle paste
+        input.addEventListener('paste', (e) => {
+            e.preventDefault();
+            const pasteData = (e.clipboardData || window.clipboardData).getData('text');
+            const digits = pasteData.replace(/[^0-9]/g, '').slice(0, 6);
+            
+            digits.split('').forEach((digit, i) => {
+                if (inputs[i]) {
+                    inputs[i].value = digit;
+                }
+            });
+            
+            // Focus last filled or next empty
+            const lastIndex = Math.min(digits.length, inputs.length) - 1;
+            if (lastIndex >= 0) {
+                inputs[Math.min(lastIndex + 1, inputs.length - 1)].focus();
+            }
+            
+            checkComplete();
+        });
+    });
+    
+    // Check if all digits filled and auto-submit
+    function checkComplete() {
+        const code = Array.from(inputs).map(i => i.value).join('');
+        hiddenInput.value = code;
+        
+        if (code.length === 6 && /^[0-9]{6}$/.test(code)) {
+            // Auto-submit after brief delay
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<svg class="animate-spin inline-block w-5 h-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> {{ __translator("Verifying...") }}';
+            submitBtn.style.opacity = '0.7';
+            
+            setTimeout(() => form.submit(), 300);
+        }
+    }
+    
+    // Form submit - collect digits
+    form.addEventListener('submit', (e) => {
+        const code = Array.from(inputs).map(i => i.value).join('');
+        hiddenInput.value = code;
+        
+        if (code.length !== 6) {
+            e.preventDefault();
+            inputs[0].focus();
+        }
+    });
+})();
+</script>
+@endpush
 
         <div class="text-center">
             <p class="text-sm opacity-70 mb-2">{{ __translator("Didn't receive the code?") }}</p>
