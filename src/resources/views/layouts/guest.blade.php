@@ -55,7 +55,7 @@
             <!-- Center: Navigation -->
             <nav class="hidden md:flex items-center space-x-6">
                 <a href="/support" class="text-sm opacity-70 hover:opacity-100 transition-opacity">
-                    Support
+                    {{ __translator('Support') }}
                 </a>
             </nav>
 
@@ -64,12 +64,12 @@
                 <a href="/login-register" 
                    class="px-4 py-2 text-sm font-medium rounded-md border transition-colors hover:opacity-80"
                    style="border-color: var(--brand-primary-color); color: var(--brand-primary-color);">
-                    Login
+                    {{ __translator('Login') }}
                 </a>
                 <a href="/login-register" 
                    class="px-4 py-2 text-sm font-medium rounded-md transition-colors hover:opacity-90"
                    style="background-color: var(--brand-primary-color); color: var(--button-text-color);">
-                    Register
+                    {{ __translator('Register') }}
                 </a>
             </div>
         </div>
@@ -91,18 +91,52 @@
 
             <!-- Center: Powered By -->
             <div class="text-sm opacity-60">
-                Powered by <a href="https://nsdb.com" target="_NSDB" class="hover:opacity-80" style="color: var(--brand-primary-color);">NSDB.COM</a>
+                {{ __translator('Powered by') }} <a href="https://nsdb.com" target="_NSDB" class="hover:opacity-80" style="color: var(--brand-primary-color);">NSDB.COM</a>
             </div>
 
             <!-- Right: Copyright -->
             <div class="text-sm opacity-60">
-                CC0 1.0 Universal - No Rights Reserved
+                {{ __translator('CC0 1.0 Universal - No Rights Reserved') }}
             </div>
         </div>
     </footer>
 
     @stack('modals')
     @stack('scripts')
+    
+    <!-- Global Submit Button Handler: Disable + Spinner on Click -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Handle all forms with data-submit-button class
+            document.querySelectorAll('form').forEach(function(form) {
+                form.addEventListener('submit', function(e) {
+                    const btn = form.querySelector('button[type="submit"], button:not([type])');
+                    if (btn && !btn.disabled) {
+                        // Store original content
+                        btn.dataset.originalText = btn.innerHTML;
+                        // Disable and show spinner
+                        btn.disabled = true;
+                        btn.innerHTML = '<svg class="animate-spin inline-block w-5 h-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Processing...';
+                        btn.style.opacity = '0.7';
+                        btn.style.cursor = 'not-allowed';
+                    }
+                });
+            });
+        });
+        
+        // Revert button on page show (back/forward navigation)
+        window.addEventListener('pageshow', function(e) {
+            if (e.persisted) {
+                document.querySelectorAll('button[data-original-text]').forEach(function(btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = btn.dataset.originalText;
+                    btn.style.opacity = '';
+                    btn.style.cursor = '';
+                });
+            }
+        });
+    </script>
+    
     @livewireScripts
 </body>
 </html>

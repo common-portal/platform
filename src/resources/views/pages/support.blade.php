@@ -5,8 +5,8 @@
     
     {{-- Page Header --}}
     <div class="text-center mb-10">
-        <h1 class="text-3xl font-bold mb-3">Contact Support</h1>
-        <p class="opacity-70">Have a question or need assistance? Send us a message.</p>
+        <h1 class="text-3xl font-bold mb-3">{{ __translator('Contact Support') }}</h1>
+        <p class="opacity-70">{{ __translator('Have a question or need assistance? Send us a message.') }}</p>
     </div>
 
     {{-- Success Message --}}
@@ -33,7 +33,7 @@
 
         {{-- From Name --}}
         <div>
-            <label for="from_name" class="block text-sm font-medium mb-2">From Name</label>
+            <label for="from_name" class="block text-sm font-medium mb-2">{{ __translator('From Name') }}</label>
             <input type="text" 
                    id="from_name" 
                    name="from_name" 
@@ -41,12 +41,12 @@
                    required
                    class="w-full px-4 py-3 rounded-md border-0 focus:ring-2"
                    style="background-color: var(--card-background-color); color: var(--content-text-color);"
-                   placeholder="Your full name">
+                   placeholder="{{ __translator('Your full name') }}">
         </div>
 
         {{-- From Email Address --}}
         <div>
-            <label for="from_email" class="block text-sm font-medium mb-2">From Email Address</label>
+            <label for="from_email" class="block text-sm font-medium mb-2">{{ __translator('From Email Address') }}</label>
             <input type="email" 
                    id="from_email" 
                    name="from_email" 
@@ -59,13 +59,13 @@
 
         {{-- Subject --}}
         <div>
-            <label for="subject" class="block text-sm font-medium mb-2">Subject</label>
+            <label for="subject" class="block text-sm font-medium mb-2">{{ __translator('Subject') }}</label>
             <select id="subject" 
                     name="subject" 
                     required
                     class="w-full px-4 py-3 rounded-md border-0 focus:ring-2"
                     style="background-color: var(--card-background-color); color: var(--content-text-color);">
-                <option value="">Select a subject...</option>
+                <option value="">{{ __translator('Select a subject...') }}</option>
                 <option value="Billing" {{ old('subject') == 'Billing' ? 'selected' : '' }}>Billing</option>
                 <option value="Bug Report" {{ old('subject') == 'Bug Report' ? 'selected' : '' }}>Bug Report</option>
                 <option value="General Inquiry" {{ old('subject') == 'General Inquiry' ? 'selected' : '' }}>General Inquiry</option>
@@ -79,14 +79,14 @@
 
         {{-- Message --}}
         <div>
-            <label for="message" class="block text-sm font-medium mb-2">Message</label>
+            <label for="message" class="block text-sm font-medium mb-2">{{ __translator('Message') }}</label>
             <textarea id="message" 
                       name="message" 
                       rows="6"
                       required
                       class="w-full px-4 py-3 rounded-md border-0 focus:ring-2 resize-none"
                       style="background-color: var(--card-background-color); color: var(--content-text-color);"
-                      placeholder="How can we help you?">{{ old('message') }}</textarea>
+                      placeholder="{{ __translator('How can we help you?') }}">{{ old('message') }}</textarea>
         </div>
 
         {{-- Submit Button --}}
@@ -94,7 +94,7 @@
             <button type="submit" 
                     class="w-full px-6 py-3 text-lg font-medium rounded-md transition-colors hover:opacity-90"
                     style="background-color: var(--brand-primary-color); color: var(--button-text-color);">
-                Submit Form Now
+                {{ __translator('Submit Form Now') }}
             </button>
         </div>
 

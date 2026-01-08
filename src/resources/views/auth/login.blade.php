@@ -3,7 +3,7 @@
 @section('content')
 <div class="flex-1 flex flex-col items-center justify-center px-6 py-12">
     <div class="w-full max-w-md rounded-lg p-8" style="background-color: var(--card-background-color);">
-        <h1 class="text-2xl font-bold mb-6 text-center">Login</h1>
+        <h1 class="text-2xl font-bold mb-6 text-center">{{ __translator('Login') }}</h1>
 
         @if($errors->any())
         <div class="mb-4 p-3 rounded-md text-sm" style="background-color: var(--status-error-color); color: white;">
@@ -23,7 +23,7 @@
             @csrf
 
             <div class="mb-4">
-                <label class="block text-sm font-medium mb-2">Email Address</label>
+                <label class="block text-sm font-medium mb-2">{{ __translator('Email Address') }}</label>
                 <input type="email" 
                        name="email" 
                        value="{{ old('email') }}"
@@ -36,7 +36,7 @@
             </div>
 
             <div class="mb-4">
-                <label class="block text-sm font-medium mb-2">Password</label>
+                <label class="block text-sm font-medium mb-2">{{ __translator('Password') }}</label>
                 <input type="password" 
                        name="password" 
                        class="w-full px-4 py-2 rounded-md border-0 focus:ring-2"
@@ -48,13 +48,13 @@
 
             <div class="mb-4 flex items-center">
                 <input type="checkbox" name="remember" id="remember" class="mr-2">
-                <label for="remember" class="text-sm opacity-70">Remember me</label>
+                <label for="remember" class="text-sm opacity-70">{{ __translator('Remember me') }}</label>
             </div>
 
             <button type="submit" 
                     class="w-full px-4 py-3 rounded-md font-medium transition-colors"
                     style="background-color: var(--brand-primary-color); color: var(--button-text-color);">
-                Log in
+                {{ __translator('Log in') }}
             </button>
 
             @if (Route::has('password.request'))
@@ -62,7 +62,7 @@
                 <a href="{{ route('password.request') }}" 
                    class="text-sm hover:underline"
                    style="color: var(--hyperlink-text-color);">
-                    Forgot your password?
+                    {{ __translator('Forgot your password?') }}
                 </a>
             </div>
             @endif
@@ -71,7 +71,7 @@
         <div class="mt-6 pt-4 border-t text-center" style="border-color: var(--sidebar-hover-background-color);">
             <a href="{{ route('login-register') }}" 
                class="text-sm opacity-70 hover:opacity-100">
-                ← Back to Login/Register
+                {{ __translator('Back to Login/Register') }}
             </a>
         </div>
     </div>

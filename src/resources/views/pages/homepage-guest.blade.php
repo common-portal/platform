@@ -17,7 +17,7 @@
 
     {{-- Tagline --}}
     <p class="text-xl opacity-70 mb-10 text-center max-w-2xl">
-        A white-label, multi-tenant portal platform.
+        {{ __translator('A white-label, multi-tenant portal platform.') }}
     </p>
 
     {{-- CTA Buttons --}}
@@ -25,12 +25,12 @@
         <a href="/login-register" 
            class="px-8 py-3 text-lg font-medium rounded-md transition-colors hover:opacity-90"
            style="background-color: var(--brand-primary-color); color: var(--button-text-color);">
-            Get Started
+            {{ __translator('Get Started') }}
         </a>
         <a href="/support" 
            class="px-8 py-3 text-lg font-medium rounded-md border transition-colors hover:opacity-80"
            style="border-color: var(--brand-primary-color); color: var(--brand-primary-color);">
-            Learn More
+            {{ __translator('Learn More') }}
         </a>
     </div>
 

@@ -6,10 +6,10 @@
 <div class="flex-1 flex flex-col items-center justify-center px-6 py-12">
     {{-- Login/Register Card --}}
     <div class="w-full max-w-md rounded-lg p-8" style="background-color: var(--card-background-color);">
-        <h1 class="text-2xl font-bold mb-2 text-center">Login or Register</h1>
+        <h1 class="text-2xl font-bold mb-2 text-center">{{ __translator('Login or Register') }}</h1>
         
         <p class="text-center opacity-70 mb-6">
-            Enter your email to receive a one-time password.
+            {{ __translator('Enter your email to receive a one-time password.') }}
         </p>
 
         @if(session('status'))
@@ -30,7 +30,7 @@
         <form method="POST" action="{{ route('otp.send') }}">
             @csrf
             <div class="mb-4">
-                <label class="block text-sm font-medium mb-2">Email Address</label>
+                <label class="block text-sm font-medium mb-2">{{ __translator('Email Address') }}</label>
                 <input type="email" 
                        name="email" 
                        value="{{ old('email') }}"
@@ -44,12 +44,12 @@
             <button type="submit" 
                     class="w-full px-4 py-3 rounded-md font-medium transition-colors"
                     style="background-color: var(--brand-primary-color); color: var(--button-text-color);">
-                Continue with Email
+                {{ __translator('Continue with Email') }}
             </button>
         </form>
 
         <p class="text-center text-sm opacity-60 mt-4">
-            We'll send you a one-time code to verify your email.
+            {{ __translator("We'll send you a one-time code to verify your email.") }}
         </p>
 
         {{-- Password Login Toggle (Optional) --}}
@@ -58,14 +58,14 @@
                     onclick="togglePasswordLogin()"
                     class="w-full text-center text-sm opacity-70 hover:opacity-100"
                     style="color: var(--hyperlink-text-color);">
-                Login with password instead
+                {{ __translator('Login with password instead') }}
             </button>
 
             <div id="password-login-form" class="hidden mt-4">
                 <form method="POST" action="{{ route('login.password') }}">
                     @csrf
                     <div class="mb-4">
-                        <label class="block text-sm font-medium mb-2">Email Address</label>
+                        <label class="block text-sm font-medium mb-2">{{ __translator('Email Address') }}</label>
                         <input type="email" 
                                name="email" 
                                class="w-full px-4 py-2 rounded-md border-0 focus:ring-2"
@@ -75,7 +75,7 @@
                     </div>
 
                     <div class="mb-4">
-                        <label class="block text-sm font-medium mb-2">Password</label>
+                        <label class="block text-sm font-medium mb-2">{{ __translator('Password') }}</label>
                         <input type="password" 
                                name="password" 
                                class="w-full px-4 py-2 rounded-md border-0 focus:ring-2"
@@ -86,13 +86,13 @@
 
                     <div class="mb-4 flex items-center">
                         <input type="checkbox" name="remember" id="remember" class="mr-2">
-                        <label for="remember" class="text-sm opacity-70">Remember me</label>
+                        <label for="remember" class="text-sm opacity-70">{{ __translator('Remember me') }}</label>
                     </div>
 
                     <button type="submit" 
                             class="w-full px-4 py-3 rounded-md font-medium transition-colors"
                             style="background-color: var(--sidebar-hover-background-color); color: var(--sidebar-text-color);">
-                        Login with Password
+                        {{ __translator('Login with Password') }}
                     </button>
                 </form>
             </div>
