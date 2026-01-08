@@ -12,13 +12,13 @@
             </svg>
         </div>
         
-        <h1 class="text-2xl font-bold mb-2">Invalid Invitation</h1>
+        <h1 class="text-2xl font-bold mb-2">{{ __translator('Invalid Invitation') }}</h1>
         <p class="opacity-70 mb-6">{{ $reason }}</p>
 
         <a href="{{ route('home') }}" 
            class="inline-block px-6 py-3 rounded-md font-medium"
            style="background-color: var(--brand-primary-color); color: var(--button-text-color);">
-            Go to Home
+            {{ __translator('Go to Home') }}
         </a>
     </div>
 </div>

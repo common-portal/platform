@@ -33,7 +33,7 @@ class MemberController extends Controller
             'member_last_name' => $request->member_last_name,
         ]);
 
-        return back()->with('status', 'Profile updated successfully.');
+        return back()->with('status', __translator('Profile updated successfully.'));
     }
 
     /**
@@ -73,7 +73,7 @@ class MemberController extends Controller
 
         if (!$pendingEmail) {
             return redirect()->route('member.settings')
-                ->withErrors(['email' => 'No pending email change.']);
+                ->withErrors(['email' => __translator('No pending email change.')]);
         }
 
         return view('pages.member.verify-email', [
@@ -94,7 +94,7 @@ class MemberController extends Controller
 
         if (!$pendingEmail) {
             return redirect()->route('member.settings')
-                ->withErrors(['email' => 'No pending email change.']);
+                ->withErrors(['email' => __translator('No pending email change.')]);
         }
 
         // Find valid token
@@ -105,7 +105,7 @@ class MemberController extends Controller
             ->first();
 
         if (!$token || !$token->verifyCode($request->code)) {
-            return back()->withErrors(['code' => 'Invalid or expired code.']);
+            return back()->withErrors(['code' => __translator('Invalid or expired code.')]);
         }
 
         // Update email
@@ -120,7 +120,7 @@ class MemberController extends Controller
         session()->forget('pending_email_change');
 
         return redirect()->route('member.settings')
-            ->with('status', 'Email address updated successfully.');
+            ->with('status', __translator('Email address updated successfully.'));
     }
 
     /**
@@ -136,7 +136,7 @@ class MemberController extends Controller
             'hashed_login_password' => Hash::make($request->password),
         ]);
 
-        return back()->with('password_status', 'Password set successfully.');
+        return back()->with('password_status', __translator('Password set successfully.'));
     }
 
     /**
@@ -148,7 +148,7 @@ class MemberController extends Controller
             'hashed_login_password' => null,
         ]);
 
-        return back()->with('password_status', 'Password removed. You can still log in with OTP.');
+        return back()->with('password_status', __translator('Password removed. You can still log in with OTP.'));
     }
 
     /**
@@ -166,7 +166,7 @@ class MemberController extends Controller
 
         session(['preferred_language' => $request->language_code]);
 
-        return back()->with('language_status', 'Language preference updated.');
+        return back()->with('language_status', __translator('Language preference updated.'));
     }
 
     /**
@@ -203,7 +203,7 @@ class MemberController extends Controller
             'profile_avatar_image_path' => $path,
         ]);
 
-        return back()->with('status', 'Profile photo updated successfully.');
+        return back()->with('status', __translator('Profile photo updated successfully.'));
     }
 
     /**
@@ -218,6 +218,6 @@ class MemberController extends Controller
             $member->update(['profile_avatar_image_path' => null]);
         }
 
-        return back()->with('status', 'Profile photo removed.');
+        return back()->with('status', __translator('Profile photo removed.'));
     }
 }
