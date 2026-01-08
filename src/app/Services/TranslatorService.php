@@ -53,14 +53,73 @@ class TranslatorService
 
     /**
      * Get the current user's preferred language.
+     * Priority: 1) User preference (if logged in), 2) Session, 3) IP detection, 4) Default 'eng'
      */
     public static function getCurrentLanguage(): string
     {
-        if (auth()->check()) {
-            return auth()->user()->preferred_language_code ?? 'eng';
+        // 1. Logged-in user preference
+        if (auth()->check() && auth()->user()->preferred_language_code) {
+            return auth()->user()->preferred_language_code;
         }
         
-        return session('preferred_language', 'eng');
+        // 2. Session preference (already set)
+        if (session()->has('preferred_language')) {
+            return session('preferred_language');
+        }
+        
+        // 3. Auto-detect from IP (first visit)
+        $detectedLang = self::detectLanguageFromIp();
+        if ($detectedLang) {
+            session(['preferred_language' => $detectedLang]);
+            return $detectedLang;
+        }
+        
+        // 4. Default to English
+        return 'eng';
+    }
+
+    /**
+     * Detect language from visitor's IP address using IP2Location API.
+     * API: https://utilities.getmondo.co/gateway/ip2location/ip2location.php
+     * Returns ISO3 language code or null if detection fails.
+     */
+    public static function detectLanguageFromIp(): ?string
+    {
+        try {
+            $ip = request()->ip();
+            
+            // Skip for localhost/private IPs
+            if (in_array($ip, ['127.0.0.1', '::1']) || self::isPrivateIp($ip)) {
+                return null;
+            }
+            
+            $response = Http::timeout(3)->get(
+                'https://utilities.getmondo.co/gateway/ip2location/ip2location.php',
+                ['remote_address' => $ip]
+            );
+            
+            if ($response->successful()) {
+                $data = $response->json();
+                $langCode = strtolower($data['language_iso3'] ?? '');
+                
+                // Validate it's a supported language
+                if ($langCode && isset(self::getLanguages()[$langCode])) {
+                    return $langCode;
+                }
+            }
+        } catch (\Exception $e) {
+            \Log::debug('IP2Location detection failed: ' . $e->getMessage());
+        }
+        
+        return null;
+    }
+
+    /**
+     * Check if IP is private/internal.
+     */
+    private static function isPrivateIp(string $ip): bool
+    {
+        return filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false;
     }
 
     /**
