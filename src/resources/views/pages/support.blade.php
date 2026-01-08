@@ -66,14 +66,14 @@
                     class="w-full px-4 py-3 rounded-md border-0 focus:ring-2"
                     style="background-color: var(--card-background-color); color: var(--content-text-color);">
                 <option value="">{{ __translator('Select a subject...') }}</option>
-                <option value="Billing" {{ old('subject') == 'Billing' ? 'selected' : '' }}>Billing</option>
-                <option value="Bug Report" {{ old('subject') == 'Bug Report' ? 'selected' : '' }}>Bug Report</option>
-                <option value="General Inquiry" {{ old('subject') == 'General Inquiry' ? 'selected' : '' }}>General Inquiry</option>
-                <option value="Partnership" {{ old('subject') == 'Partnership' ? 'selected' : '' }}>Partnership</option>
-                <option value="Pricing" {{ old('subject') == 'Pricing' ? 'selected' : '' }}>Pricing</option>
-                <option value="Sales" {{ old('subject') == 'Sales' ? 'selected' : '' }}>Sales</option>
-                <option value="Technical" {{ old('subject') == 'Technical' ? 'selected' : '' }}>Technical</option>
-                <option value="Other" {{ old('subject') == 'Other' ? 'selected' : '' }}>Other</option>
+                <option value="Billing" {{ old('subject') == 'Billing' ? 'selected' : '' }}>{{ __translator('Billing') }}</option>
+                <option value="Bug Report" {{ old('subject') == 'Bug Report' ? 'selected' : '' }}>{{ __translator('Bug Report') }}</option>
+                <option value="General Inquiry" {{ old('subject') == 'General Inquiry' ? 'selected' : '' }}>{{ __translator('General Inquiry') }}</option>
+                <option value="Partnership" {{ old('subject') == 'Partnership' ? 'selected' : '' }}>{{ __translator('Partnership') }}</option>
+                <option value="Pricing" {{ old('subject') == 'Pricing' ? 'selected' : '' }}>{{ __translator('Pricing') }}</option>
+                <option value="Sales" {{ old('subject') == 'Sales' ? 'selected' : '' }}>{{ __translator('Sales') }}</option>
+                <option value="Technical" {{ old('subject') == 'Technical' ? 'selected' : '' }}>{{ __translator('Technical') }}</option>
+                <option value="Other" {{ old('subject') == 'Other' ? 'selected' : '' }}>{{ __translator('Other') }}</option>
             </select>
         </div>
 
