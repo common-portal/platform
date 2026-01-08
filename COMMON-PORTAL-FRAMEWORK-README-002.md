@@ -211,6 +211,70 @@ The sidebar uses a **dual-mode CSS approach** with explicit media queries:
 
 ---
 
+## File Uploads (Avatars & Logos)
+
+### Storage Paths
+
+| Type | Storage Path | Database Column |
+|------|--------------|-----------------|
+| **Member Avatar** | `storage/app/public/uploads/members/icons/` | `platform_members.profile_avatar_image_path` |
+| **Account Logo** | `storage/app/public/uploads/accounts/icons/` | `tenant_accounts.branding_logo_image_path` |
+
+Files are accessible via `/storage/uploads/...` after running `php artisan storage:link`.
+
+### Filename Format
+
+```
+{sanitized_original_name}_{hash_prefix}_{datetime}.{extension}
+```
+
+| Component | Description | Example |
+|-----------|-------------|---------|
+| `sanitized_original_name` | Original filename (alphanumeric, `-`, `_` only) | `profile-photo` |
+| `hash_prefix` | First 8 chars of `record_unique_identifier` | `a1b2c3d4` |
+| `datetime` | Upload timestamp `Ymd_His` | `20260108_063500` |
+| `extension` | Original file extension | `jpg` |
+
+**Example:** `profile-photo_a1b2c3d4_20260108_063500.jpg`
+
+### Upload Constraints
+
+- **Max file size:** 2MB
+- **Allowed types:** JPEG, PNG, GIF, WebP (+ SVG for account logos)
+- **Validation:** Server-side via Laravel validation rules
+
+### Database Storage
+
+The relative path from `storage/app/public/` is stored in the database:
+
+```php
+// Member avatar
+$member->update([
+    'profile_avatar_image_path' => 'uploads/members/icons/filename.jpg',
+]);
+
+// Account logo
+$account->update([
+    'branding_logo_image_path' => 'uploads/accounts/icons/filename.png',
+]);
+```
+
+### Displaying Uploaded Images
+
+```blade
+{{-- Member Avatar --}}
+@if(auth()->user()->profile_avatar_image_path)
+    <img src="{{ asset('storage/' . auth()->user()->profile_avatar_image_path) }}" alt="Avatar">
+@endif
+
+{{-- Account Logo --}}
+@if($account->branding_logo_image_path)
+    <img src="{{ asset('storage/' . $account->branding_logo_image_path) }}" alt="Logo">
+@endif
+```
+
+---
+
 ## Key Concepts
 
 For detailed specifications, see `COMMON-PORTAL-BRAINSTORMING-WISH-LIST-003.md`:
