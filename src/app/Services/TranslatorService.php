@@ -168,7 +168,7 @@ class TranslatorService
                 'Authorization' => 'Bearer ' . $apiKey,
                 'Content-Type' => 'application/json',
             ])->timeout(30)->post('https://api.x.ai/v1/chat/completions', [
-                'model' => 'grok-4-1-fast-reasoning',
+                'model' => 'grok-3-fast',
                 'messages' => [
                     ['role' => 'system', 'content' => "Translate to {$langName}. Keep HTML intact. Return only the translation."],
                     ['role' => 'user', 'content' => $text]
