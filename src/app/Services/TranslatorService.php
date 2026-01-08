@@ -1,0 +1,187 @@
+<?php
+/**
+ * TranslatorService - Laravel Implementation
+ * Reference: COMMON-PORTAL-TRANSLATOR-CORE-CODE-001.md
+ * 
+ * Provides translation with DB cache + OpenAI fallback.
+ */
+
+namespace App\Services;
+
+use App\Models\CachedTextTranslation;
+use Illuminate\Support\Facades\Http;
+
+class TranslatorService
+{
+    /**
+     * All supported languages with native names (100+ languages).
+     * ISO 639-3 codes as keys.
+     */
+    public static function getLanguages(): array
+    {
+        return [
+            'afr'=>'Afrikaans','amh'=>'አማርኛ','ara'=>'العربية','asm'=>'অসমীয়া','aze'=>'Azərbaycanca',
+            'bak'=>'Башҡортса','bel'=>'Беларуская','bul'=>'Български','ben'=>'বাংলা','bod'=>'བོད་ཡིག',
+            'bre'=>'Brezhoneg','bos'=>'Bosanski','cat'=>'Català','ces'=>'Čeština','cym'=>'Cymraeg',
+            'dan'=>'Dansk','deu'=>'Deutsch','ell'=>'Ελληνικά','eng'=>'English','spa'=>'Español',
+            'est'=>'Eesti','eus'=>'Euskara','fas'=>'فارسی','fin'=>'Suomi','fao'=>'Føroyskt',
+            'fra'=>'Français','glg'=>'Galego','guj'=>'ગુજરાતી','hau'=>'Hausa','haw'=>'ʻŌlelo Hawaiʻi',
+            'heb'=>'עברית','hin'=>'हिन्दी','hrv'=>'Hrvatski','hat'=>'Kreyòl ayisyen','hun'=>'Magyar',
+            'hye'=>'Հdelays','ind'=>'Bahasa Indonesia','isl'=>'Íslenska','ita'=>'Italiano','jpn'=>'日本語',
+            'jav'=>'Basa Jawa','kat'=>'ქართული','kaz'=>'Қazақ тілі','khm'=>'ខ្មែរ','kan'=>'ಕನ್ನಡ',
+            'kor'=>'한국어','lat'=>'Latina','ltz'=>'Lëtzebuergesch','lin'=>'Lingála','lao'=>'ລາວ',
+            'lit'=>'Lietuvių','lav'=>'Latviešu','mlg'=>'Malagasy','mri'=>'Māori','mkd'=>'Македонски',
+            'mal'=>'മലയാളം','mon'=>'Монгол','mar'=>'मराठी','msa'=>'Bahasa Melayu','mlt'=>'Malti',
+            'mya'=>'မြန်မာ','nep'=>'नेपाली','nld'=>'Nederlands','nno'=>'Nynorsk','nor'=>'Norsk',
+            'oci'=>'Occitan','pan'=>'ਪੰਜਾਬੀ','pol'=>'Polski','pus'=>'پښتو','por'=>'Português',
+            'ron'=>'Română','rus'=>'Русский','san'=>'संस्कृतम्','snd'=>'سنڌي','sin'=>'සිංහල',
+            'slk'=>'Slovenčina','slv'=>'Slovenščina','sna'=>'chiShona','som'=>'Soomaaliga','sqi'=>'Shqip',
+            'srp'=>'Српски','sun'=>'Basa Sunda','swe'=>'Svenska','swa'=>'Kiswahili','tam'=>'தமிழ்',
+            'tel'=>'తెలుగు','tgk'=>'Тоҷикӣ','tha'=>'ไทย','tuk'=>'Türkmençe','tgl'=>'Tagalog',
+            'tur'=>'Türkçe','tat'=>'Татарча','ukr'=>'Українська','urd'=>'اردو','uzb'=>'Oʻzbekcha',
+            'vie'=>'Tiếng Việt','yid'=>'ייִדיש','yor'=>'Yorùbá','zho'=>'中文','yue'=>'粵語'
+        ];
+    }
+
+    /**
+     * Top 10 most spoken languages (shown first in selector).
+     */
+    public static function getTopLanguages(): array
+    {
+        return ['eng', 'zho', 'spa', 'hin', 'ara', 'por', 'fra', 'rus', 'jpn', 'deu'];
+    }
+
+    /**
+     * Get the current user's preferred language.
+     */
+    public static function getCurrentLanguage(): string
+    {
+        if (auth()->check()) {
+            return auth()->user()->preferred_language_code ?? 'eng';
+        }
+        
+        return session('preferred_language', 'eng');
+    }
+
+    /**
+     * Translate text to target language.
+     * Uses DB cache first, then OpenAI API fallback.
+     *
+     * @param string $text The English text to translate
+     * @param string|null $targetLanguage ISO3 language code (null = use current user's preference)
+     * @return string Translated text (or original if translation fails/not needed)
+     */
+    public static function translate(string $text, ?string $targetLanguage = null): string
+    {
+        if (empty($text)) {
+            return '';
+        }
+
+        $targetLanguage = strtolower($targetLanguage ?? self::getCurrentLanguage());
+
+        // Short-circuit for English
+        if ($targetLanguage === 'eng' || $targetLanguage === 'en') {
+            return $text;
+        }
+
+        // Validate language code
+        $languages = self::getLanguages();
+        if (!isset($languages[$targetLanguage])) {
+            return $text;
+        }
+
+        // Try database cache first
+        $cached = CachedTextTranslation::findTranslation($text, $targetLanguage);
+        if ($cached !== null) {
+            return $cached;
+        }
+
+        // OpenAI API fallback
+        $apiKey = config('services.openai.api_key') ?: env('OPENAI_API_KEY');
+        if (empty($apiKey)) {
+            return $text;
+        }
+
+        $langName = $languages[$targetLanguage];
+
+        try {
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $apiKey,
+                'Content-Type' => 'application/json',
+            ])->timeout(30)->post('https://api.openai.com/v1/chat/completions', [
+                'model' => 'gpt-4-turbo',
+                'messages' => [
+                    ['role' => 'system', 'content' => "Translate to {$langName}. Keep HTML intact. Return only the translation."],
+                    ['role' => 'user', 'content' => $text]
+                ],
+                'temperature' => 0.2
+            ]);
+
+            $translated = $response->json('choices.0.message.content', '');
+
+            // Cache successful translation
+            if ($translated && !stristr($translated, "cannot provide")) {
+                CachedTextTranslation::cacheTranslation($text, $targetLanguage, $translated);
+            }
+
+            return $translated ?: $text;
+
+        } catch (\Exception $e) {
+            \Log::error('TranslatorService error: ' . $e->getMessage());
+            return $text;
+        }
+    }
+
+    /**
+     * Render language selector HTML with top 10 first, separator, then all alphabetically.
+     *
+     * @param string|null $currentLanguage Current selected language (null = auto-detect)
+     * @param string $selectClass CSS classes for the select element
+     * @param string $selectStyle Inline styles for the select element
+     * @return string HTML for the language selector
+     */
+    public static function renderLanguageSelector(
+        ?string $currentLanguage = null, 
+        string $selectClass = '',
+        string $selectStyle = ''
+    ): string {
+        $languages = self::getLanguages();
+        $top10 = self::getTopLanguages();
+        $current = $currentLanguage ?? self::getCurrentLanguage();
+
+        $html = '<select id="language-selector" onchange="changeLanguage(this.value)"';
+        if ($selectClass) {
+            $html .= ' class="' . htmlspecialchars($selectClass) . '"';
+        }
+        if ($selectStyle) {
+            $html .= ' style="' . htmlspecialchars($selectStyle) . '"';
+        }
+        $html .= '>';
+
+        // Top 10 languages first
+        foreach ($top10 as $code) {
+            if (isset($languages[$code])) {
+                $selected = ($code === $current) ? ' selected' : '';
+                $html .= '<option value="' . $code . '"' . $selected . '>' . htmlspecialchars($languages[$code]) . '</option>';
+            }
+        }
+
+        // Separator
+        $html .= '<option disabled>──────────────</option>';
+
+        // All languages alphabetically (excluding top 10 to avoid duplicates)
+        $allSorted = $languages;
+        asort($allSorted); // Sort by native name
+        foreach ($allSorted as $code => $name) {
+            if (in_array($code, $top10)) {
+                continue; // Skip top 10, already shown
+            }
+            $selected = ($code === $current) ? ' selected' : '';
+            $html .= '<option value="' . $code . '"' . $selected . '>' . htmlspecialchars($name) . '</option>';
+        }
+
+        $html .= '</select>';
+
+        return $html;
+    }
+}
