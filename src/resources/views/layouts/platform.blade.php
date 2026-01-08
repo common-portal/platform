@@ -73,7 +73,7 @@
                     <img src="{{ $platformLogo ?? '/images/platform-defaults/platform-logo.png' }}" 
                          alt="{{ $platformName ?? 'Common Portal' }}" 
                          class="h-8 w-auto">
-                    <span class="text-lg font-semibold">{{ $platformName ?? 'Common Portal' }}</span>
+                    <span class="text-lg" style="color: #e3be3b; font-weight: 900;">{{ $platformName ?? 'Common Portal' }}</span>
                 </a>
             </div>
 
