@@ -85,13 +85,13 @@ class OtpAuthController extends Controller
 
             return redirect()->route('otp.verify.form')->with('status', 
                 $isNewMember 
-                    ? 'Welcome! We\'ve sent a verification code to your email.'
-                    : 'We\'ve sent a verification code to your email.'
+                    ? __translator('Welcome! We\'ve sent a verification code to your email.')
+                    : __translator('We\'ve sent a verification code to your email.')
             );
 
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->withErrors(['email' => 'Failed to send verification code. Please try again.']);
+            return back()->withErrors(['email' => __translator('Failed to send verification code. Please try again.')]);
         }
     }
 
@@ -123,14 +123,14 @@ class OtpAuthController extends Controller
 
         if (!$memberId || !$email) {
             return redirect()->route('login-register')
-                ->withErrors(['email' => 'Session expired. Please start again.']);
+                ->withErrors(['email' => __translator('Session expired. Please start again.')]);
         }
 
         $member = PlatformMember::find($memberId);
 
         if (!$member) {
             return redirect()->route('login-register')
-                ->withErrors(['email' => 'Member not found. Please start again.']);
+                ->withErrors(['email' => __translator('Member not found. Please start again.')]);
         }
 
         // Find valid OTP tokens for this member
@@ -151,7 +151,7 @@ class OtpAuthController extends Controller
         }
 
         if (!$verified) {
-            return back()->withErrors(['code' => 'Invalid or expired code. Please try again.']);
+            return back()->withErrors(['code' => __translator('Invalid or expired code. Please try again.')]);
         }
 
         // Mark token as used and invalidate others
@@ -184,7 +184,7 @@ class OtpAuthController extends Controller
             return redirect()->route('invitation.accept', ['token' => $pendingToken]);
         }
 
-        return redirect()->route('home')->with('status', 'Welcome back!');
+        return redirect()->route('home')->with('status', __translator('Welcome back!'));
     }
 
     /**
@@ -201,11 +201,11 @@ class OtpAuthController extends Controller
         $member = PlatformMember::where('login_email_address', $email)->first();
 
         if (!$member || !$member->hashed_login_password) {
-            return back()->withErrors(['email' => 'Invalid credentials or password not set.']);
+            return back()->withErrors(['email' => __translator('Invalid credentials or password not set.')]);
         }
 
         if (!Hash::check($request->password, $member->hashed_login_password)) {
-            return back()->withErrors(['password' => 'Invalid password.']);
+            return back()->withErrors(['password' => __translator('Invalid password.')]);
         }
 
         Auth::login($member, $request->boolean('remember'));
@@ -238,7 +238,7 @@ class OtpAuthController extends Controller
 
         if (!$email) {
             return redirect()->route('login-register')
-                ->withErrors(['email' => 'Session expired. Please start again.']);
+                ->withErrors(['email' => __translator('Session expired. Please start again.')]);
         }
 
         // Try to find member by ID first, then by email
@@ -253,7 +253,7 @@ class OtpAuthController extends Controller
             // Member truly doesn't exist - redirect back to send new OTP which will create them
             return redirect()->route('login-register')
                 ->withInput(['email' => $email])
-                ->with('status', 'Please submit your email again to receive a new code.');
+                ->with('status', __translator('Please submit your email again to receive a new code.'));
         }
 
         // Update session with correct member ID
@@ -265,7 +265,7 @@ class OtpAuthController extends Controller
         // Send OTP via email
         $this->sendOtpEmail($member, $otpData['plain_code'], false);
 
-        return back()->with('status', 'A new verification code has been sent to your email.');
+        return back()->with('status', __translator('A new verification code has been sent to your email.'));
     }
 
     /**
