@@ -38,8 +38,8 @@
                 <div class="flex justify-center gap-2" id="otp-inputs">
                     @for($i = 0; $i < 6; $i++)
                     <input type="text" 
-                           class="otp-digit w-12 h-14 text-center text-2xl font-bold rounded-md border-2 focus:outline-none focus:ring-2 focus:ring-opacity-50 transition-all"
-                           style="background-color: var(--content-background-color); color: var(--content-text-color); border-color: var(--sidebar-hover-background-color);"
+                           class="otp-digit text-center text-xl font-bold rounded-md border-2 focus:outline-none focus:ring-2 focus:ring-opacity-50 transition-all"
+                           style="width: 42px; height: 52px; background-color: var(--content-background-color); color: var(--content-text-color); border-color: var(--sidebar-hover-background-color);"
                            maxlength="1"
                            inputmode="numeric"
                            pattern="[0-9]"
