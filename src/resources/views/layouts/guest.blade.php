@@ -89,6 +89,11 @@
                 @include('components.language-selector')
             </div>
 
+            <!-- Center: Powered By -->
+            <div class="text-sm opacity-60">
+                Powered by <a href="https://nsdb.com" target="_NSDB" class="hover:opacity-80" style="color: var(--brand-primary-color);">NSDB.COM</a>
+            </div>
+
             <!-- Right: Copyright -->
             <div class="text-sm opacity-60">
                 CC0 1.0 Universal - No Rights Reserved
