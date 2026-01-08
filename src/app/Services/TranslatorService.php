@@ -124,7 +124,7 @@ class TranslatorService
 
     /**
      * Translate text to target language.
-     * Uses DB cache first, then OpenAI API fallback.
+     * Uses DB cache first, then Grok xAI API fallback.
      *
      * @param string $text The English text to translate
      * @param string|null $targetLanguage ISO3 language code (null = use current user's preference)
@@ -155,8 +155,8 @@ class TranslatorService
             return $cached;
         }
 
-        // OpenAI API fallback
-        $apiKey = config('services.openai.api_key') ?: env('OPENAI_API_KEY');
+        // Grok xAI API fallback
+        $apiKey = config('services.xai.api_key') ?: env('XAI_API_KEY');
         if (empty($apiKey)) {
             return $text;
         }
@@ -167,8 +167,8 @@ class TranslatorService
             $response = Http::withHeaders([
                 'Authorization' => 'Bearer ' . $apiKey,
                 'Content-Type' => 'application/json',
-            ])->timeout(30)->post('https://api.openai.com/v1/chat/completions', [
-                'model' => 'gpt-4-turbo',
+            ])->timeout(30)->post('https://api.x.ai/v1/chat/completions', [
+                'model' => 'grok-3-latest',
                 'messages' => [
                     ['role' => 'system', 'content' => "Translate to {$langName}. Keep HTML intact. Return only the translation."],
                     ['role' => 'user', 'content' => $text]

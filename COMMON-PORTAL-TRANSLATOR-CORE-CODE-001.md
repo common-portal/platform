@@ -124,14 +124,14 @@ function translator($text, $lang = null, $pdo = null) {
     if (empty($apiKey)) return $text;
     
     $langName = $languages[$lang];
-    $ch = curl_init('https://api.openai.com/v1/chat/completions');
+    $ch = curl_init('https://api.x.ai/v1/chat/completions');
     curl_setopt_array($ch, [
         CURLOPT_POST => true,
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_TIMEOUT => 30,
         CURLOPT_HTTPHEADER => ['Authorization: Bearer ' . $apiKey, 'Content-Type: application/json'],
         CURLOPT_POSTFIELDS => json_encode([
-            'model' => 'gpt-4-turbo',
+            'model' => 'grok-4-1-fast-reasoning',
             'messages' => [
                 ['role' => 'system', 'content' => "Translate to {$langName}. Keep HTML intact. Return only the translation."],
                 ['role' => 'user', 'content' => $text]
