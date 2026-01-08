@@ -63,9 +63,9 @@
     <div class="flex min-h-screen {{ session('impersonating_account_id') ? 'pt-10' : '' }}">
         
         <!-- Sidebar -->
-        <aside id="sidebar" class="fixed lg:sticky lg:top-0 flex flex-col h-screen transition-transform duration-300 ease-in-out z-40
-                      -translate-x-full lg:translate-x-0"
-               style="width: var(--sidebar-width); min-width: var(--sidebar-width); background-color: var(--sidebar-background-color); color: var(--sidebar-text-color);">
+        <aside id="sidebar" class="fixed lg:relative lg:flex flex-col h-screen transition-transform duration-300 ease-in-out z-40
+                      -translate-x-full lg:translate-x-0 lg:shrink-0"
+               style="width: var(--sidebar-width); background-color: var(--sidebar-background-color); color: var(--sidebar-text-color);">
             
             <!-- Platform Logo -->
             <div class="shrink-0 p-4 border-b" style="border-color: var(--sidebar-hover-background-color);">
