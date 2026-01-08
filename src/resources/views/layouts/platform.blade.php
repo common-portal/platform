@@ -83,7 +83,7 @@
             </nav>
 
             <!-- Language Selector (Bottom) -->
-            <div class="shrink-0 p-4 border-t mt-auto" style="border-color: var(--sidebar-hover-background-color); background-color: var(--sidebar-background-color);">
+            <div class="language-selector-container shrink-0 p-4 border-t" style="border-color: var(--sidebar-hover-background-color); background-color: var(--sidebar-background-color);">
                 @include('components.language-selector')
             </div>
         </aside>
@@ -142,6 +142,15 @@
             .mobile-header {
                 display: none !important;
             }
+        }
+        /* Language selector sticky to bottom of sidebar */
+        #sidebar {
+            display: flex;
+            flex-direction: column;
+        }
+        #sidebar .language-selector-container {
+            margin-top: auto;
+            flex-shrink: 0;
         }
     </style>
 
