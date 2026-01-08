@@ -118,7 +118,7 @@
             <!-- Footer -->
             <footer class="p-4 text-center text-sm opacity-60"
                     style="background-color: var(--sidebar-background-color); color: var(--sidebar-text-color);">
-                <p>&copy; {{ date('Y') }} {{ $platformName ?? 'Common Portal' }}. All rights reserved.</p>
+                <p>{{ __translator('Powered by') }} <a href="https://nsdb.com" target="_NSDB" class="hover:opacity-80" style="color: var(--brand-primary-color);">NSDB.COM</a> · {{ __translator('CC0 1.0 Universal - No Rights Reserved') }}</p>
             </footer>
         </div>
     </div>
