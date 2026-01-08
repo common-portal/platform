@@ -77,45 +77,6 @@
         </a>
         @endif
 
-        {{-- Team --}}
-        @if($canManageTeamMembers ?? true)
-        <a href="/account/team" 
-           class="sidebar-menu-item flex items-center px-3 py-2 rounded-md text-sm transition-colors"
-           style="color: var(--sidebar-text-color);">
-            <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                      d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
-            </svg>
-            Team
-        </a>
-        @endif
-
-        {{-- Developer (optional module) --}}
-        @if($canAccessDeveloperTools ?? false)
-        <a href="/modules/developer" 
-           class="sidebar-menu-item flex items-center px-3 py-2 rounded-md text-sm transition-colors"
-           style="color: var(--sidebar-text-color);">
-            <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                      d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/>
-            </svg>
-            Developer
-        </a>
-        @endif
-
-        {{-- Support (optional module) --}}
-        @if($canAccessSupportTickets ?? false)
-        <a href="/modules/support" 
-           class="sidebar-menu-item flex items-center px-3 py-2 rounded-md text-sm transition-colors"
-           style="color: var(--sidebar-text-color);">
-            <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                      d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z"/>
-            </svg>
-            Support
-        </a>
-        @endif
-
         {{-- Transactions (optional module) --}}
         @if($canViewTransactionHistory ?? false)
         <a href="/modules/transactions" 
@@ -142,6 +103,32 @@
         </a>
         @endif
 
+        {{-- Developer (optional module) --}}
+        @if($canAccessDeveloperTools ?? false)
+        <a href="/modules/developer" 
+           class="sidebar-menu-item flex items-center px-3 py-2 rounded-md text-sm transition-colors"
+           style="color: var(--sidebar-text-color);">
+            <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                      d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/>
+            </svg>
+            Developer
+        </a>
+        @endif
+
+        {{-- Team --}}
+        @if($canManageTeamMembers ?? true)
+        <a href="/account/team" 
+           class="sidebar-menu-item flex items-center px-3 py-2 rounded-md text-sm transition-colors"
+           style="color: var(--sidebar-text-color);">
+            <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                      d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+            </svg>
+            Team
+        </a>
+        @endif
+
     </div>
 
     <div class="my-4 border-t" style="border-color: var(--sidebar-hover-background-color);"></div>
@@ -156,6 +143,19 @@
         </svg>
         My Profile
     </a>
+
+    {{-- Support (optional module) --}}
+    @if($canAccessSupportTickets ?? false)
+    <a href="/modules/support" 
+       class="sidebar-menu-item flex items-center px-3 py-2 rounded-md text-sm transition-colors"
+       style="color: var(--sidebar-text-color);">
+        <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                  d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z"/>
+        </svg>
+        Support
+    </a>
+    @endif
 
     {{-- Exit / Logout --}}
     <form method="POST" action="{{ route('logout') }}" class="mt-2">
