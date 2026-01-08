@@ -63,9 +63,8 @@
     <div class="flex {{ session('impersonating_account_id') ? 'pt-10' : '' }}">
         
         <!-- Sidebar: always visible on md+, off-screen toggle on mobile -->
-        <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 flex flex-col h-screen
-                      transform -translate-x-full transition-transform duration-300
-                      md:relative md:transform-none md:shrink-0"
+        <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 flex flex-col h-screen transition-transform duration-300
+                      -translate-x-full md:translate-x-0 md:relative md:shrink-0"
                style="width: var(--sidebar-width); background-color: var(--sidebar-background-color); color: var(--sidebar-text-color);">
             
             <!-- Platform Logo -->
