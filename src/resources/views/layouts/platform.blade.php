@@ -63,7 +63,7 @@
     <div class="flex min-h-screen {{ session('impersonating_account_id') ? 'pt-10' : '' }}">
         
         <!-- Sidebar -->
-        <aside id="sidebar" class="fixed lg:relative lg:flex flex-col h-screen transition-transform duration-300 ease-in-out z-40
+        <aside id="sidebar" class="fixed lg:sticky lg:top-0 lg:self-start flex flex-col h-screen transition-transform duration-300 ease-in-out z-40
                       -translate-x-full lg:translate-x-0 lg:shrink-0"
                style="width: var(--sidebar-width); background-color: var(--sidebar-background-color); color: var(--sidebar-text-color);">
             
