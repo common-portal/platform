@@ -33,7 +33,7 @@
 
         {{-- From Name --}}
         <div>
-            <label for="from_name" class="block text-sm font-medium mb-2">{{ __translator('From Name') }}</label>
+            <label for="from_name" class="block text-sm font-medium mb-2">{{ __translator('Your Name') }}</label>
             <input type="text" 
                    id="from_name" 
                    name="from_name" 
