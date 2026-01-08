@@ -60,11 +60,10 @@
     </div>
     @endif
 
-    <div class="flex min-h-screen {{ session('impersonating_account_id') ? 'pt-10' : '' }}">
+    <div class="flex {{ session('impersonating_account_id') ? 'pt-10' : '' }}">
         
-        <!-- Sidebar -->
-        <aside id="sidebar" class="fixed md:sticky md:top-0 md:self-start flex flex-col h-screen transition-transform duration-300 ease-in-out z-40
-                      -translate-x-full md:translate-x-0 md:shrink-0"
+        <!-- Sidebar: hidden on mobile, visible sticky on md+ -->
+        <aside id="sidebar" class="hidden md:flex flex-col shrink-0 sticky top-0 h-screen overflow-hidden z-40"
                style="width: var(--sidebar-width); background-color: var(--sidebar-background-color); color: var(--sidebar-text-color);">
             
             <!-- Platform Logo -->
@@ -88,8 +87,33 @@
             </div>
         </aside>
 
+        <!-- Mobile Sidebar (separate from desktop, uses fixed positioning) -->
+        <aside id="mobile-sidebar" class="md:hidden fixed inset-y-0 left-0 flex flex-col h-screen z-40 transform -translate-x-full transition-transform duration-300"
+               style="width: var(--sidebar-width); background-color: var(--sidebar-background-color); color: var(--sidebar-text-color);">
+            
+            <!-- Platform Logo -->
+            <div class="shrink-0 p-4 border-b" style="border-color: var(--sidebar-hover-background-color);">
+                <a href="/" class="flex items-center space-x-3">
+                    <img src="{{ $platformLogo ?? '/images/platform-defaults/platform-logo.png' }}" 
+                         alt="{{ $platformName ?? 'Common Portal' }}" 
+                         class="h-8 w-auto">
+                    <span class="text-lg" style="color: #e3be3b; font-weight: 900;">{{ $platformName ?? 'Common Portal' }}</span>
+                </a>
+            </div>
+
+            <!-- Sidebar Content -->
+            <nav class="flex-1 overflow-y-auto p-4">
+                @include('components.sidebar-menu')
+            </nav>
+
+            <!-- Language Selector -->
+            <div class="shrink-0 p-4 border-t mt-auto" style="border-color: var(--sidebar-hover-background-color); background-color: var(--sidebar-background-color);">
+                @include('components.language-selector')
+            </div>
+        </aside>
+
         <!-- Mobile Sidebar Overlay -->
-        <div id="sidebar-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-30 hidden md:hidden" 
+        <div id="sidebar-overlay" class="md:hidden fixed inset-0 bg-black bg-opacity-50 z-30 hidden" 
              onclick="toggleSidebar()"></div>
 
         <!-- Main Content -->
@@ -123,13 +147,14 @@
         </div>
     </div>
 
-    <!-- Sidebar Toggle Script -->
+    <!-- Sidebar Toggle Script (for mobile sidebar) -->
     <script>
         function toggleSidebar() {
-            const sidebar = document.getElementById('sidebar');
+            const sidebar = document.getElementById('mobile-sidebar');
             const overlay = document.getElementById('sidebar-overlay');
             
             sidebar.classList.toggle('-translate-x-full');
+            sidebar.classList.toggle('translate-x-0');
             overlay.classList.toggle('hidden');
         }
     </script>
