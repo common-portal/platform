@@ -114,6 +114,18 @@ jobs:
         working-directory: src
         run: php artisan key:generate
 
+      - name: Run migrations
+        working-directory: src
+        env:
+          DB_CONNECTION: pgsql
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_DATABASE: platform_test
+          DB_USERNAME: platform
+          DB_PASSWORD: secret
+          REDIS_HOST: localhost
+        run: php artisan migrate --force
+
       - name: Run tests
         working-directory: src
         env:
@@ -124,4 +136,8 @@ jobs:
           DB_USERNAME: platform
           DB_PASSWORD: secret
           REDIS_HOST: localhost
+          APP_ENV: testing
+          SESSION_DRIVER: array
+          CACHE_DRIVER: array
+          QUEUE_CONNECTION: sync
         run: php artisan test
