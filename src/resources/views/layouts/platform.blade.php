@@ -62,8 +62,9 @@
 
     <div class="flex {{ session('impersonating_account_id') ? 'pt-10' : '' }}">
         
-        <!-- Sidebar: hidden on mobile, visible sticky on md+ -->
-        <aside id="sidebar" class="hidden md:flex flex-col shrink-0 sticky top-0 h-screen overflow-hidden z-40"
+        <!-- Single Sidebar: fixed on mobile (off-screen), sticky on md+ -->
+        <aside id="sidebar" class="fixed md:sticky inset-y-0 left-0 md:inset-auto flex flex-col shrink-0 top-0 h-screen z-40
+                      transform -translate-x-full md:translate-x-0 transition-transform duration-300 md:transition-none"
                style="width: var(--sidebar-width); background-color: var(--sidebar-background-color); color: var(--sidebar-text-color);">
             
             <!-- Platform Logo -->
@@ -81,32 +82,7 @@
                 @include('components.sidebar-menu')
             </nav>
 
-            <!-- Language Selector (Sticky Bottom) -->
-            <div class="shrink-0 p-4 border-t mt-auto" style="border-color: var(--sidebar-hover-background-color); background-color: var(--sidebar-background-color);">
-                @include('components.language-selector')
-            </div>
-        </aside>
-
-        <!-- Mobile Sidebar (separate from desktop, uses fixed positioning) -->
-        <aside id="mobile-sidebar" class="md:hidden fixed inset-y-0 left-0 flex flex-col h-screen z-40 transform -translate-x-full transition-transform duration-300"
-               style="width: var(--sidebar-width); background-color: var(--sidebar-background-color); color: var(--sidebar-text-color);">
-            
-            <!-- Platform Logo -->
-            <div class="shrink-0 p-4 border-b" style="border-color: var(--sidebar-hover-background-color);">
-                <a href="/" class="flex items-center space-x-3">
-                    <img src="{{ $platformLogo ?? '/images/platform-defaults/platform-logo.png' }}" 
-                         alt="{{ $platformName ?? 'Common Portal' }}" 
-                         class="h-8 w-auto">
-                    <span class="text-lg" style="color: #e3be3b; font-weight: 900;">{{ $platformName ?? 'Common Portal' }}</span>
-                </a>
-            </div>
-
-            <!-- Sidebar Content -->
-            <nav class="flex-1 overflow-y-auto p-4">
-                @include('components.sidebar-menu')
-            </nav>
-
-            <!-- Language Selector -->
+            <!-- Language Selector (Bottom) -->
             <div class="shrink-0 p-4 border-t mt-auto" style="border-color: var(--sidebar-hover-background-color); background-color: var(--sidebar-background-color);">
                 @include('components.language-selector')
             </div>
@@ -147,10 +123,10 @@
         </div>
     </div>
 
-    <!-- Sidebar Toggle Script (for mobile sidebar) -->
+    <!-- Sidebar Toggle Script -->
     <script>
         function toggleSidebar() {
-            const sidebar = document.getElementById('mobile-sidebar');
+            const sidebar = document.getElementById('sidebar');
             const overlay = document.getElementById('sidebar-overlay');
             
             sidebar.classList.toggle('-translate-x-full');
