@@ -236,17 +236,28 @@ class OtpAuthController extends Controller
         $memberId = session('otp_member_id');
         $email = session('otp_email');
 
-        if (!$memberId || !$email) {
+        if (!$email) {
             return redirect()->route('login-register')
                 ->withErrors(['email' => 'Session expired. Please start again.']);
         }
 
-        $member = PlatformMember::find($memberId);
+        // Try to find member by ID first, then by email
+        $member = $memberId ? PlatformMember::find($memberId) : null;
+        
+        if (!$member) {
+            // Fallback: find by email
+            $member = PlatformMember::where('login_email_address', strtolower(trim($email)))->first();
+        }
 
         if (!$member) {
+            // Member truly doesn't exist - redirect back to send new OTP which will create them
             return redirect()->route('login-register')
-                ->withErrors(['email' => 'Member not found.']);
+                ->withInput(['email' => $email])
+                ->with('status', 'Please submit your email again to receive a new code.');
         }
+
+        // Update session with correct member ID
+        session(['otp_member_id' => $member->id]);
 
         // Generate new OTP
         $otpData = OneTimePasswordToken::createForMember($member);
