@@ -6,10 +6,10 @@
 <div class="flex-1 flex flex-col items-center justify-center px-6 py-12">
 <div class="w-full max-w-md">
     <div class="rounded-lg p-8" style="background-color: var(--card-background-color);">
-        <h1 class="text-2xl font-bold mb-2 text-center">{{ __translator('Enter Verification Code') }}</h1>
+        <h1 class="text-2xl font-bold mb-2 text-center">{{ __translator('Enter Verification PIN') }}</h1>
         
         <p class="text-center opacity-70 mb-6">
-            {{ __translator('We sent a 6-digit code to') }}<br>
+            {{ __translator('We sent a 6-digit PIN to') }}<br>
             <strong>{{ $email }}</strong>
         </p>
 
@@ -32,7 +32,7 @@
             <input type="hidden" name="code" id="otp-hidden-code">
             
             <div class="mb-6">
-                <label class="block text-sm font-medium mb-4 text-center">{{ __translator('Verification Code') }}</label>
+                <label class="block text-sm font-medium mb-4 text-center">{{ __translator('Verification PIN') }}</label>
                 
                 {{-- Individual digit boxes --}}
                 <div class="flex justify-center gap-2" id="otp-inputs">
@@ -54,7 +54,7 @@
                     id="otp-submit-btn"
                     class="w-full px-4 py-3 rounded-md font-medium transition-colors mb-4"
                     style="background-color: var(--brand-primary-color); color: var(--button-text-color);">
-                {{ __translator('Verify Code') }}
+                {{ __translator('Verify PIN') }}
             </button>
         </form>
 
@@ -148,13 +148,13 @@
 @endpush
 
         <div class="text-center">
-            <p class="text-sm opacity-70 mb-2">{{ __translator("Didn't receive the code?") }}</p>
+            <p class="text-sm opacity-70 mb-2">{{ __translator("Didn't receive the PIN?") }}</p>
             <form method="POST" action="{{ route('otp.resend') }}" class="inline">
                 @csrf
                 <button type="submit" 
                         class="text-sm font-medium hover:underline"
                         style="color: var(--hyperlink-text-color);">
-                    {{ __translator('Resend Code') }}
+                    {{ __translator('Resend PIN') }}
                 </button>
             </form>
         </div>
