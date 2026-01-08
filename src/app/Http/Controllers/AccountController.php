@@ -63,11 +63,11 @@ class AccountController extends Controller
             session(['active_account_id' => $account->id]);
 
             return redirect()->route('account.settings')
-                ->with('status', 'Business account created successfully!');
+                ->with('status', __translator('Business account created successfully!'));
 
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->withErrors(['account_display_name' => 'Failed to create account. Please try again.']);
+            return back()->withErrors(['account_display_name' => __translator('Failed to create account. Please try again.')]);
         }
     }
 
@@ -122,7 +122,7 @@ class AccountController extends Controller
         $activeAccountId = session('active_account_id');
 
         if (!$activeAccountId) {
-            return back()->withErrors(['account' => 'No active account selected.']);
+            return back()->withErrors(['account' => __translator('No active account selected.')]);
         }
 
         $account = auth()->user()->tenant_accounts()
@@ -130,7 +130,7 @@ class AccountController extends Controller
             ->first();
 
         if (!$account) {
-            return back()->withErrors(['account' => 'Account not found.']);
+            return back()->withErrors(['account' => __translator('Account not found.')]);
         }
 
         // Check permission
@@ -139,7 +139,7 @@ class AccountController extends Controller
             ->first();
 
         if (!$membership || !in_array($membership->account_membership_role, ['account_owner', 'account_administrator'])) {
-            return back()->withErrors(['account' => 'You do not have permission to edit this account.']);
+            return back()->withErrors(['account' => __translator('You do not have permission to edit this account.')]);
         }
 
         $updateData = [
@@ -157,7 +157,7 @@ class AccountController extends Controller
 
         $account->update($updateData);
 
-        return back()->with('status', 'Account settings updated successfully!');
+        return back()->with('status', __translator('Account settings updated successfully!'));
     }
 
     /**
@@ -172,7 +172,7 @@ class AccountController extends Controller
         $activeAccountId = session('active_account_id');
 
         if (!$activeAccountId) {
-            return back()->withErrors(['account' => 'No active account selected.']);
+            return back()->withErrors(['account' => __translator('No active account selected.')]);
         }
 
         $account = auth()->user()->tenant_accounts()
@@ -180,12 +180,12 @@ class AccountController extends Controller
             ->first();
 
         if (!$account) {
-            return back()->withErrors(['account' => 'Account not found.']);
+            return back()->withErrors(['account' => __translator('Account not found.')]);
         }
 
         // Cannot delete personal accounts
         if ($account->account_type === 'personal_individual') {
-            return back()->withErrors(['account' => 'Personal accounts cannot be deleted.']);
+            return back()->withErrors(['account' => __translator('Personal accounts cannot be deleted.')]);
         }
 
         // Check ownership
@@ -194,7 +194,7 @@ class AccountController extends Controller
             ->first();
 
         if (!$membership || $membership->account_membership_role !== 'account_owner') {
-            return back()->withErrors(['account' => 'Only the account owner can delete this account.']);
+            return back()->withErrors(['account' => __translator('Only the account owner can delete this account.')]);
         }
 
         // Soft delete
@@ -217,7 +217,7 @@ class AccountController extends Controller
         }
 
         return redirect()->route('home')
-            ->with('status', 'Account deleted successfully.');
+            ->with('status', __translator('Account deleted successfully.'));
     }
 
     /**
@@ -232,7 +232,7 @@ class AccountController extends Controller
         $activeAccountId = session('active_account_id');
 
         if (!$activeAccountId) {
-            return back()->withErrors(['account' => 'No active account selected.']);
+            return back()->withErrors(['account' => __translator('No active account selected.')]);
         }
 
         $account = auth()->user()->tenant_accounts()
@@ -240,7 +240,7 @@ class AccountController extends Controller
             ->first();
 
         if (!$account) {
-            return back()->withErrors(['account' => 'Account not found.']);
+            return back()->withErrors(['account' => __translator('Account not found.')]);
         }
 
         // Check permission
@@ -249,7 +249,7 @@ class AccountController extends Controller
             ->first();
 
         if (!$membership || !in_array($membership->account_membership_role, ['account_owner', 'account_administrator'])) {
-            return back()->withErrors(['account' => 'You do not have permission to edit this account.']);
+            return back()->withErrors(['account' => __translator('You do not have permission to edit this account.')]);
         }
 
         $file = $request->file('logo');
@@ -276,7 +276,7 @@ class AccountController extends Controller
             'branding_logo_image_path' => $path,
         ]);
 
-        return back()->with('status', 'Account logo updated successfully.');
+        return back()->with('status', __translator('Account logo updated successfully.'));
     }
 
     /**
@@ -287,7 +287,7 @@ class AccountController extends Controller
         $activeAccountId = session('active_account_id');
 
         if (!$activeAccountId) {
-            return back()->withErrors(['account' => 'No active account selected.']);
+            return back()->withErrors(['account' => __translator('No active account selected.')]);
         }
 
         $account = auth()->user()->tenant_accounts()
@@ -295,7 +295,7 @@ class AccountController extends Controller
             ->first();
 
         if (!$account) {
-            return back()->withErrors(['account' => 'Account not found.']);
+            return back()->withErrors(['account' => __translator('Account not found.')]);
         }
 
         // Check permission
@@ -304,7 +304,7 @@ class AccountController extends Controller
             ->first();
 
         if (!$membership || !in_array($membership->account_membership_role, ['account_owner', 'account_administrator'])) {
-            return back()->withErrors(['account' => 'You do not have permission to edit this account.']);
+            return back()->withErrors(['account' => __translator('You do not have permission to edit this account.')]);
         }
 
         if ($account->branding_logo_image_path) {
@@ -312,6 +312,6 @@ class AccountController extends Controller
             $account->update(['branding_logo_image_path' => null]);
         }
 
-        return back()->with('status', 'Account logo removed.');
+        return back()->with('status', __translator('Account logo removed.'));
     }
 }
