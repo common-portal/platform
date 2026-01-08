@@ -12,6 +12,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Trust all proxies (nginx reverse proxy)
+        $middleware->trustProxies(at: '*');
+        
         $middleware->web(append: [
             \App\Http\Middleware\ResolveSubdomainTenant::class,
         ]);
