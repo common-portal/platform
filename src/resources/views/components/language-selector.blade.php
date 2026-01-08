@@ -10,7 +10,7 @@
 @endphp
 
 <div class="language-selector">
-    <label class="block text-xs uppercase tracking-wide opacity-60 mb-2">Language</label>
+    <label class="block text-xs uppercase tracking-wide opacity-60 mb-2">{{ __translator('Language') }}</label>
     <select id="language-selector" 
             onchange="changeLanguage(this.value)"
             class="w-full px-3 py-2 rounded-md text-sm border-0 focus:ring-2 focus:ring-opacity-50"
