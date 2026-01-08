@@ -5,9 +5,9 @@
 
 <div class="max-w-md mx-auto mt-10">
     <div class="rounded-lg p-8" style="background-color: var(--card-background-color);">
-        <h1 class="text-2xl font-bold mb-2">Verify New Email</h1>
+        <h1 class="text-2xl font-bold mb-2">{{ __translator('Verify New Email') }}</h1>
         <p class="opacity-70 mb-6">
-            We sent a 6-digit code to <strong>{{ $pendingEmail }}</strong>
+            {{ __translator('We sent a 6-digit code to') }} <strong>{{ $pendingEmail }}</strong>
         </p>
 
         @if(session('status'))
@@ -27,7 +27,7 @@
         <form method="POST" action="{{ route('member.settings.email.verify.submit') }}">
             @csrf
             <div class="mb-6">
-                <label class="block text-sm font-medium mb-2">Verification Code</label>
+                <label class="block text-sm font-medium mb-2">{{ __translator('Verification Code') }}</label>
                 <input type="text" 
                        name="code" 
                        class="w-full px-4 py-3 rounded-md border-0 text-center text-2xl tracking-widest"
@@ -42,13 +42,13 @@
             <button type="submit" 
                     class="w-full px-4 py-3 rounded-md font-medium"
                     style="background-color: var(--brand-primary-color); color: var(--button-text-color);">
-                Verify & Update Email
+                {{ __translator('Verify & Update Email') }}
             </button>
         </form>
 
         <div class="mt-6 text-center">
             <a href="{{ route('member.settings') }}" class="text-sm opacity-70 hover:opacity-100">
-                ← Cancel
+                {{ __translator('← Cancel') }}
             </a>
         </div>
     </div>
