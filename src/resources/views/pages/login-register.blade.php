@@ -1,10 +1,11 @@
-@extends('layouts.platform')
+@extends('layouts.guest')
 
 @section('content')
-{{-- Login/Register Page --}}
+{{-- Login/Register Page - Matches homepage layout --}}
 
-<div class="max-w-md mx-auto mt-10">
-    <div class="rounded-lg p-8" style="background-color: var(--card-background-color);">
+<div class="flex-1 flex flex-col items-center justify-center px-6 py-12">
+    {{-- Login/Register Card --}}
+    <div class="w-full max-w-md rounded-lg p-8" style="background-color: var(--card-background-color);">
         <h1 class="text-2xl font-bold mb-2 text-center">Login or Register</h1>
         
         <p class="text-center opacity-70 mb-6">
@@ -99,10 +100,12 @@
     </div>
 </div>
 
+@push('scripts')
 <script>
     function togglePasswordLogin() {
         const form = document.getElementById('password-login-form');
         form.classList.toggle('hidden');
     }
 </script>
+@endpush
 @endsection
