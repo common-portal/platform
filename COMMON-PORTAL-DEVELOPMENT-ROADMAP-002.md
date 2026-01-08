@@ -318,14 +318,35 @@ client.common-portal.nsdb.com
 ---
 
 ## Phase 11: Production Deployment
-**Status:** ⬜ Not Started
+**Status:** 🟡 In Progress
 
-### Steps
-- [ ] Managed PostgreSQL setup
-- [ ] Production environment configuration
-- [ ] Wildcard DNS configuration
-- [ ] SSL certificates
+> **Live URL:** https://common-portal.mondax.co
+
+### Completed Steps
+- [x] Domain DNS configured (common-portal.mondax.co → 157.245.38.74)
+- [x] Nginx reverse proxy installed and configured
+- [x] SSL certificate installed (Let's Encrypt, auto-renews)
+- [x] HTTP → HTTPS redirect enabled
+- [x] Laravel environment updated (APP_URL, APP_BASE_DOMAIN)
+- [x] Database migrations executed
+
+### Remaining Steps
+- [ ] Wildcard SSL for tenant subdomains (*.common-portal.mondax.co)
+- [ ] Managed PostgreSQL setup (currently using Docker PostgreSQL)
+- [ ] Production environment hardening (APP_DEBUG=false, etc.)
 - [ ] CI/CD pipeline
+- [ ] Backup strategy
+
+### Server Configuration
+| Component | Details |
+|-----------|---------|
+| Server IP | 157.245.38.74 |
+| Domain | common-portal.mondax.co |
+| Web Server | Nginx (reverse proxy to Docker) |
+| App Container | platform-app (port 8080) |
+| Database | platform-postgres (Docker) |
+| Cache | platform-redis (Docker) |
+| SSL | Let's Encrypt (expires Apr 7, 2026) |
 
 ---
 
@@ -359,7 +380,7 @@ make logs      # View container logs
 | 8 | Platform Administrator | ✅ |
 | 9 | Multi-Tenant Subdomains | ✅ |
 | 10 | Optional Modules | ✅ |
-| 11 | Production Deployment | ⬜ |
+| 11 | Production Deployment | 🟡 |
 
 ---
 
