@@ -63,8 +63,8 @@
     <div class="flex min-h-screen {{ session('impersonating_account_id') ? 'pt-10' : '' }}">
         
         <!-- Sidebar -->
-        <aside id="sidebar" class="fixed lg:sticky lg:top-0 lg:self-start flex flex-col h-screen transition-transform duration-300 ease-in-out z-40
-                      -translate-x-full lg:translate-x-0 lg:shrink-0"
+        <aside id="sidebar" class="fixed md:sticky md:top-0 md:self-start flex flex-col h-screen transition-transform duration-300 ease-in-out z-40
+                      -translate-x-full md:translate-x-0 md:shrink-0"
                style="width: var(--sidebar-width); background-color: var(--sidebar-background-color); color: var(--sidebar-text-color);">
             
             <!-- Platform Logo -->
@@ -89,14 +89,14 @@
         </aside>
 
         <!-- Mobile Sidebar Overlay -->
-        <div id="sidebar-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-30 hidden lg:hidden" 
+        <div id="sidebar-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-30 hidden md:hidden" 
              onclick="toggleSidebar()"></div>
 
         <!-- Main Content -->
-        <div class="flex-1 flex flex-col min-h-screen lg:ml-0">
+        <div class="flex-1 flex flex-col min-h-screen">
             
             <!-- Mobile Header -->
-            <header class="lg:hidden sticky top-0 z-20 flex items-center justify-between p-4"
+            <header class="md:hidden sticky top-0 z-20 flex items-center justify-between p-4"
                     style="background-color: var(--sidebar-background-color);">
                 <button onclick="toggleSidebar()" class="p-2 rounded-md hover:opacity-80" 
                         style="color: var(--sidebar-text-color);">
@@ -111,7 +111,7 @@
             </header>
 
             <!-- Page Content -->
-            <main class="flex-1 p-4 lg:p-8">
+            <main class="flex-1 p-4 md:p-8">
                 @yield('content')
             </main>
 
