@@ -12,8 +12,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Create enum type
-        DB::statement("CREATE TYPE account_type_enum AS ENUM ('personal_individual', 'business_organization')");
+        // Create enum type if not exists
+        DB::statement("DO $$ BEGIN CREATE TYPE account_type_enum AS ENUM ('personal_individual', 'business_organization'); EXCEPTION WHEN duplicate_object THEN null; END $$;");
 
         Schema::create('tenant_accounts', function (Blueprint $table) {
             $table->id();

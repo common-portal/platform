@@ -12,8 +12,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Create enum type
-        DB::statement("CREATE TYPE invitation_status_enum AS ENUM ('invitation_pending', 'invitation_accepted', 'invitation_expired')");
+        // Create enum type if not exists
+        DB::statement("DO $$ BEGIN CREATE TYPE invitation_status_enum AS ENUM ('invitation_pending', 'invitation_accepted', 'invitation_expired'); EXCEPTION WHEN duplicate_object THEN null; END $$;");
 
         Schema::create('team_membership_invitations', function (Blueprint $table) {
             $table->id();

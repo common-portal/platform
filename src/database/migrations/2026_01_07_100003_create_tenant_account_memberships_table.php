@@ -12,9 +12,9 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Create enum types
-        DB::statement("CREATE TYPE account_membership_role_enum AS ENUM ('account_owner', 'account_administrator', 'account_team_member')");
-        DB::statement("CREATE TYPE membership_status_enum AS ENUM ('awaiting_acceptance', 'membership_active', 'membership_revoked')");
+        // Create enum types if not exists
+        DB::statement("DO $$ BEGIN CREATE TYPE account_membership_role_enum AS ENUM ('account_owner', 'account_administrator', 'account_team_member'); EXCEPTION WHEN duplicate_object THEN null; END $$;");
+        DB::statement("DO $$ BEGIN CREATE TYPE membership_status_enum AS ENUM ('awaiting_acceptance', 'membership_active', 'membership_revoked'); EXCEPTION WHEN duplicate_object THEN null; END $$;");
 
         Schema::create('tenant_account_memberships', function (Blueprint $table) {
             $table->id();

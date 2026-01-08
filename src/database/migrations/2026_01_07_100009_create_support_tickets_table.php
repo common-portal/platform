@@ -12,8 +12,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Create enum type
-        DB::statement("CREATE TYPE ticket_status_enum AS ENUM ('ticket_open', 'ticket_in_progress', 'ticket_resolved', 'ticket_closed')");
+        // Create enum type if not exists
+        DB::statement("DO $$ BEGIN CREATE TYPE ticket_status_enum AS ENUM ('ticket_open', 'ticket_in_progress', 'ticket_resolved', 'ticket_closed'); EXCEPTION WHEN duplicate_object THEN null; END $$;");
 
         Schema::create('support_tickets', function (Blueprint $table) {
             $table->id();
