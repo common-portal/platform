@@ -150,6 +150,65 @@ All public/unauthenticated pages use a shared guest layout with:
 
 Authenticated pages use the platform layout with sidebar navigation.
 
+#### Responsive Sidebar Solution
+
+The sidebar uses a **dual-mode CSS approach** with explicit media queries:
+
+| Screen Size | Behavior |
+|-------------|----------|
+| **Mobile (<768px)** | `position: fixed` + `transform: translateX(-100%)` — hidden off-screen, slides in via hamburger |
+| **Desktop (768px+)** | `position: sticky` + `height: 100vh` — always visible, full height, in document flow |
+
+**Why this combination works:**
+
+| Approach | Result |
+|----------|--------|
+| `position: fixed` | Takes element OUT of document flow → content overlaps ❌ |
+| `position: relative` | Stays in flow, but height = content height → no full viewport height ❌ |
+| `position: sticky` + `height: 100vh` | Stays in flow AND extends full viewport height ✅ |
+
+**Key CSS (in `layouts/platform.blade.php`):**
+
+```css
+/* Mobile: sidebar hidden off-screen */
+#sidebar {
+    transform: translateX(-100%);
+    position: fixed;
+}
+#sidebar.translate-x-0 {
+    transform: translateX(0);
+}
+
+/* Desktop (768px+): sidebar always visible, sticky, full height */
+@media (min-width: 768px) {
+    #sidebar {
+        transform: translateX(0) !important;
+        position: sticky !important;
+        top: 0 !important;
+        height: 100vh !important;
+        flex-shrink: 0 !important;
+    }
+    .mobile-header {
+        display: none !important;
+    }
+}
+
+/* Sidebar flexbox layout for language selector at bottom */
+#sidebar {
+    display: flex !important;
+    flex-direction: column !important;
+}
+#sidebar .language-selector-container {
+    margin-top: auto !important;  /* Pushes to bottom */
+    flex-shrink: 0 !important;
+}
+```
+
+**Why explicit CSS instead of Tailwind responsive classes:**
+- Tailwind's `-translate-x-full md:translate-x-0` had specificity conflicts
+- JavaScript toggle adds/removes classes that conflicted with responsive breakpoints
+- Explicit `!important` rules guarantee correct behavior
+
 ---
 
 ## Key Concepts
