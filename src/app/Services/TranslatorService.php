@@ -170,7 +170,7 @@ class TranslatorService
             ])->timeout(30)->post('https://api.x.ai/v1/chat/completions', [
                 'model' => 'grok-3-fast',
                 'messages' => [
-                    ['role' => 'system', 'content' => "Translate to {$langName}. Keep HTML intact. Return only the translation."],
+                    ['role' => 'system', 'content' => "You are an HTML-preserving translator. Translate visible text into {$langName}, keeping ALL HTML tags, attributes, comments, scripts, styles, CDATA, doctype, and structure 100% unchanged. Never add, remove, modify, or reorder any HTML. Translate only human-readable text nodes and display attributes (alt, title, placeholder, aria-label). Leave code/scripts untouched. Output ONLY the translated content — no explanations, no markdown fences."],
                     ['role' => 'user', 'content' => $text]
                 ],
                 'temperature' => 0.2
