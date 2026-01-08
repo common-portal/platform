@@ -19,7 +19,7 @@ class TeamController extends Controller
         $activeAccountId = session('active_account_id');
         
         if (!$activeAccountId) {
-            return redirect()->route('home')->withErrors(['account' => 'No active account selected.']);
+            return redirect()->route('home')->withErrors(['account' => __translator('No active account selected.')]);
         }
 
         $account = auth()->user()->tenant_accounts()
@@ -28,7 +28,7 @@ class TeamController extends Controller
             ->first();
 
         if (!$account) {
-            return redirect()->route('home')->withErrors(['account' => 'Account not found.']);
+            return redirect()->route('home')->withErrors(['account' => __translator('Account not found.')]);
         }
 
         // Get current user's membership to check permissions
@@ -37,7 +37,7 @@ class TeamController extends Controller
             ->first();
 
         if (!$currentMembership || !$currentMembership->canManageTeam()) {
-            abort(403, 'You do not have permission to manage this team.');
+            abort(403, __translator('You do not have permission to manage this team.'));
         }
 
         // Get all memberships for this account
@@ -78,7 +78,7 @@ class TeamController extends Controller
         $activeAccountId = session('active_account_id');
         
         if (!$activeAccountId) {
-            return back()->withErrors(['account' => 'No active account selected.']);
+            return back()->withErrors(['account' => __translator('No active account selected.')]);
         }
 
         // Get current user's membership
@@ -87,7 +87,7 @@ class TeamController extends Controller
             ->first();
 
         if (!$currentMembership || !$currentMembership->canManageTeam()) {
-            return back()->withErrors(['permission' => 'You do not have permission to manage this team.']);
+            return back()->withErrors(['permission' => __translator('You do not have permission to manage this team.')]);
         }
 
         // Get target membership
@@ -96,12 +96,12 @@ class TeamController extends Controller
             ->first();
 
         if (!$targetMembership) {
-            return back()->withErrors(['membership' => 'Member not found.']);
+            return back()->withErrors(['membership' => __translator('Member not found.')]);
         }
 
         // Cannot edit owner permissions
         if ($targetMembership->account_membership_role === 'account_owner') {
-            return back()->withErrors(['membership' => 'Cannot modify owner permissions.']);
+            return back()->withErrors(['membership' => __translator('Cannot modify owner permissions.')]);
         }
 
         // Update with self-protection check
@@ -125,7 +125,7 @@ class TeamController extends Controller
         $activeAccountId = session('active_account_id');
         
         if (!$activeAccountId) {
-            return back()->withErrors(['account' => 'No active account selected.']);
+            return back()->withErrors(['account' => __translator('No active account selected.')]);
         }
 
         $currentMembership = auth()->user()->account_memberships()
@@ -133,7 +133,7 @@ class TeamController extends Controller
             ->first();
 
         if (!$currentMembership || !$currentMembership->canManageTeam()) {
-            return back()->withErrors(['permission' => 'You do not have permission to manage this team.']);
+            return back()->withErrors(['permission' => __translator('You do not have permission to manage this team.')]);
         }
 
         $targetMembership = TenantAccountMembership::where('id', $membership_id)
@@ -141,22 +141,22 @@ class TeamController extends Controller
             ->first();
 
         if (!$targetMembership) {
-            return back()->withErrors(['membership' => 'Member not found.']);
+            return back()->withErrors(['membership' => __translator('Member not found.')]);
         }
 
         // Cannot revoke owner
         if ($targetMembership->account_membership_role === 'account_owner') {
-            return back()->withErrors(['membership' => 'Cannot revoke owner access.']);
+            return back()->withErrors(['membership' => __translator('Cannot revoke owner access.')]);
         }
 
         // Cannot revoke self
         if ($targetMembership->platform_member_id === auth()->id()) {
-            return back()->withErrors(['membership' => 'You cannot revoke your own access. Ask another team manager.']);
+            return back()->withErrors(['membership' => __translator('You cannot revoke your own access. Ask another team manager.')]);
         }
 
         $targetMembership->revoke();
 
-        return back()->with('status', 'Member access revoked.');
+        return back()->with('status', __translator('Member access revoked.'));
     }
 
     /**
@@ -167,7 +167,7 @@ class TeamController extends Controller
         $activeAccountId = session('active_account_id');
         
         if (!$activeAccountId) {
-            return back()->withErrors(['account' => 'No active account selected.']);
+            return back()->withErrors(['account' => __translator('No active account selected.')]);
         }
 
         $currentMembership = auth()->user()->account_memberships()
@@ -175,7 +175,7 @@ class TeamController extends Controller
             ->first();
 
         if (!$currentMembership || !$currentMembership->canManageTeam()) {
-            return back()->withErrors(['permission' => 'You do not have permission to manage this team.']);
+            return back()->withErrors(['permission' => __translator('You do not have permission to manage this team.')]);
         }
 
         $targetMembership = TenantAccountMembership::where('id', $membership_id)
@@ -183,12 +183,12 @@ class TeamController extends Controller
             ->first();
 
         if (!$targetMembership) {
-            return back()->withErrors(['membership' => 'Member not found.']);
+            return back()->withErrors(['membership' => __translator('Member not found.')]);
         }
 
         $targetMembership->reactivate();
 
-        return back()->with('status', 'Member access restored.');
+        return back()->with('status', __translator('Member access restored.'));
     }
 
     /**
@@ -199,7 +199,7 @@ class TeamController extends Controller
         $activeAccountId = session('active_account_id');
         
         if (!$activeAccountId) {
-            return redirect()->route('home')->withErrors(['account' => 'No active account selected.']);
+            return redirect()->route('home')->withErrors(['account' => __translator('No active account selected.')]);
         }
 
         $account = auth()->user()->tenant_accounts()
@@ -212,7 +212,7 @@ class TeamController extends Controller
             ->first();
 
         if (!$currentMembership || !$currentMembership->canManageTeam()) {
-            abort(403, 'You do not have permission to invite team members.');
+            abort(403, __translator('You do not have permission to invite team members.'));
         }
 
         return view('pages.account.team-invite', [
@@ -237,7 +237,7 @@ class TeamController extends Controller
         $activeAccountId = session('active_account_id');
         
         if (!$activeAccountId) {
-            return back()->withErrors(['account' => 'No active account selected.']);
+            return back()->withErrors(['account' => __translator('No active account selected.')]);
         }
 
         $currentMembership = auth()->user()->account_memberships()
@@ -245,7 +245,7 @@ class TeamController extends Controller
             ->first();
 
         if (!$currentMembership || !$currentMembership->canManageTeam()) {
-            return back()->withErrors(['permission' => 'You do not have permission to invite team members.']);
+            return back()->withErrors(['permission' => __translator('You do not have permission to invite team members.')]);
         }
 
         $email = strtolower(trim($request->email));
@@ -258,7 +258,7 @@ class TeamController extends Controller
                 ->first();
             
             if ($existingMembership) {
-                return back()->withErrors(['email' => 'This person is already a member of this account.']);
+                return back()->withErrors(['email' => __translator('This person is already a member of this account.')]);
             }
         }
 
@@ -269,7 +269,7 @@ class TeamController extends Controller
             ->first();
 
         if ($existingInvitation) {
-            return back()->withErrors(['email' => 'A pending invitation already exists for this email. Use resend if needed.']);
+            return back()->withErrors(['email' => __translator('A pending invitation already exists for this email. Use resend if needed.')]);
         }
 
         $account = auth()->user()->tenant_accounts()
@@ -306,7 +306,7 @@ class TeamController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->withErrors(['email' => 'Failed to send invitation. Please try again.']);
+            return back()->withErrors(['email' => __translator('Failed to send invitation. Please try again.')]);
         }
     }
 
@@ -318,7 +318,7 @@ class TeamController extends Controller
         $activeAccountId = session('active_account_id');
         
         if (!$activeAccountId) {
-            return back()->withErrors(['account' => 'No active account selected.']);
+            return back()->withErrors(['account' => __translator('No active account selected.')]);
         }
 
         $currentMembership = auth()->user()->account_memberships()
@@ -326,7 +326,7 @@ class TeamController extends Controller
             ->first();
 
         if (!$currentMembership || !$currentMembership->canManageTeam()) {
-            return back()->withErrors(['permission' => 'You do not have permission to manage invitations.']);
+            return back()->withErrors(['permission' => __translator('You do not have permission to manage invitations.')]);
         }
 
         $invitation = TeamMembershipInvitation::where('id', $invitation_id)
@@ -335,7 +335,7 @@ class TeamController extends Controller
             ->first();
 
         if (!$invitation) {
-            return back()->withErrors(['invitation' => 'Invitation not found.']);
+            return back()->withErrors(['invitation' => __translator('Invitation not found.')]);
         }
 
         $account = auth()->user()->tenant_accounts()
@@ -365,7 +365,7 @@ class TeamController extends Controller
         $activeAccountId = session('active_account_id');
         
         if (!$activeAccountId) {
-            return back()->withErrors(['account' => 'No active account selected.']);
+            return back()->withErrors(['account' => __translator('No active account selected.')]);
         }
 
         $currentMembership = auth()->user()->account_memberships()
@@ -373,7 +373,7 @@ class TeamController extends Controller
             ->first();
 
         if (!$currentMembership || !$currentMembership->canManageTeam()) {
-            return back()->withErrors(['permission' => 'You do not have permission to manage invitations.']);
+            return back()->withErrors(['permission' => __translator('You do not have permission to manage invitations.')]);
         }
 
         $invitation = TeamMembershipInvitation::where('id', $invitation_id)
@@ -382,11 +382,11 @@ class TeamController extends Controller
             ->first();
 
         if (!$invitation) {
-            return back()->withErrors(['invitation' => 'Invitation not found.']);
+            return back()->withErrors(['invitation' => __translator('Invitation not found.')]);
         }
 
         $invitation->expire();
 
-        return back()->with('status', 'Invitation cancelled.');
+        return back()->with('status', __translator('Invitation cancelled.'));
     }
 }
