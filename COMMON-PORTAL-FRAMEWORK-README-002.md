@@ -118,6 +118,40 @@ cp .env.example .env
 
 ---
 
+## Page Layouts
+
+### Guest Layout (`layouts/guest.blade.php`)
+
+All public/unauthenticated pages use a shared guest layout with:
+
+| Section | Content |
+|---------|---------|
+| **Header** | Logo + Platform Name (gold #e3be3b), Support link, Login/Register buttons |
+| **Main Frame** | Centered content area with `@yield('content')` |
+| **Footer** | Language selector (100+ languages), "Powered by NSDB.COM", CC0 license |
+
+**Public pages using this layout:**
+
+| Page | Route | View |
+|------|-------|------|
+| Homepage | `/` | `pages/homepage-guest.blade.php` |
+| Support | `/support` | `pages/support.blade.php` |
+| Login/Register | `/login-register` | `pages/login-register.blade.php` |
+| OTP Verify | `/verify` | `pages/otp-verify.blade.php` |
+| Login | `/login` | `auth/login.blade.php` |
+| Register | `/register` | `auth/register.blade.php` |
+| Forgot Password | `/forgot-password` | `auth/forgot-password.blade.php` |
+| Reset Password | `/reset-password/{token}` | `auth/reset-password.blade.php` |
+| Confirm Password | `/user/confirm-password` | `auth/confirm-password.blade.php` |
+| Verify Email | `/email/verify` | `auth/verify-email.blade.php` |
+| Two-Factor | `/two-factor-challenge` | `auth/two-factor-challenge.blade.php` |
+
+### Platform Layout (`layouts/platform.blade.php`)
+
+Authenticated pages use the platform layout with sidebar navigation.
+
+---
+
 ## Key Concepts
 
 For detailed specifications, see `COMMON-PORTAL-BRAINSTORMING-WISH-LIST-003.md`:
@@ -131,6 +165,7 @@ For detailed specifications, see `COMMON-PORTAL-BRAINSTORMING-WISH-LIST-003.md`:
 | Admin Panel | → Administrator Panel | ✅ Implemented |
 | Sidebar | → Sidebar Menu Structure | ✅ Implemented |
 | Multi-Tenant Subdomains | → Account-Level Branding | ✅ Implemented |
+| Public Page Layout | → Guest Layout (header/footer) | ✅ Implemented |
 
 ---
 
