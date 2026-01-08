@@ -1,28 +1,43 @@
-<x-guest-layout>
-    <x-authentication-card>
-        <x-slot name="logo">
-            <x-authentication-card-logo />
-        </x-slot>
+@extends('layouts.guest')
 
-        <div class="mb-4 text-sm text-gray-600">
-            {{ __('This is a secure area of the application. Please confirm your password before continuing.') }}
+@section('content')
+<div class="flex-1 flex flex-col items-center justify-center px-6 py-12">
+    <div class="w-full max-w-md rounded-lg p-8" style="background-color: var(--card-background-color);">
+        <h1 class="text-2xl font-bold mb-2 text-center">Confirm Password</h1>
+        
+        <p class="text-center opacity-70 mb-6">
+            This is a secure area. Please confirm your password before continuing.
+        </p>
+
+        @if($errors->any())
+        <div class="mb-4 p-3 rounded-md text-sm" style="background-color: var(--status-error-color); color: white;">
+            @foreach($errors->all() as $error)
+                <p>{{ $error }}</p>
+            @endforeach
         </div>
-
-        <x-validation-errors class="mb-4" />
+        @endif
 
         <form method="POST" action="{{ route('password.confirm') }}">
             @csrf
 
-            <div>
-                <x-label for="password" value="{{ __('Password') }}" />
-                <x-input id="password" class="block mt-1 w-full" type="password" name="password" required autocomplete="current-password" autofocus />
+            <div class="mb-4">
+                <label class="block text-sm font-medium mb-2">Password</label>
+                <input type="password" 
+                       name="password" 
+                       class="w-full px-4 py-2 rounded-md border-0 focus:ring-2"
+                       style="background-color: var(--content-background-color); color: var(--content-text-color);"
+                       placeholder="••••••••"
+                       required 
+                       autofocus 
+                       autocomplete="current-password">
             </div>
 
-            <div class="flex justify-end mt-4">
-                <x-button class="ms-4">
-                    {{ __('Confirm') }}
-                </x-button>
-            </div>
+            <button type="submit" 
+                    class="w-full px-4 py-3 rounded-md font-medium transition-colors"
+                    style="background-color: var(--brand-primary-color); color: var(--button-text-color);">
+                Confirm
+            </button>
         </form>
-    </x-authentication-card>
-</x-guest-layout>
+    </div>
+</div>
+@endsection

@@ -1,48 +1,79 @@
-<x-guest-layout>
-    <x-authentication-card>
-        <x-slot name="logo">
-            <x-authentication-card-logo />
-        </x-slot>
+@extends('layouts.guest')
 
-        <x-validation-errors class="mb-4" />
+@section('content')
+<div class="flex-1 flex flex-col items-center justify-center px-6 py-12">
+    <div class="w-full max-w-md rounded-lg p-8" style="background-color: var(--card-background-color);">
+        <h1 class="text-2xl font-bold mb-6 text-center">Login</h1>
+
+        @if($errors->any())
+        <div class="mb-4 p-3 rounded-md text-sm" style="background-color: var(--status-error-color); color: white;">
+            @foreach($errors->all() as $error)
+                <p>{{ $error }}</p>
+            @endforeach
+        </div>
+        @endif
 
         @session('status')
-            <div class="mb-4 font-medium text-sm text-green-600">
-                {{ $value }}
-            </div>
+        <div class="mb-4 p-3 rounded-md text-sm" style="background-color: var(--status-success-color); color: white;">
+            {{ $value }}
+        </div>
         @endsession
 
         <form method="POST" action="{{ route('login') }}">
             @csrf
 
-            <div>
-                <x-label for="email" value="{{ __('Email') }}" />
-                <x-input id="email" class="block mt-1 w-full" type="email" name="email" :value="old('email')" required autofocus autocomplete="username" />
+            <div class="mb-4">
+                <label class="block text-sm font-medium mb-2">Email Address</label>
+                <input type="email" 
+                       name="email" 
+                       value="{{ old('email') }}"
+                       class="w-full px-4 py-2 rounded-md border-0 focus:ring-2"
+                       style="background-color: var(--content-background-color); color: var(--content-text-color);"
+                       placeholder="you@example.com"
+                       required 
+                       autofocus 
+                       autocomplete="username">
             </div>
 
-            <div class="mt-4">
-                <x-label for="password" value="{{ __('Password') }}" />
-                <x-input id="password" class="block mt-1 w-full" type="password" name="password" required autocomplete="current-password" />
+            <div class="mb-4">
+                <label class="block text-sm font-medium mb-2">Password</label>
+                <input type="password" 
+                       name="password" 
+                       class="w-full px-4 py-2 rounded-md border-0 focus:ring-2"
+                       style="background-color: var(--content-background-color); color: var(--content-text-color);"
+                       placeholder="••••••••"
+                       required 
+                       autocomplete="current-password">
             </div>
 
-            <div class="block mt-4">
-                <label for="remember_me" class="flex items-center">
-                    <x-checkbox id="remember_me" name="remember" />
-                    <span class="ms-2 text-sm text-gray-600">{{ __('Remember me') }}</span>
-                </label>
+            <div class="mb-4 flex items-center">
+                <input type="checkbox" name="remember" id="remember" class="mr-2">
+                <label for="remember" class="text-sm opacity-70">Remember me</label>
             </div>
 
-            <div class="flex items-center justify-end mt-4">
-                @if (Route::has('password.request'))
-                    <a class="underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" href="{{ route('password.request') }}">
-                        {{ __('Forgot your password?') }}
-                    </a>
-                @endif
+            <button type="submit" 
+                    class="w-full px-4 py-3 rounded-md font-medium transition-colors"
+                    style="background-color: var(--brand-primary-color); color: var(--button-text-color);">
+                Log in
+            </button>
 
-                <x-button class="ms-4">
-                    {{ __('Log in') }}
-                </x-button>
+            @if (Route::has('password.request'))
+            <div class="mt-4 text-center">
+                <a href="{{ route('password.request') }}" 
+                   class="text-sm hover:underline"
+                   style="color: var(--hyperlink-text-color);">
+                    Forgot your password?
+                </a>
             </div>
+            @endif
         </form>
-    </x-authentication-card>
-</x-guest-layout>
+
+        <div class="mt-6 pt-4 border-t text-center" style="border-color: var(--sidebar-hover-background-color);">
+            <a href="{{ route('login-register') }}" 
+               class="text-sm opacity-70 hover:opacity-100">
+                ← Back to Login/Register
+            </a>
+        </div>
+    </div>
+</div>
+@endsection

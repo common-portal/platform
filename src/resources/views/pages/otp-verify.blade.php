@@ -1,9 +1,10 @@
-@extends('layouts.platform')
+@extends('layouts.guest')
 
 @section('content')
 {{-- OTP Verification Page --}}
 
-<div class="max-w-md mx-auto mt-10">
+<div class="flex-1 flex flex-col items-center justify-center px-6 py-12">
+<div class="w-full max-w-md">
     <div class="rounded-lg p-8" style="background-color: var(--card-background-color);">
         <h1 class="text-2xl font-bold mb-2 text-center">Enter Verification Code</h1>
         
@@ -69,5 +70,6 @@
             </a>
         </div>
     </div>
+</div>
 </div>
 @endsection
