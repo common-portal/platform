@@ -4,7 +4,7 @@
 {{-- Account Settings Page --}}
 
 <div class="max-w-2xl mx-auto">
-    <h1 class="text-2xl font-bold mb-6">Account Settings</h1>
+    <h1 class="text-2xl font-bold mb-6">{{ __translator('Account Settings') }}</h1>
 
     @if(session('status'))
     <div class="mb-4 p-3 rounded-md text-sm" style="background-color: var(--status-success-color); color: white;">
@@ -108,7 +108,7 @@
             </div>
 
             <div class="mb-4">
-                <label class="block text-sm font-medium mb-2">Primary Contact Name</label>
+                <label class="block text-sm font-medium mb-2">{{ __translator('Primary Contact Name') }}</label>
                 <input type="text" 
                        name="primary_contact_full_name" 
                        value="{{ old('primary_contact_full_name', $account->primary_contact_full_name) }}"
@@ -118,7 +118,7 @@
             </div>
 
             <div class="mb-4">
-                <label class="block text-sm font-medium mb-2">Primary Contact Email</label>
+                <label class="block text-sm font-medium mb-2">{{ __translator('Primary Contact Email') }}</label>
                 <input type="email" 
                        name="primary_contact_email_address" 
                        value="{{ old('primary_contact_email_address', $account->primary_contact_email_address) }}"
@@ -129,7 +129,7 @@
 
             @if($account->isBusinessAccount())
             <div class="mb-4">
-                <label class="block text-sm font-medium mb-2">Whitelabel Subdomain</label>
+                <label class="block text-sm font-medium mb-2">{{ __translator('Whitelabel Subdomain') }}</label>
                 <div class="flex items-center">
                     <input type="text" 
                            name="whitelabel_subdomain_slug" 
@@ -143,7 +143,7 @@
                         .{{ config('app.base_domain', 'common-portal.nsdb.com') }}
                     </span>
                 </div>
-                <p class="text-xs opacity-60 mt-1">Optional. Lowercase letters, numbers, and hyphens only.</p>
+                <p class="text-xs opacity-60 mt-1">{{ __translator('Optional. Lowercase letters, numbers, and hyphens only.') }}</p>
             </div>
             @endif
 
@@ -151,7 +151,7 @@
             <button type="submit" 
                     class="px-6 py-2 rounded-md font-medium"
                     style="background-color: var(--brand-primary-color); color: var(--button-text-color);">
-                Save Changes
+                {{ __translator('Save Changes') }}
             </button>
             @endif
         </form>
@@ -160,24 +160,24 @@
     {{-- Danger Zone (Business accounts only, owners only) --}}
     @if($account->account_type === 'business_organization' && $membership && $membership->account_membership_role === 'account_owner')
     <div class="rounded-lg p-6" style="background-color: var(--card-background-color); border: 1px solid var(--status-error-color);">
-        <h2 class="text-lg font-semibold mb-4" style="color: var(--status-error-color);">Danger Zone</h2>
+        <h2 class="text-lg font-semibold mb-4" style="color: var(--status-error-color);">{{ __translator('Danger Zone') }}</h2>
         
         <p class="text-sm opacity-70 mb-4">
-            Deleting this account will remove it for all team members. This action cannot be undone.
+            {{ __translator('Deleting this account will remove it for all team members. This action cannot be undone.') }}
         </p>
         
         <button type="button" 
                 onclick="showDeleteModal()"
                 class="px-4 py-2 rounded-md font-medium"
                 style="background-color: var(--status-error-color); color: white;">
-            Delete Account
+            {{ __translator('Delete Account') }}
         </button>
     </div>
 
     {{-- Delete Confirmation Modal --}}
     <div id="delete-modal" class="fixed inset-0 z-50 hidden items-center justify-center" style="background-color: rgba(0,0,0,0.7);">
         <div class="rounded-lg p-6 max-w-md mx-4" style="background-color: var(--card-background-color);">
-            <h3 class="text-lg font-semibold mb-4" style="color: var(--status-error-color);">Delete Account</h3>
+            <h3 class="text-lg font-semibold mb-4" style="color: var(--status-error-color);">{{ __translator('Delete Account') }}</h3>
             
             <p class="mb-4 opacity-70">
                 This will permanently delete <strong>{{ $account->account_display_name }}</strong> and remove access for all team members.
@@ -188,7 +188,7 @@
                 @method('DELETE')
                 
                 <div class="mb-4">
-                    <label class="block text-sm font-medium mb-2">Type DELETE to confirm</label>
+                    <label class="block text-sm font-medium mb-2">{{ __translator('Type DELETE to confirm') }}</label>
                     <input type="text" 
                            name="confirm_delete" 
                            class="w-full px-4 py-2 rounded-md border-0"
@@ -202,12 +202,12 @@
                             onclick="hideDeleteModal()"
                             class="flex-1 px-4 py-2 rounded-md font-medium"
                             style="background-color: var(--sidebar-hover-background-color); color: var(--sidebar-text-color);">
-                        Cancel
+                        {{ __translator('Cancel') }}
                     </button>
                     <button type="submit" 
                             class="flex-1 px-4 py-2 rounded-md font-medium"
                             style="background-color: var(--status-error-color); color: white;">
-                        Delete Forever
+                        {{ __translator('Delete Forever') }}
                     </button>
                 </div>
             </form>
@@ -228,7 +228,7 @@
 
     @else
     <div class="rounded-lg p-6" style="background-color: var(--card-background-color);">
-        <p class="opacity-70">No account selected. Please select an account from the sidebar.</p>
+        <p class="opacity-70">{{ __translator('No account selected. Please select an account from the sidebar.') }}</p>
     </div>
     @endif
 </div>

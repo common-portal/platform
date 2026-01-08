@@ -5,11 +5,11 @@
 
 <div class="max-w-4xl mx-auto">
     <div class="flex justify-between items-center mb-6">
-        <h1 class="text-2xl font-bold">Team Members</h1>
+        <h1 class="text-2xl font-bold">{{ __translator('Team Members') }}</h1>
         <a href="{{ route('account.team.invite') }}" 
            class="px-4 py-2 rounded-md font-medium"
            style="background-color: var(--brand-primary-color); color: var(--button-text-color);">
-            + Invite Member
+            {{ __translator('+ Invite Member') }}
         </a>
     </div>
 
@@ -29,7 +29,7 @@
 
     {{-- Current Members --}}
     <div class="rounded-lg p-6 mb-6" style="background-color: var(--card-background-color);">
-        <h2 class="text-lg font-semibold mb-4">Current Members ({{ $memberships->count() }})</h2>
+        <h2 class="text-lg font-semibold mb-4">{{ __translator('Current Members') }} ({{ $memberships->count() }})</h2>
 
         <div class="space-y-4">
             @foreach($memberships as $membership)
@@ -44,7 +44,7 @@
                             <p class="font-medium">
                                 {{ $membership->platform_member->full_name }}
                                 @if($membership->platform_member_id === auth()->id())
-                                    <span class="text-xs opacity-60">(you)</span>
+                                    <span class="text-xs opacity-60">{{ __translator('(you)') }}</span>
                                 @endif
                             </p>
                             <p class="text-sm opacity-60">{{ $membership->platform_member->login_email_address }}</p>
@@ -55,9 +55,9 @@
                             {{ ucfirst(str_replace('_', ' ', $membership->account_membership_role)) }}
                         </span>
                         @if($membership->isActive())
-                            <span class="px-2 py-1 rounded text-xs" style="background-color: var(--status-success-color); color: white;">Active</span>
+                            <span class="px-2 py-1 rounded text-xs" style="background-color: var(--status-success-color); color: white;">{{ __translator('Active') }}</span>
                         @elseif($membership->isRevoked())
-                            <span class="px-2 py-1 rounded text-xs" style="background-color: var(--status-error-color); color: white;">Revoked</span>
+                            <span class="px-2 py-1 rounded text-xs" style="background-color: var(--status-error-color); color: white;">{{ __translator('Revoked') }}</span>
                         @endif
                     </div>
                 </div>
@@ -68,7 +68,7 @@
                     @if($membership->isActive())
                     <form method="POST" action="{{ route('account.team.permissions', $membership->id) }}">
                         @csrf
-                        <p class="text-sm font-medium mb-2">Permissions:</p>
+                        <p class="text-sm font-medium mb-2">{{ __translator('Permissions:') }}</p>
                         <div class="grid grid-cols-2 gap-2 text-sm">
                             @foreach($allPermissions as $perm)
                             <label class="flex items-center">
@@ -86,35 +86,35 @@
                             <button type="submit" 
                                     class="px-3 py-1 rounded text-sm"
                                     style="background-color: var(--brand-primary-color); color: var(--button-text-color);">
-                                Save Permissions
+                                {{ __translator('Save Permissions') }}
                             </button>
                             
                             @if($membership->platform_member_id !== auth()->id())
                             <button type="button" 
-                                    onclick="if(confirm('Revoke access for this member?')) document.getElementById('revoke-{{ $membership->id }}').submit();"
+                                    onclick="if(confirm('{{ __translator('Revoke access for this member?') }}')) document.getElementById('revoke-{{ $membership->id }}').submit();"
                                     class="px-3 py-1 rounded text-sm"
                                     style="background-color: var(--status-error-color); color: white;">
-                                Revoke Access
+                                {{ __translator('Revoke Access') }}
                             </button>
                             @endif
                         </div>
                     </form>
                     <form id="revoke-{{ $membership->id }}" method="POST" action="{{ route('account.team.revoke', $membership->id) }}" class="hidden">@csrf</form>
                     @elseif($membership->isRevoked())
-                    <p class="text-sm opacity-60 mb-3">This member's access has been revoked.</p>
+                    <p class="text-sm opacity-60 mb-3">{{ __translator("This member's access has been revoked.") }}</p>
                     @if($membership->platform_member_id !== auth()->id())
                     <button type="button" 
                             onclick="document.getElementById('reactivate-{{ $membership->id }}').submit();"
                             class="px-3 py-1 rounded text-sm"
                             style="background-color: var(--status-success-color); color: white;">
-                        Restore Access
+                        {{ __translator('Restore Access') }}
                     </button>
                     <form id="reactivate-{{ $membership->id }}" method="POST" action="{{ route('account.team.reactivate', $membership->id) }}" class="hidden">@csrf</form>
                     @endif
                     @endif
                 </div>
                 @else
-                <p class="mt-4 text-sm opacity-60">Account owner has full access to all features.</p>
+                <p class="mt-4 text-sm opacity-60">{{ __translator('Account owner has full access to all features.') }}</p>
                 @endif
             </div>
             @endforeach
@@ -123,10 +123,10 @@
 
     {{-- Pending Invitations --}}
     <div class="rounded-lg p-6" style="background-color: var(--card-background-color);">
-        <h2 class="text-lg font-semibold mb-4">Pending Invitations</h2>
+        <h2 class="text-lg font-semibold mb-4">{{ __translator('Pending Invitations') }}</h2>
         
         @if($pendingInvitations->isEmpty())
-            <p class="text-sm opacity-60">No pending invitations.</p>
+            <p class="text-sm opacity-60">{{ __translator('No pending invitations.') }}</p>
         @else
             <div class="space-y-3">
                 @foreach($pendingInvitations as $invitation)
@@ -144,16 +144,16 @@
                         <form method="POST" action="{{ route('account.team.invite.resend', $invitation->id) }}" class="inline">
                             @csrf
                             <button type="submit" class="px-3 py-1 rounded text-sm" style="background-color: var(--sidebar-hover-background-color);">
-                                Resend
+                                {{ __translator('Resend') }}
                             </button>
                         </form>
                         <form method="POST" action="{{ route('account.team.invite.cancel', $invitation->id) }}" class="inline">
                             @csrf
                             <button type="submit" 
-                                    onclick="return confirm('Cancel this invitation?')"
+                                    onclick="return confirm('{{ __translator('Cancel this invitation?') }}')"
                                     class="px-3 py-1 rounded text-sm" 
                                     style="background-color: var(--status-error-color); color: white;">
-                                Cancel
+                                {{ __translator('Cancel') }}
                             </button>
                         </form>
                     </div>
