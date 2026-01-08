@@ -218,6 +218,7 @@ class TeamController extends Controller
         return view('pages.account.team-invite', [
             'account' => $account,
             'allPermissions' => TenantAccountMembership::allPermissionSlugs(),
+            'permissionLabels' => TenantAccountMembership::permissionLabels(),
             'defaultPermissions' => TenantAccountMembership::defaultTeamMemberPermissions(),
         ]);
     }

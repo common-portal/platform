@@ -189,11 +189,27 @@ class TenantAccountMembership extends Model
         return [
             'can_access_account_settings',
             'can_access_account_dashboard',
-            'can_manage_team_members',
-            'can_access_developer_tools',
-            'can_access_support_tickets',
             'can_view_transaction_history',
             'can_view_billing_history',
+            'can_access_developer_tools',
+            'can_manage_team_members',
+            'can_access_support_tickets',
+        ];
+    }
+
+    /**
+     * Get human-readable labels for permissions.
+     */
+    public static function permissionLabels(): array
+    {
+        return [
+            'can_access_account_settings' => 'Account',
+            'can_access_account_dashboard' => 'Dashboard',
+            'can_view_transaction_history' => 'Transactions',
+            'can_view_billing_history' => 'Billing',
+            'can_access_developer_tools' => 'Developer',
+            'can_manage_team_members' => 'Team',
+            'can_access_support_tickets' => 'Support',
         ];
     }
 

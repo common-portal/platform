@@ -35,7 +35,7 @@
             </div>
 
             <div class="mb-6">
-                <p class="text-sm font-medium mb-2">Permissions</p>
+                <p class="text-sm font-medium mb-2">Permissions:</p>
                 <div class="space-y-2 text-sm">
                     @foreach($allPermissions as $perm)
                     <label class="flex items-center">
@@ -44,7 +44,7 @@
                                value="{{ $perm }}"
                                {{ in_array($perm, $defaultPermissions) ? 'checked' : '' }}
                                class="mr-2">
-                        {{ ucfirst(str_replace(['can_', '_'], ['', ' '], $perm)) }}
+                        {{ $permissionLabels[$perm] ?? $perm }}
                     </label>
                     @endforeach
                 </div>
