@@ -38,7 +38,7 @@
         @endforeach
 
         {{-- Separator --}}
-        <option disabled>──────────────</option>
+        <option disabled>- - -</option>
 
         {{-- All other languages alphabetically --}}
         @php
