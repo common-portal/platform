@@ -6,6 +6,7 @@ use App\Models\OneTimePasswordToken;
 use App\Services\PlatformMailerService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 
 class MemberController extends Controller
 {
@@ -166,5 +167,57 @@ class MemberController extends Controller
         session(['preferred_language' => $request->language_code]);
 
         return back()->with('language_status', 'Language preference updated.');
+    }
+
+    /**
+     * Upload profile avatar.
+     */
+    public function uploadAvatar(Request $request)
+    {
+        $request->validate([
+            'avatar' => 'required|image|mimes:jpeg,jpg,png,gif,webp|max:2048',
+        ]);
+
+        $member = auth()->user();
+        $file = $request->file('avatar');
+        
+        // Generate filename: original_memberhash_datetime.extension
+        $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+        $originalName = preg_replace('/[^a-zA-Z0-9_-]/', '', $originalName); // Sanitize
+        $extension = $file->getClientOriginalExtension();
+        $memberHash = substr($member->record_unique_identifier, 0, 8);
+        $datetime = now()->format('Ymd_His');
+        
+        $filename = "{$originalName}_{$memberHash}_{$datetime}.{$extension}";
+        
+        // Store in public/uploads/members/icons
+        $path = $file->storeAs('uploads/members/icons', $filename, 'public');
+        
+        // Delete old avatar if exists
+        if ($member->profile_avatar_image_path) {
+            Storage::disk('public')->delete($member->profile_avatar_image_path);
+        }
+        
+        // Update member
+        $member->update([
+            'profile_avatar_image_path' => $path,
+        ]);
+
+        return back()->with('status', 'Profile photo updated successfully.');
+    }
+
+    /**
+     * Remove profile avatar.
+     */
+    public function removeAvatar()
+    {
+        $member = auth()->user();
+        
+        if ($member->profile_avatar_image_path) {
+            Storage::disk('public')->delete($member->profile_avatar_image_path);
+            $member->update(['profile_avatar_image_path' => null]);
+        }
+
+        return back()->with('status', 'Profile photo removed.');
     }
 }

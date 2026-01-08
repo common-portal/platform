@@ -23,16 +23,82 @@
     @if($account)
     <div class="rounded-lg p-6 mb-6" style="background-color: var(--card-background-color);">
         <div class="flex justify-between items-center mb-4">
-            <h2 class="text-lg font-semibold">Account Details</h2>
+            <h2 class="text-lg font-semibold">{{ __translator('Account Details') }}</h2>
             <span class="text-sm px-2 py-1 rounded" style="background-color: var(--sidebar-hover-background-color);">
-                {{ $account->account_type === 'personal_individual' ? 'Personal' : 'Business' }}
+                {{ $account->account_type === 'personal_individual' ? __translator('Personal') : __translator('Business') }}
             </span>
         </div>
         
+        {{-- Logo Upload --}}
+        @if($canEdit)
+        <div class="flex items-center space-x-6 mb-6" x-data="{ preview: null }">
+            <div class="relative">
+                {{-- Logo Preview --}}
+                <div class="w-20 h-20 rounded-lg overflow-hidden flex items-center justify-center"
+                     style="background-color: var(--content-background-color);">
+                    @if($account->branding_logo_image_path)
+                        <img src="{{ asset('storage/' . $account->branding_logo_image_path) }}" 
+                             alt="{{ __translator('Account Logo') }}"
+                             class="w-full h-full object-contain"
+                             x-show="!preview">
+                    @else
+                        <svg x-show="!preview" class="w-10 h-10 opacity-40" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14zm-5-7l-3 3.72L9 13l-3 4h12l-4-5z"/>
+                        </svg>
+                    @endif
+                    <img x-show="preview" :src="preview" class="w-full h-full object-contain">
+                </div>
+                
+                {{-- Upload Button Overlay --}}
+                <label class="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-lg opacity-0 hover:opacity-100 transition-opacity cursor-pointer">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    </svg>
+                    <input type="file" 
+                           class="hidden" 
+                           accept="image/*"
+                           form="logo-form"
+                           name="logo"
+                           @change="
+                               const file = $event.target.files[0];
+                               if (file) {
+                                   preview = URL.createObjectURL(file);
+                                   document.getElementById('logo-submit').click();
+                               }
+                           ">
+                </label>
+            </div>
+            
+            <div>
+                <p class="text-sm font-medium mb-1">{{ __translator('Account Logo') }}</p>
+                <p class="text-xs opacity-60 mb-2">{{ __translator('Click to upload (max 2MB)') }}</p>
+                @if($account->branding_logo_image_path)
+                <button type="button" 
+                        onclick="if(confirm('{{ __translator('Remove account logo?') }}')) document.getElementById('remove-logo-form').submit();"
+                        class="text-xs px-3 py-1 rounded"
+                        style="background-color: var(--status-error-color); color: white;">
+                    {{ __translator('Remove') }}
+                </button>
+                @endif
+            </div>
+        </div>
+        
+        {{-- Hidden Logo Forms --}}
+        <form id="logo-form" method="POST" action="{{ route('account.settings.logo') }}" enctype="multipart/form-data" class="hidden">
+            @csrf
+            <button type="submit" id="logo-submit"></button>
+        </form>
+        <form id="remove-logo-form" method="POST" action="{{ route('account.settings.logo.remove') }}" class="hidden">
+            @csrf
+            @method('DELETE')
+        </form>
+        @endif
+
         <form method="POST" action="{{ route('account.settings.update') }}">
             @csrf
             <div class="mb-4">
-                <label class="block text-sm font-medium mb-2">Account Name</label>
+                <label class="block text-sm font-medium mb-2">{{ __translator('Account Name') }}</label>
                 <input type="text" 
                        name="account_display_name" 
                        value="{{ old('account_display_name', $account->account_display_name) }}"

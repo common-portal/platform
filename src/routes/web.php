@@ -78,6 +78,8 @@ Route::middleware([
     Route::prefix('account')->name('account.')->group(function () {
         Route::get('/settings', [AccountController::class, 'showSettings'])->name('settings');
         Route::post('/settings', [AccountController::class, 'updateSettings'])->name('settings.update');
+        Route::post('/settings/logo', [AccountController::class, 'uploadLogo'])->name('settings.logo');
+        Route::delete('/settings/logo', [AccountController::class, 'removeLogo'])->name('settings.logo.remove');
         Route::delete('/delete', [AccountController::class, 'destroy'])->name('delete');
         
         Route::get('/create', [AccountController::class, 'showCreate'])->name('create');
@@ -117,6 +119,8 @@ Route::middleware([
     Route::prefix('member')->name('member.')->group(function () {
         Route::get('/settings', [MemberController::class, 'showSettings'])->name('settings');
         Route::post('/settings/profile', [MemberController::class, 'updateProfile'])->name('settings.profile');
+        Route::post('/settings/avatar', [MemberController::class, 'uploadAvatar'])->name('settings.avatar');
+        Route::delete('/settings/avatar', [MemberController::class, 'removeAvatar'])->name('settings.avatar.remove');
         Route::post('/settings/email', [MemberController::class, 'requestEmailChange'])->name('settings.email');
         Route::get('/settings/email/verify', [MemberController::class, 'showEmailVerifyForm'])->name('settings.email.verify');
         Route::post('/settings/email/verify', [MemberController::class, 'verifyEmailChange'])->name('settings.email.verify.submit');

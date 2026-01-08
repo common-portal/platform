@@ -6,6 +6,7 @@ use App\Models\TenantAccount;
 use App\Models\TenantAccountMembership;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class AccountController extends Controller
 {
@@ -217,5 +218,100 @@ class AccountController extends Controller
 
         return redirect()->route('home')
             ->with('status', 'Account deleted successfully.');
+    }
+
+    /**
+     * Upload account logo.
+     */
+    public function uploadLogo(Request $request)
+    {
+        $request->validate([
+            'logo' => 'required|image|mimes:jpeg,jpg,png,gif,webp,svg|max:2048',
+        ]);
+
+        $activeAccountId = session('active_account_id');
+
+        if (!$activeAccountId) {
+            return back()->withErrors(['account' => 'No active account selected.']);
+        }
+
+        $account = auth()->user()->tenant_accounts()
+            ->where('tenant_accounts.id', $activeAccountId)
+            ->first();
+
+        if (!$account) {
+            return back()->withErrors(['account' => 'Account not found.']);
+        }
+
+        // Check permission
+        $membership = auth()->user()->account_memberships()
+            ->where('tenant_account_id', $activeAccountId)
+            ->first();
+
+        if (!$membership || !in_array($membership->account_membership_role, ['account_owner', 'account_administrator'])) {
+            return back()->withErrors(['account' => 'You do not have permission to edit this account.']);
+        }
+
+        $file = $request->file('logo');
+        
+        // Generate filename: original_accounthash_datetime.extension
+        $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+        $originalName = preg_replace('/[^a-zA-Z0-9_-]/', '', $originalName); // Sanitize
+        $extension = $file->getClientOriginalExtension();
+        $accountHash = substr($account->record_unique_identifier, 0, 8);
+        $datetime = now()->format('Ymd_His');
+        
+        $filename = "{$originalName}_{$accountHash}_{$datetime}.{$extension}";
+        
+        // Store in public/uploads/accounts/icons
+        $path = $file->storeAs('uploads/accounts/icons', $filename, 'public');
+        
+        // Delete old logo if exists
+        if ($account->branding_logo_image_path) {
+            Storage::disk('public')->delete($account->branding_logo_image_path);
+        }
+        
+        // Update account
+        $account->update([
+            'branding_logo_image_path' => $path,
+        ]);
+
+        return back()->with('status', 'Account logo updated successfully.');
+    }
+
+    /**
+     * Remove account logo.
+     */
+    public function removeLogo()
+    {
+        $activeAccountId = session('active_account_id');
+
+        if (!$activeAccountId) {
+            return back()->withErrors(['account' => 'No active account selected.']);
+        }
+
+        $account = auth()->user()->tenant_accounts()
+            ->where('tenant_accounts.id', $activeAccountId)
+            ->first();
+
+        if (!$account) {
+            return back()->withErrors(['account' => 'Account not found.']);
+        }
+
+        // Check permission
+        $membership = auth()->user()->account_memberships()
+            ->where('tenant_account_id', $activeAccountId)
+            ->first();
+
+        if (!$membership || !in_array($membership->account_membership_role, ['account_owner', 'account_administrator'])) {
+            return back()->withErrors(['account' => 'You do not have permission to edit this account.']);
+        }
+
+        if ($account->branding_logo_image_path) {
+            Storage::disk('public')->delete($account->branding_logo_image_path);
+            $account->update(['branding_logo_image_path' => null]);
+        }
+
+        return back()->with('status', 'Account logo removed.');
     }
 }
