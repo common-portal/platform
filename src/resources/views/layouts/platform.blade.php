@@ -133,24 +133,27 @@
         #sidebar.translate-x-0 {
             transform: translateX(0);
         }
-        /* Desktop (768px+): sidebar always visible, in document flow */
+        /* Desktop (768px+): sidebar always visible, sticky, full height */
         @media (min-width: 768px) {
             #sidebar {
                 transform: translateX(0) !important;
-                position: relative !important;
+                position: sticky !important;
+                top: 0 !important;
+                height: 100vh !important;
+                flex-shrink: 0 !important;
             }
             .mobile-header {
                 display: none !important;
             }
         }
-        /* Language selector sticky to bottom of sidebar */
+        /* Sidebar flexbox layout for language selector at bottom */
         #sidebar {
-            display: flex;
-            flex-direction: column;
+            display: flex !important;
+            flex-direction: column !important;
         }
         #sidebar .language-selector-container {
-            margin-top: auto;
-            flex-shrink: 0;
+            margin-top: auto !important;
+            flex-shrink: 0 !important;
         }
     </style>
 
