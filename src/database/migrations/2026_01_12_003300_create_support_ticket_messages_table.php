@@ -8,6 +8,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (Schema::hasTable('support_ticket_messages')) {
+            return;
+        }
+        
         Schema::create('support_ticket_messages', function (Blueprint $table) {
             $table->id();
             $table->string('record_unique_identifier', 64)->unique();
