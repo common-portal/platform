@@ -68,7 +68,7 @@ class SupportController extends Controller
         });
 
         return redirect()->route('support')
-            ->with('success', 'Your message has been sent successfully. We\'ll get back to you soon!');
+            ->with('success', __translator('Your message has been sent successfully. Please allow 2 business days for a response from our team.'));
     }
 
     /**
