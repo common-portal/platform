@@ -47,8 +47,8 @@
             <a href="/" class="flex items-center space-x-3">
                 <img src="{{ $platformLogo ?? '/images/platform-defaults/platform-logo.png' }}" 
                      alt="{{ $platformName ?? 'Common Portal' }}" 
-                     class="h-8 w-auto">
-                <span class="text-lg" style="color: #e3be3b; font-weight: 900;">
+                     class="h-10 w-auto">
+                <span class="text-xl" style="color: #e3be3b; font-weight: 900;">
                     {{ $platformName ?? 'Common Portal' }}
                 </span>
             </a>
