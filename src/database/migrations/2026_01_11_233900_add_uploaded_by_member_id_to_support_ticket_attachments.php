@@ -11,12 +11,14 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('support_ticket_attachments', function (Blueprint $table) {
-            $table->string('uploaded_by_member_hash', 64)
-                  ->nullable()
-                  ->after('support_ticket_id')
-                  ->index();
-        });
+        if (!Schema::hasColumn('support_ticket_attachments', 'uploaded_by_member_hash')) {
+            Schema::table('support_ticket_attachments', function (Blueprint $table) {
+                $table->string('uploaded_by_member_hash', 64)
+                      ->nullable()
+                      ->after('support_ticket_id')
+                      ->index();
+            });
+        }
     }
 
     /**
