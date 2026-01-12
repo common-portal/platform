@@ -122,6 +122,12 @@
 </div>
 @endsection
 
+@push('head')
+@if(config('recaptcha.site_key'))
+<script src="https://www.google.com/recaptcha/api.js?render={{ config('recaptcha.site_key') }}"></script>
+@endif
+@endpush
+
 @push('scripts')
 <script>
     const RECAPTCHA_SITE_KEY = '{{ config('recaptcha.site_key') }}';
