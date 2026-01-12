@@ -20,21 +20,42 @@
 
     {{-- Account Selector --}}
     @auth
+    @php
+        $isImpersonating = session('admin_impersonating_from') !== null;
+        $impersonatedAccountId = $isImpersonating ? session('active_account_id') : null;
+        $impersonatedAccount = $isImpersonating ? \App\Models\TenantAccount::find($impersonatedAccountId) : null;
+    @endphp
     <div class="mb-4">
-        <label class="block text-xs uppercase tracking-wide opacity-60 mb-2">{{ __translator('Active Account') }}</label>
+        <label class="block text-xs uppercase tracking-wide opacity-60 mb-2">
+            {{ __translator('Active Account') }}
+        </label>
         <select id="account-selector" 
                 onchange="switchAccount(this.value)"
                 class="w-full px-3 py-2 rounded-md text-sm border-0 focus:ring-2 focus:ring-opacity-50"
                 style="background-color: var(--sidebar-hover-background-color); color: var(--sidebar-text-color); focus-ring-color: var(--brand-primary-color);">
+            @if($isImpersonating && $impersonatedAccount)
+            {{-- Show impersonated account first with indicator --}}
+            <option value="{{ $impersonatedAccount->id }}" selected>
+                ⚡ {{ $impersonatedAccount->account_display_name }}
+            </option>
+            <option disabled>──────────</option>
+            @endif
+            {{-- Show admin's normal accounts --}}
             @foreach($userAccounts ?? [] as $account)
-            <option value="{{ $account->id }}" {{ ($activeAccountId ?? null) == $account->id ? 'selected' : '' }}>
+            @if(!$isImpersonating || $account->id != $impersonatedAccountId)
+            <option value="{{ $account->id }}" {{ !$isImpersonating && ($activeAccountId ?? null) == $account->id ? 'selected' : '' }}>
                 {{ $account->account_display_name }}
             </option>
+            @endif
             @endforeach
         </select>
+        @if($isImpersonating)
+        <p class="text-xs opacity-60 mt-1">{{ __translator('Select your account to exit admin view') }}</p>
+        @endif
     </div>
 
-    {{-- Add Business Account Link --}}
+    {{-- Add Business Account Link (hidden during impersonation) --}}
+    @if(!$isImpersonating)
     <a href="/account/create" 
        class="flex items-center px-3 py-2 rounded-md text-sm transition-colors hover:opacity-80"
        style="color: var(--brand-primary-color);">
@@ -43,6 +64,7 @@
         </svg>
         {{ __translator('Add Business Account') }}
     </a>
+    @endif
 
     <div class="my-4 border-t" style="border-color: var(--sidebar-hover-background-color);"></div>
     @endauth
@@ -53,13 +75,22 @@
         
         {{-- Account Settings --}}
         @if($canAccessAccountSettings ?? true)
+        @php
+            $currentAccount = \App\Models\TenantAccount::find(session('active_account_id'));
+        @endphp
         <a href="/account/settings" 
            class="sidebar-menu-item flex items-center px-3 py-2 rounded-md text-sm transition-colors"
            style="color: var(--sidebar-text-color);">
+            @if($currentAccount && $currentAccount->branding_logo_image_path)
+            <img src="{{ asset('storage/' . $currentAccount->branding_logo_image_path) }}" 
+                 alt="{{ $currentAccount->account_display_name }}" 
+                 class="w-5 h-5 mr-3 rounded object-cover">
+            @else
             <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                       d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
             </svg>
+            @endif
             {{ __translator('Account') }}
         </a>
         @endif
@@ -116,17 +147,40 @@
         </a>
         @endif
 
-        {{-- Team --}}
+        {{-- Team (disabled for Personal accounts with tooltip) --}}
+        @php
+            $activeAccount = \App\Models\TenantAccount::find(session('active_account_id'));
+            $isPersonalAccount = $activeAccount && $activeAccount->account_type === 'personal_individual';
+        @endphp
         @if($canManageTeamMembers ?? true)
-        <a href="/account/team" 
-           class="sidebar-menu-item flex items-center px-3 py-2 rounded-md text-sm transition-colors"
-           style="color: var(--sidebar-text-color);">
-            <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                      d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
-            </svg>
-            {{ __translator('Team') }}
-        </a>
+            @if($isPersonalAccount)
+            <div class="relative" x-data="{ showTooltip: false }" @mouseenter="showTooltip = true" @mouseleave="showTooltip = false">
+                <span class="sidebar-menu-item flex items-center px-3 py-2 rounded-md text-sm transition-colors cursor-not-allowed opacity-50"
+                      style="color: var(--sidebar-text-color);">
+                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                              d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+                    </svg>
+                    {{ __translator('Team') }}
+                </span>
+                <div x-show="showTooltip" 
+                     x-cloak
+                     class="fixed px-3 py-2 rounded-md text-sm z-[9999] shadow-lg"
+                     style="left: 270px; min-width: 280px; background-color: var(--card-background-color); color: var(--status-warning-color); border: 1px solid var(--sidebar-hover-background-color);">
+                    {{ __translator('Add / Select a Business Account to invite Team members.') }}
+                </div>
+            </div>
+            @else
+            <a href="/account/team" 
+               class="sidebar-menu-item flex items-center px-3 py-2 rounded-md text-sm transition-colors"
+               style="color: var(--sidebar-text-color);">
+                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                          d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+                </svg>
+                {{ __translator('Team') }}
+            </a>
+            @endif
         @endif
 
     </div>
@@ -137,15 +191,31 @@
     <a href="/member/settings" 
        class="sidebar-menu-item flex items-center px-3 py-2 rounded-md text-sm transition-colors"
        style="color: var(--sidebar-text-color);">
+        @if(auth()->user()->profile_avatar_image_path)
+        <img src="{{ asset('storage/' . auth()->user()->profile_avatar_image_path) }}" 
+             alt="{{ auth()->user()->full_name }}" 
+             class="w-5 h-5 mr-3 rounded-full object-cover">
+        @else
         <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                   d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
         </svg>
+        @endif
         {{ __translator('My Profile') }}
     </a>
 
-    {{-- Support (optional module) --}}
-    @if($canAccessSupportTickets ?? false)
+    {{-- Support (links to admin interface for admins, module for users) --}}
+    @if(auth()->user()->is_platform_administrator)
+    <a href="/administrator/support-tickets" 
+       class="sidebar-menu-item flex items-center px-3 py-2 rounded-md text-sm transition-colors"
+       style="color: var(--sidebar-text-color);">
+        <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                  d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z"/>
+        </svg>
+        {{ __translator('Support') }}
+    </a>
+    @elseif($canAccessSupportTickets ?? false)
     <a href="/modules/support" 
        class="sidebar-menu-item flex items-center px-3 py-2 rounded-md text-sm transition-colors"
        style="color: var(--sidebar-text-color);">

@@ -21,24 +21,39 @@
     @endif
 
     {{-- Tab Navigation --}}
-    <div class="flex space-x-1 mb-6 border-b" style="border-color: var(--sidebar-hover-background-color);">
+    <div class="flex mb-6 rounded-lg overflow-hidden" style="background-color: var(--sidebar-hover-background-color); border: 1px solid rgba(255,255,255,0.15); box-shadow: 0 1px 3px rgba(0,0,0,0.2);">
         <button @click="activeTab = 'profile'" 
-                :class="activeTab === 'profile' ? 'border-b-2' : 'opacity-60 hover:opacity-100'"
-                :style="activeTab === 'profile' ? 'border-color: var(--brand-primary-color); color: var(--brand-primary-color)' : ''"
-                class="px-4 py-3 text-sm font-medium transition-all">
-            {{ __translator('Profile') }}
+                :class="activeTab === 'profile' ? 'opacity-100' : 'opacity-60 hover:opacity-80'"
+                :style="'border-right: 1px solid rgba(255,255,255,0.15); border-bottom: 2px solid ' + (activeTab === 'profile' ? 'var(--brand-primary-color)' : 'transparent') + '; background-color: ' + (activeTab === 'profile' ? 'var(--card-background-color)' : 'transparent') + ';'"
+                class="flex-1 px-4 py-3 text-sm font-medium">
+            <span class="flex items-center justify-center gap-2">
+                <svg style="width: 16px; height: 16px; flex-shrink: 0;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                </svg>
+                {{ __translator('Profile') }}
+            </span>
         </button>
         <button @click="activeTab = 'email'" 
-                :class="activeTab === 'email' ? 'border-b-2' : 'opacity-60 hover:opacity-100'"
-                :style="activeTab === 'email' ? 'border-color: var(--brand-primary-color); color: var(--brand-primary-color)' : ''"
-                class="px-4 py-3 text-sm font-medium transition-all">
-            {{ __translator('Login Email') }}
+                :class="activeTab === 'email' ? 'opacity-100' : 'opacity-60 hover:opacity-80'"
+                :style="'border-right: 1px solid rgba(255,255,255,0.15); border-bottom: 2px solid ' + (activeTab === 'email' ? 'var(--brand-primary-color)' : 'transparent') + '; background-color: ' + (activeTab === 'email' ? 'var(--card-background-color)' : 'transparent') + ';'"
+                class="flex-1 px-4 py-3 text-sm font-medium">
+            <span class="flex items-center justify-center gap-2">
+                <svg style="width: 16px; height: 16px; flex-shrink: 0;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                </svg>
+                {{ __translator('Login Email') }}
+            </span>
         </button>
         <button @click="activeTab = 'password'" 
-                :class="activeTab === 'password' ? 'border-b-2' : 'opacity-60 hover:opacity-100'"
-                :style="activeTab === 'password' ? 'border-color: var(--brand-primary-color); color: var(--brand-primary-color)' : ''"
-                class="px-4 py-3 text-sm font-medium transition-all">
-            {{ __translator('Login Password') }}
+                :class="activeTab === 'password' ? 'opacity-100' : 'opacity-60 hover:opacity-80'"
+                :style="'border-bottom: 2px solid ' + (activeTab === 'password' ? 'var(--brand-primary-color)' : 'transparent') + '; background-color: ' + (activeTab === 'password' ? 'var(--card-background-color)' : 'transparent') + ';'"
+                class="flex-1 px-4 py-3 text-sm font-medium">
+            <span class="flex items-center justify-center gap-2">
+                <svg style="width: 16px; height: 16px; flex-shrink: 0;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                </svg>
+                {{ __translator('Login Password') }}
+            </span>
         </button>
     </div>
 
@@ -49,25 +64,25 @@
         <div x-show="activeTab === 'profile'" x-cloak>
             {{-- Avatar Upload --}}
             <div class="flex items-center space-x-6 mb-6">
-                <div class="relative" x-data="{ preview: null }">
+                <div class="relative" x-data="{ preview: null }" style="width: 80px; height: 80px; flex-shrink: 0;">
                     {{-- Avatar Preview --}}
-                    <div class="w-24 h-24 rounded-full overflow-hidden flex items-center justify-center"
-                         style="background-color: var(--content-background-color);">
+                    <div class="rounded-lg overflow-hidden flex items-center justify-center"
+                         style="width: 80px; height: 80px; background-color: var(--content-background-color);">
                         @if(auth()->user()->profile_avatar_image_path)
                             <img src="{{ asset('storage/' . auth()->user()->profile_avatar_image_path) }}" 
                                  alt="{{ __translator('Profile Photo') }}"
-                                 class="w-full h-full object-cover"
+                                 style="max-width: 80px; max-height: 80px; object-fit: cover;"
                                  x-show="!preview">
                         @else
-                            <svg x-show="!preview" class="w-12 h-12 opacity-40" fill="currentColor" viewBox="0 0 24 24">
+                            <svg x-show="!preview" class="w-10 h-10 opacity-40" fill="currentColor" viewBox="0 0 24 24">
                                 <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
                             </svg>
                         @endif
-                        <img x-show="preview" :src="preview" class="w-full h-full object-cover">
+                        <img x-show="preview" :src="preview" style="max-width: 80px; max-height: 80px; object-fit: cover;">
                     </div>
                     
                     {{-- Upload Button Overlay --}}
-                    <label class="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-full opacity-0 hover:opacity-100 transition-opacity cursor-pointer">
+                    <label class="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-lg opacity-0 hover:opacity-100 transition-opacity cursor-pointer">
                         <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
@@ -89,7 +104,7 @@
                 
                 <div>
                     <p class="text-sm font-medium mb-1">{{ __translator('Profile Photo') }}</p>
-                    <p class="text-xs opacity-60 mb-2">{{ __translator('Click to upload (max 2MB)') }}</p>
+                    <p class="text-xs opacity-60 mb-2">{{ __translator('Click to upload (max 10MB)') }}</p>
                     @if(auth()->user()->profile_avatar_image_path)
                     <button type="button" 
                             onclick="if(confirm('{{ __translator('Remove profile photo?') }}')) document.getElementById('remove-avatar-form').submit();"

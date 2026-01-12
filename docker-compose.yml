@@ -58,6 +58,18 @@ services:
     networks:
       - platform-network
 
+  # Adminer for local database management (accessed via /adminer path)
+  adminer:
+    image: adminer:latest
+    container_name: platform-adminer
+    restart: unless-stopped
+    environment:
+      - ADMINER_DEFAULT_SERVER=postgres
+    depends_on:
+      - postgres
+    networks:
+      - platform-network
+
   # Queue worker for background jobs (uses same image as app)
   queue:
     build:

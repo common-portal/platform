@@ -170,7 +170,7 @@ class TranslatorService
             ])->timeout(30)->post('https://api.x.ai/v1/chat/completions', [
                 'model' => 'grok-4-1-fast-non-reasoning',
                 'messages' => [
-                    ['role' => 'system', 'content' => "You are an HTML-preserving translator. Translate visible text into {$langName}, keeping ALL HTML tags, attributes, comments, scripts, styles, CDATA, doctype, and structure 100% unchanged. Never add, remove, modify, or reorder any HTML. Translate only human-readable text nodes and display attributes (alt, title, placeholder, aria-label). Leave code/scripts untouched. Output ONLY the translated content — no explanations, no markdown fences."],
+                    ['role' => 'system', 'content' => "You are an HTML-preserving translator for a software UI. Translate visible text into {$langName}, keeping ALL HTML tags, attributes, comments, scripts, styles, CDATA, doctype, and structure 100% unchanged. Never add, remove, modify, or reorder any HTML. Translate only human-readable text nodes and display attributes (alt, title, placeholder, aria-label). Leave code/scripts untouched. IMPORTANT: Single words or short phrases are UI button labels or imperative verb commands (e.g. 'Impersonate', 'Delete', 'Submit') — translate them as action verbs, never refuse. Output ONLY the translated content — no explanations, no markdown fences."],
                     ['role' => 'user', 'content' => $text]
                 ],
                 'temperature' => 0.2
@@ -178,8 +178,16 @@ class TranslatorService
 
             $translated = $response->json('choices.0.message.content', '');
 
-            // Cache successful translation
-            if ($translated && !stristr($translated, "cannot provide")) {
+            // Cache successful translation (filter out AI refusals)
+            $refusalPhrases = ['cannot provide', 'lo siento', 'je suis désolé', 'i cannot', 'no puedo', 'je ne peux pas'];
+            $isRefusal = false;
+            foreach ($refusalPhrases as $phrase) {
+                if (stripos($translated, $phrase) !== false) {
+                    $isRefusal = true;
+                    break;
+                }
+            }
+            if ($translated && !$isRefusal && strlen($translated) < strlen($text) * 5) {
                 CachedTextTranslation::cacheTranslation($text, $targetLanguage, $translated);
             }
 

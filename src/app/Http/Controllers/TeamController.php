@@ -17,27 +17,40 @@ class TeamController extends Controller
     public function index()
     {
         $activeAccountId = session('active_account_id');
+        $isAdminImpersonating = session('admin_impersonating_from') !== null;
         
         if (!$activeAccountId) {
             return redirect()->route('home')->withErrors(['account' => __translator('No active account selected.')]);
         }
 
-        $account = auth()->user()->tenant_accounts()
-            ->where('tenant_accounts.id', $activeAccountId)
-            ->where('is_soft_deleted', false)
-            ->first();
+        // If admin is impersonating, fetch account directly
+        if ($isAdminImpersonating && auth()->user()->is_platform_administrator) {
+            $account = \App\Models\TenantAccount::where('id', $activeAccountId)
+                ->where('is_soft_deleted', false)
+                ->first();
+            $currentMembership = null; // Admin impersonating has full access
+        } else {
+            $account = auth()->user()->tenant_accounts()
+                ->where('tenant_accounts.id', $activeAccountId)
+                ->where('is_soft_deleted', false)
+                ->first();
+
+            if (!$account) {
+                return redirect()->route('home')->withErrors(['account' => __translator('Account not found.')]);
+            }
+
+            // Get current user's membership to check permissions
+            $currentMembership = auth()->user()->account_memberships()
+                ->where('tenant_account_id', $activeAccountId)
+                ->first();
+
+            if (!$currentMembership || !$currentMembership->canManageTeam()) {
+                abort(403, __translator('You do not have permission to manage this team.'));
+            }
+        }
 
         if (!$account) {
             return redirect()->route('home')->withErrors(['account' => __translator('Account not found.')]);
-        }
-
-        // Get current user's membership to check permissions
-        $currentMembership = auth()->user()->account_memberships()
-            ->where('tenant_account_id', $activeAccountId)
-            ->first();
-
-        if (!$currentMembership || !$currentMembership->canManageTeam()) {
-            abort(403, __translator('You do not have permission to manage this team.'));
         }
 
         // Get all memberships for this account
@@ -66,6 +79,24 @@ class TeamController extends Controller
     }
 
     /**
+     * Check if current user can manage team (handles admin impersonation).
+     */
+    protected function canManageTeam()
+    {
+        $isAdminImpersonating = session('admin_impersonating_from') !== null;
+        if ($isAdminImpersonating && auth()->user()->is_platform_administrator) {
+            return true;
+        }
+        
+        $activeAccountId = session('active_account_id');
+        $currentMembership = auth()->user()->account_memberships()
+            ->where('tenant_account_id', $activeAccountId)
+            ->first();
+            
+        return $currentMembership && $currentMembership->canManageTeam();
+    }
+
+    /**
      * Update a member's permissions.
      */
     public function updatePermissions(Request $request, $membership_id)
@@ -81,12 +112,7 @@ class TeamController extends Controller
             return back()->withErrors(['account' => __translator('No active account selected.')]);
         }
 
-        // Get current user's membership
-        $currentMembership = auth()->user()->account_memberships()
-            ->where('tenant_account_id', $activeAccountId)
-            ->first();
-
-        if (!$currentMembership || !$currentMembership->canManageTeam()) {
+        if (!$this->canManageTeam()) {
             return back()->withErrors(['permission' => __translator('You do not have permission to manage this team.')]);
         }
 
@@ -128,11 +154,7 @@ class TeamController extends Controller
             return back()->withErrors(['account' => __translator('No active account selected.')]);
         }
 
-        $currentMembership = auth()->user()->account_memberships()
-            ->where('tenant_account_id', $activeAccountId)
-            ->first();
-
-        if (!$currentMembership || !$currentMembership->canManageTeam()) {
+        if (!$this->canManageTeam()) {
             return back()->withErrors(['permission' => __translator('You do not have permission to manage this team.')]);
         }
 
@@ -170,11 +192,7 @@ class TeamController extends Controller
             return back()->withErrors(['account' => __translator('No active account selected.')]);
         }
 
-        $currentMembership = auth()->user()->account_memberships()
-            ->where('tenant_account_id', $activeAccountId)
-            ->first();
-
-        if (!$currentMembership || !$currentMembership->canManageTeam()) {
+        if (!$this->canManageTeam()) {
             return back()->withErrors(['permission' => __translator('You do not have permission to manage this team.')]);
         }
 
@@ -197,22 +215,26 @@ class TeamController extends Controller
     public function showInvite()
     {
         $activeAccountId = session('active_account_id');
+        $isAdminImpersonating = session('admin_impersonating_from') !== null;
         
         if (!$activeAccountId) {
             return redirect()->route('home')->withErrors(['account' => __translator('No active account selected.')]);
         }
 
-        $account = auth()->user()->tenant_accounts()
-            ->where('tenant_accounts.id', $activeAccountId)
-            ->where('is_soft_deleted', false)
-            ->first();
+        // If admin is impersonating, fetch account directly
+        if ($isAdminImpersonating && auth()->user()->is_platform_administrator) {
+            $account = \App\Models\TenantAccount::where('id', $activeAccountId)
+                ->where('is_soft_deleted', false)
+                ->first();
+        } else {
+            $account = auth()->user()->tenant_accounts()
+                ->where('tenant_accounts.id', $activeAccountId)
+                ->where('is_soft_deleted', false)
+                ->first();
 
-        $currentMembership = auth()->user()->account_memberships()
-            ->where('tenant_account_id', $activeAccountId)
-            ->first();
-
-        if (!$currentMembership || !$currentMembership->canManageTeam()) {
-            abort(403, __translator('You do not have permission to invite team members.'));
+            if (!$this->canManageTeam()) {
+                abort(403, __translator('You do not have permission to invite team members.'));
+            }
         }
 
         return view('pages.account.team-invite', [
@@ -235,16 +257,13 @@ class TeamController extends Controller
         ]);
 
         $activeAccountId = session('active_account_id');
+        $isAdminImpersonating = session('admin_impersonating_from') !== null;
         
         if (!$activeAccountId) {
             return back()->withErrors(['account' => __translator('No active account selected.')]);
         }
 
-        $currentMembership = auth()->user()->account_memberships()
-            ->where('tenant_account_id', $activeAccountId)
-            ->first();
-
-        if (!$currentMembership || !$currentMembership->canManageTeam()) {
+        if (!$this->canManageTeam()) {
             return back()->withErrors(['permission' => __translator('You do not have permission to invite team members.')]);
         }
 
@@ -272,9 +291,16 @@ class TeamController extends Controller
             return back()->withErrors(['email' => __translator('A pending invitation already exists for this email. Use resend if needed.')]);
         }
 
-        $account = auth()->user()->tenant_accounts()
-            ->where('tenant_accounts.id', $activeAccountId)
-            ->first();
+        // If admin is impersonating, fetch account directly
+        if ($isAdminImpersonating && auth()->user()->is_platform_administrator) {
+            $account = \App\Models\TenantAccount::where('id', $activeAccountId)
+                ->where('is_soft_deleted', false)
+                ->first();
+        } else {
+            $account = auth()->user()->tenant_accounts()
+                ->where('tenant_accounts.id', $activeAccountId)
+                ->first();
+        }
 
         DB::beginTransaction();
 

@@ -19,14 +19,15 @@
         </div>
         @endsession
 
-        <form method="POST" action="{{ route('login') }}">
+        <form method="POST" action="{{ route('login') }}" id="login-form">
             @csrf
+            <input type="hidden" name="recaptcha_token" id="login-recaptcha-token">
 
             <div class="mb-4">
                 <label class="block text-sm font-medium mb-2">{{ __translator('Email Address') }}</label>
                 <input type="email" 
-                       name="email" 
-                       value="{{ old('email') }}"
+                       name="login_email_address" 
+                       value="{{ old('login_email_address') }}"
                        class="w-full px-4 py-2 rounded-md border-0 focus:ring-2"
                        style="background-color: var(--content-background-color); color: var(--content-text-color);"
                        placeholder="you@example.com"
@@ -77,3 +78,24 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+    const RECAPTCHA_SITE_KEY = '{{ config('recaptcha.site_key') }}';
+    
+    if (RECAPTCHA_SITE_KEY && typeof grecaptcha !== 'undefined') {
+        grecaptcha.ready(function() {
+            const loginForm = document.getElementById('login-form');
+            if (loginForm) {
+                loginForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    grecaptcha.execute(RECAPTCHA_SITE_KEY, {action: 'login'}).then(function(token) {
+                        document.getElementById('login-recaptcha-token').value = token;
+                        loginForm.submit();
+                    });
+                });
+            }
+        });
+    }
+</script>
+@endpush

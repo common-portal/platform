@@ -52,15 +52,19 @@
 <body class="font-sans antialiased" style="background-color: var(--content-background-color); color: var(--content-text-color);">
     
     <!-- Admin Impersonation Banner -->
-    @if(session('impersonating_account_id'))
+    @if(session('admin_impersonating_from'))
+    @php
+        $impersonatedAccount = \App\Models\TenantAccount::find(session('active_account_id'));
+    @endphp
     <div id="admin-banner" class="fixed top-0 left-0 right-0 z-50 px-4 py-2 text-center text-sm font-medium" 
          style="background-color: var(--admin-banner-background-color); color: var(--admin-banner-text-color);">
-        ADMIN VIEW: Managing account "{{ session('impersonating_account_name') }}" 
-        <a href="{{ route('admin.exit-impersonation') }}" class="ml-4 underline hover:no-underline">Exit Admin View</a>
+        {{ __translator('ADMIN VIEW') }}: {{ __translator('Managing account') }} "<strong>{{ $impersonatedAccount?->account_display_name ?? 'Unknown' }}</strong>" 
+        ({{ $impersonatedAccount?->primary_contact_email_address ?? '' }})
+        <a href="{{ route('admin.exit-impersonation') }}" class="ml-4 underline hover:no-underline">{{ __translator('Exit Admin View') }}</a>
     </div>
     @endif
 
-    <div class="flex {{ session('impersonating_account_id') ? 'pt-10' : '' }}">
+    <div class="flex {{ session('admin_impersonating_from') ? 'pt-10' : '' }}">
         
         <!-- Sidebar: always visible on md+, off-screen toggle on mobile -->
         <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 flex flex-col h-screen transition-transform duration-300
@@ -170,6 +174,43 @@
     </script>
 
     @stack('modals')
+    
+    <!-- Global Submit Button Handler: Disable + Spinner on Click -->
+    <script>
+        const PROCESSING_TEXT = '{{ __translator("Processing...") }}';
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            // Handle all forms with submit buttons
+            document.querySelectorAll('form').forEach(function(form) {
+                form.addEventListener('submit', function(e) {
+                    const btn = form.querySelector('button[type="submit"], button:not([type])');
+                    if (btn && !btn.disabled) {
+                        // Store original content
+                        btn.dataset.originalText = btn.innerHTML;
+                        // Disable and show spinner
+                        btn.disabled = true;
+                        btn.innerHTML = '<svg class="animate-spin inline-block w-5 h-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> ' + PROCESSING_TEXT;
+                        btn.style.opacity = '0.7';
+                        btn.style.cursor = 'not-allowed';
+                    }
+                });
+            });
+        });
+        
+        // Revert button on page show (back/forward navigation)
+        window.addEventListener('pageshow', function(e) {
+            if (e.persisted) {
+                document.querySelectorAll('button[data-original-text]').forEach(function(btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = btn.dataset.originalText;
+                    btn.style.opacity = '';
+                    btn.style.cursor = '';
+                });
+            }
+        });
+    </script>
+    
+    @stack('scripts')
     @livewireScripts
 </body>
 </html>

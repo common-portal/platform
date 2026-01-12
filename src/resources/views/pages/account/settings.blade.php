@@ -32,21 +32,21 @@
         {{-- Logo Upload --}}
         @if($canEdit)
         <div class="flex items-center space-x-6 mb-6" x-data="{ preview: null }">
-            <div class="relative">
+            <div class="relative" style="width: 80px; height: 80px; flex-shrink: 0;">
                 {{-- Logo Preview --}}
-                <div class="w-20 h-20 rounded-lg overflow-hidden flex items-center justify-center"
-                     style="background-color: var(--content-background-color);">
+                <div class="rounded-lg overflow-hidden flex items-center justify-center"
+                     style="width: 80px; height: 80px; background-color: var(--content-background-color);">
                     @if($account->branding_logo_image_path)
                         <img src="{{ asset('storage/' . $account->branding_logo_image_path) }}" 
                              alt="{{ __translator('Account Logo') }}"
-                             class="w-full h-full object-contain"
+                             style="max-width: 80px; max-height: 80px; object-fit: contain;"
                              x-show="!preview">
                     @else
                         <svg x-show="!preview" class="w-10 h-10 opacity-40" fill="currentColor" viewBox="0 0 24 24">
                             <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14zm-5-7l-3 3.72L9 13l-3 4h12l-4-5z"/>
                         </svg>
                     @endif
-                    <img x-show="preview" :src="preview" class="w-full h-full object-contain">
+                    <img x-show="preview" :src="preview" style="max-width: 80px; max-height: 80px; object-fit: contain;">
                 </div>
                 
                 {{-- Upload Button Overlay --}}
@@ -72,7 +72,7 @@
             
             <div>
                 <p class="text-sm font-medium mb-1">{{ __translator('Account Logo') }}</p>
-                <p class="text-xs opacity-60 mb-2">{{ __translator('Click to upload (max 2MB)') }}</p>
+                <p class="text-xs opacity-60 mb-2">{{ __translator('Click to upload (max 10MB)') }}</p>
                 @if($account->branding_logo_image_path)
                 <button type="button" 
                         onclick="if(confirm('{{ __translator('Remove account logo?') }}')) document.getElementById('remove-logo-form').submit();"

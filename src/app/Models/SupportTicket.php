@@ -21,6 +21,7 @@ class SupportTicket extends Model
         'tenant_account_id',
         'created_by_member_id',
         'ticket_subject_line',
+        'ticket_category',
         'ticket_description_body',
         'ticket_status',
         'assigned_to_administrator_id',
@@ -53,6 +54,23 @@ class SupportTicket extends Model
     public function assigned_to_administrator(): BelongsTo
     {
         return $this->belongsTo(PlatformMember::class, 'assigned_to_administrator_id');
+    }
+
+    /**
+     * The attachments for this ticket.
+     */
+    public function attachments()
+    {
+        return $this->hasMany(SupportTicketAttachment::class, 'support_ticket_id');
+    }
+
+    /**
+     * The messages/replies for this ticket (ordered chronologically).
+     */
+    public function messages()
+    {
+        return $this->hasMany(SupportTicketMessage::class, 'support_ticket_id')
+            ->orderBy('created_at_timestamp', 'asc');
     }
 
     /**
@@ -141,5 +159,23 @@ class SupportTicket extends Model
     public function scopeForAccount($query, int $tenant_account_id)
     {
         return $query->where('tenant_account_id', $tenant_account_id);
+    }
+
+    /**
+     * Get all available subject categories.
+     * Used by both public support form and authenticated ticket creation.
+     */
+    public static function subjectCategories(): array
+    {
+        return [
+            'Billing' => __translator('Billing'),
+            'Bug Report' => __translator('Bug Report'),
+            'General Inquiry' => __translator('General Inquiry'),
+            'Partnership' => __translator('Partnership'),
+            'Pricing' => __translator('Pricing'),
+            'Sales' => __translator('Sales'),
+            'Technical' => __translator('Technical'),
+            'Other' => __translator('Other'),
+        ];
     }
 }

@@ -79,24 +79,32 @@ class AccountController extends Controller
         $activeAccountId = session('active_account_id');
         $account = null;
         $membership = null;
+        $isAdminImpersonating = session('admin_impersonating_from') !== null;
 
         if ($activeAccountId) {
-            $account = auth()->user()->tenant_accounts()
-                ->where('tenant_accounts.id', $activeAccountId)
-                ->where('is_soft_deleted', false)
-                ->first();
-
-            if ($account) {
-                $membership = auth()->user()->account_memberships()
-                    ->where('tenant_account_id', $activeAccountId)
+            // If admin is impersonating, fetch account directly without membership check
+            if ($isAdminImpersonating && auth()->user()->is_platform_administrator) {
+                $account = TenantAccount::where('id', $activeAccountId)
+                    ->where('is_soft_deleted', false)
                     ->first();
+            } else {
+                $account = auth()->user()->tenant_accounts()
+                    ->where('tenant_accounts.id', $activeAccountId)
+                    ->where('is_soft_deleted', false)
+                    ->first();
+
+                if ($account) {
+                    $membership = auth()->user()->account_memberships()
+                        ->where('tenant_account_id', $activeAccountId)
+                        ->first();
+                }
             }
         }
 
         return view('pages.account.settings', [
             'account' => $account,
             'membership' => $membership,
-            'canEdit' => $membership && in_array($membership->account_membership_role, ['account_owner', 'account_administrator']),
+            'canEdit' => $isAdminImpersonating || ($membership && in_array($membership->account_membership_role, ['account_owner', 'account_administrator'])),
         ]);
     }
 
@@ -120,26 +128,36 @@ class AccountController extends Controller
         ]);
 
         $activeAccountId = session('active_account_id');
+        $isAdminImpersonating = session('admin_impersonating_from') !== null;
 
         if (!$activeAccountId) {
             return back()->withErrors(['account' => __translator('No active account selected.')]);
         }
 
-        $account = auth()->user()->tenant_accounts()
-            ->where('tenant_accounts.id', $activeAccountId)
-            ->first();
+        // If admin is impersonating, fetch account directly
+        if ($isAdminImpersonating && auth()->user()->is_platform_administrator) {
+            $account = TenantAccount::where('id', $activeAccountId)
+                ->where('is_soft_deleted', false)
+                ->first();
+        } else {
+            $account = auth()->user()->tenant_accounts()
+                ->where('tenant_accounts.id', $activeAccountId)
+                ->first();
+        }
 
         if (!$account) {
             return back()->withErrors(['account' => __translator('Account not found.')]);
         }
 
-        // Check permission
-        $membership = auth()->user()->account_memberships()
-            ->where('tenant_account_id', $activeAccountId)
-            ->first();
+        // Check permission (admins impersonating always have permission)
+        if (!$isAdminImpersonating) {
+            $membership = auth()->user()->account_memberships()
+                ->where('tenant_account_id', $activeAccountId)
+                ->first();
 
-        if (!$membership || !in_array($membership->account_membership_role, ['account_owner', 'account_administrator'])) {
-            return back()->withErrors(['account' => __translator('You do not have permission to edit this account.')]);
+            if (!$membership || !in_array($membership->account_membership_role, ['account_owner', 'account_administrator'])) {
+                return back()->withErrors(['account' => __translator('You do not have permission to edit this account.')]);
+            }
         }
 
         $updateData = [
@@ -226,7 +244,7 @@ class AccountController extends Controller
     public function uploadLogo(Request $request)
     {
         $request->validate([
-            'logo' => 'required|image|mimes:jpeg,jpg,png,gif,webp,svg|max:2048',
+            'logo' => 'required|image|mimes:jpeg,jpg,png,gif,webp|max:10240',
         ]);
 
         $activeAccountId = session('active_account_id');
@@ -257,14 +275,26 @@ class AccountController extends Controller
         // Generate filename: original_accounthash_datetime.extension
         $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
         $originalName = preg_replace('/[^a-zA-Z0-9_-]/', '', $originalName); // Sanitize
-        $extension = $file->getClientOriginalExtension();
         $accountHash = substr($account->record_unique_identifier, 0, 8);
         $datetime = now()->format('Ymd_His');
         
-        $filename = "{$originalName}_{$accountHash}_{$datetime}.{$extension}";
+        // Always save as jpg for consistency and smaller size
+        $filename = "{$originalName}_{$accountHash}_{$datetime}.jpg";
+        
+        // Resize image to logo size (256x256 max) using GD
+        $resizedImage = $this->resizeLogo($file->getPathname(), 256);
         
         // Store in public/uploads/accounts/icons
-        $path = $file->storeAs('uploads/accounts/icons', $filename, 'public');
+        $storagePath = storage_path('app/public/uploads/accounts/icons');
+        if (!file_exists($storagePath)) {
+            mkdir($storagePath, 0755, true);
+        }
+        
+        $fullPath = $storagePath . '/' . $filename;
+        imagejpeg($resizedImage, $fullPath, 85); // 85% quality
+        imagedestroy($resizedImage);
+        
+        $path = 'uploads/accounts/icons/' . $filename;
         
         // Delete old logo if exists
         if ($account->branding_logo_image_path) {
@@ -277,6 +307,58 @@ class AccountController extends Controller
         ]);
 
         return back()->with('status', __translator('Account logo updated successfully.'));
+    }
+    
+    /**
+     * Resize image to logo size while maintaining aspect ratio.
+     */
+    private function resizeLogo(string $sourcePath, int $maxSize): \GdImage
+    {
+        $imageInfo = getimagesize($sourcePath);
+        $mime = $imageInfo['mime'];
+        
+        // Create image resource based on type
+        switch ($mime) {
+            case 'image/jpeg':
+                $source = imagecreatefromjpeg($sourcePath);
+                break;
+            case 'image/png':
+                $source = imagecreatefrompng($sourcePath);
+                break;
+            case 'image/gif':
+                $source = imagecreatefromgif($sourcePath);
+                break;
+            case 'image/webp':
+                $source = imagecreatefromwebp($sourcePath);
+                break;
+            default:
+                $source = imagecreatefromjpeg($sourcePath);
+        }
+        
+        $origWidth = imagesx($source);
+        $origHeight = imagesy($source);
+        
+        // Calculate new dimensions (fit within maxSize x maxSize)
+        if ($origWidth > $origHeight) {
+            $newWidth = min($origWidth, $maxSize);
+            $newHeight = (int) ($origHeight * ($newWidth / $origWidth));
+        } else {
+            $newHeight = min($origHeight, $maxSize);
+            $newWidth = (int) ($origWidth * ($newHeight / $origHeight));
+        }
+        
+        // Create resized image
+        $resized = imagecreatetruecolor($newWidth, $newHeight);
+        
+        // Preserve transparency for PNG
+        imagealphablending($resized, false);
+        imagesavealpha($resized, true);
+        
+        // Resize
+        imagecopyresampled($resized, $source, 0, 0, 0, 0, $newWidth, $newHeight, $origWidth, $origHeight);
+        imagedestroy($source);
+        
+        return $resized;
     }
 
     /**

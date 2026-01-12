@@ -28,7 +28,7 @@
     @endif
 
     {{-- Support Form --}}
-    <form action="{{ route('support.submit') }}" method="POST" class="space-y-6">
+    <form action="{{ route('support.submit') }}" method="POST" class="space-y-6" enctype="multipart/form-data">
         @csrf
 
         {{-- From Name --}}
@@ -66,14 +66,9 @@
                     class="w-full px-4 py-3 rounded-md border-0 focus:ring-2"
                     style="background-color: var(--card-background-color); color: var(--content-text-color);">
                 <option value="">{{ __translator('Select a subject...') }}</option>
-                <option value="Billing" {{ old('subject') == 'Billing' ? 'selected' : '' }}>{{ __translator('Billing') }}</option>
-                <option value="Bug Report" {{ old('subject') == 'Bug Report' ? 'selected' : '' }}>{{ __translator('Bug Report') }}</option>
-                <option value="General Inquiry" {{ old('subject') == 'General Inquiry' ? 'selected' : '' }}>{{ __translator('General Inquiry') }}</option>
-                <option value="Partnership" {{ old('subject') == 'Partnership' ? 'selected' : '' }}>{{ __translator('Partnership') }}</option>
-                <option value="Pricing" {{ old('subject') == 'Pricing' ? 'selected' : '' }}>{{ __translator('Pricing') }}</option>
-                <option value="Sales" {{ old('subject') == 'Sales' ? 'selected' : '' }}>{{ __translator('Sales') }}</option>
-                <option value="Technical" {{ old('subject') == 'Technical' ? 'selected' : '' }}>{{ __translator('Technical') }}</option>
-                <option value="Other" {{ old('subject') == 'Other' ? 'selected' : '' }}>{{ __translator('Other') }}</option>
+                @foreach(\App\Models\SupportTicket::subjectCategories() as $value => $label)
+                <option value="{{ $value }}" {{ old('subject') == $value ? 'selected' : '' }}>{{ $label }}</option>
+                @endforeach
             </select>
         </div>
 
@@ -87,6 +82,19 @@
                       class="w-full px-4 py-3 rounded-md border-0 focus:ring-2 resize-none"
                       style="background-color: var(--card-background-color); color: var(--content-text-color);"
                       placeholder="{{ __translator('How can we help you?') }}">{{ old('message') }}</textarea>
+        </div>
+
+        {{-- Attachments --}}
+        <div>
+            <label for="attachments" class="block text-sm font-medium mb-2">{{ __translator('Attachments') }} <span class="opacity-50">({{ __translator('optional') }})</span></label>
+            <input type="file" 
+                   id="attachments"
+                   name="attachments[]" 
+                   multiple
+                   class="w-full px-4 py-3 rounded-md border-0 text-sm"
+                   style="background-color: var(--card-background-color); color: var(--content-text-color);"
+                   accept=".jpg,.jpeg,.png,.gif,.pdf,.doc,.docx,.txt,.zip">
+            <p class="text-xs opacity-50 mt-1">{{ __translator('Max 5 files. Allowed: images, PDF, DOC, TXT, ZIP (max 10MB each)') }}</p>
         </div>
 
         {{-- Submit Button --}}

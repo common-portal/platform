@@ -175,7 +175,7 @@ class MemberController extends Controller
     public function uploadAvatar(Request $request)
     {
         $request->validate([
-            'avatar' => 'required|image|mimes:jpeg,jpg,png,gif,webp|max:2048',
+            'avatar' => 'required|image|mimes:jpeg,jpg,png,gif,webp|max:10240',
         ]);
 
         $member = auth()->user();
@@ -184,14 +184,26 @@ class MemberController extends Controller
         // Generate filename: original_memberhash_datetime.extension
         $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
         $originalName = preg_replace('/[^a-zA-Z0-9_-]/', '', $originalName); // Sanitize
-        $extension = $file->getClientOriginalExtension();
         $memberHash = substr($member->record_unique_identifier, 0, 8);
         $datetime = now()->format('Ymd_His');
         
-        $filename = "{$originalName}_{$memberHash}_{$datetime}.{$extension}";
+        // Always save as jpg for consistency and smaller size
+        $filename = "{$originalName}_{$memberHash}_{$datetime}.jpg";
+        
+        // Resize image to avatar size (256x256 max) using GD
+        $resizedImage = $this->resizeAvatar($file->getPathname(), 256);
         
         // Store in public/uploads/members/icons
-        $path = $file->storeAs('uploads/members/icons', $filename, 'public');
+        $storagePath = storage_path('app/public/uploads/members/icons');
+        if (!file_exists($storagePath)) {
+            mkdir($storagePath, 0755, true);
+        }
+        
+        $fullPath = $storagePath . '/' . $filename;
+        imagejpeg($resizedImage, $fullPath, 85); // 85% quality
+        imagedestroy($resizedImage);
+        
+        $path = 'uploads/members/icons/' . $filename;
         
         // Delete old avatar if exists
         if ($member->profile_avatar_image_path) {
@@ -204,6 +216,58 @@ class MemberController extends Controller
         ]);
 
         return back()->with('status', __translator('Profile photo updated successfully.'));
+    }
+    
+    /**
+     * Resize image to avatar size while maintaining aspect ratio.
+     */
+    private function resizeAvatar(string $sourcePath, int $maxSize): \GdImage
+    {
+        $imageInfo = getimagesize($sourcePath);
+        $mime = $imageInfo['mime'];
+        
+        // Create image resource based on type
+        switch ($mime) {
+            case 'image/jpeg':
+                $source = imagecreatefromjpeg($sourcePath);
+                break;
+            case 'image/png':
+                $source = imagecreatefrompng($sourcePath);
+                break;
+            case 'image/gif':
+                $source = imagecreatefromgif($sourcePath);
+                break;
+            case 'image/webp':
+                $source = imagecreatefromwebp($sourcePath);
+                break;
+            default:
+                $source = imagecreatefromjpeg($sourcePath);
+        }
+        
+        $origWidth = imagesx($source);
+        $origHeight = imagesy($source);
+        
+        // Calculate new dimensions (fit within maxSize x maxSize)
+        if ($origWidth > $origHeight) {
+            $newWidth = min($origWidth, $maxSize);
+            $newHeight = (int) ($origHeight * ($newWidth / $origWidth));
+        } else {
+            $newHeight = min($origHeight, $maxSize);
+            $newWidth = (int) ($origWidth * ($newHeight / $origHeight));
+        }
+        
+        // Create resized image
+        $resized = imagecreatetruecolor($newWidth, $newHeight);
+        
+        // Preserve transparency for PNG
+        imagealphablending($resized, false);
+        imagesavealpha($resized, true);
+        
+        // Resize
+        imagecopyresampled($resized, $source, 0, 0, 0, 0, $newWidth, $newHeight, $origWidth, $origHeight);
+        imagedestroy($source);
+        
+        return $resized;
     }
 
     /**

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use App\Models\PlatformSetting;
+use App\Models\SupportTicketAttachment;
 
 class SupportController extends Controller
 {
@@ -26,6 +27,8 @@ class SupportController extends Controller
             'from_email' => 'required|email|max:255',
             'subject' => 'required|string|max:255',
             'message' => 'required|string|max:10000',
+            'attachments' => 'nullable|array|max:5',
+            'attachments.*' => 'file|max:10240|mimes:jpg,jpeg,png,gif,pdf,doc,docx,txt,zip',
         ]);
 
         $supportEmail = PlatformSetting::getValue(
@@ -38,12 +41,30 @@ class SupportController extends Controller
             'Common Portal'
         );
 
-        // Send email
-        Mail::send([], [], function ($mail) use ($request, $supportEmail, $platformName) {
+        // Handle file attachments for public submissions
+        $attachmentPaths = [];
+        $attachmentRecords = [];
+        if ($request->hasFile('attachments')) {
+            foreach ($request->file('attachments') as $file) {
+                $attachment = SupportTicketAttachment::storePublicFile($file);
+                $attachmentRecords[] = $attachment;
+                $attachmentPaths[] = storage_path('app/public/' . $attachment->file_path);
+            }
+        }
+
+        // Send email with attachments
+        Mail::send([], [], function ($mail) use ($request, $supportEmail, $platformName, $attachmentPaths) {
             $mail->to($supportEmail)
                  ->replyTo($request->from_email, $request->from_name)
                  ->subject("[{$platformName} Support] {$request->subject}")
-                 ->text($this->buildEmailBody($request));
+                 ->text($this->buildEmailBody($request, count($attachmentPaths)));
+            
+            // Attach files to email
+            foreach ($attachmentPaths as $path) {
+                if (file_exists($path)) {
+                    $mail->attach($path);
+                }
+            }
         });
 
         return redirect()->route('support')
@@ -53,14 +74,16 @@ class SupportController extends Controller
     /**
      * Build the email body text.
      */
-    protected function buildEmailBody(Request $request): string
+    protected function buildEmailBody(Request $request, int $attachmentCount = 0): string
     {
+        $attachmentInfo = $attachmentCount > 0 ? "\nAttachments: {$attachmentCount} file(s)" : '';
+        
         return <<<EOT
 Support Form Submission
 
 From: {$request->from_name}
 Email: {$request->from_email}
-Subject: {$request->subject}
+Subject: {$request->subject}{$attachmentInfo}
 
 Message:
 {$request->message}

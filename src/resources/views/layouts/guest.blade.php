@@ -36,6 +36,11 @@
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @livewireStyles
+    
+    <!-- reCAPTCHA v3 -->
+    @if(config('recaptcha.site_key'))
+    <script src="https://www.google.com/recaptcha/api.js?render={{ config('recaptcha.site_key') }}"></script>
+    @endif
 </head>
 <body class="font-sans antialiased min-h-screen flex flex-col" style="background-color: var(--content-background-color); color: var(--content-text-color);">
     

@@ -114,8 +114,12 @@ class PlatformMailerService
     protected function buildOtpEmailHtml(string $code, bool $isNewMember, string $platformName): string
     {
         $welcomeText = $isNewMember
-            ? "<p>" . __translator("Welcome to {$platformName}! Your account has been created.") . "</p>"
-            : "<p>" . __translator("You requested a verification code to log in to {$platformName}.") . "</p>";
+            ? __translator("Welcome to {$platformName}! Your account has been created.")
+            : __translator("You requested a verification code to log in to {$platformName}.");
+        
+        $codeLabel = __translator('Your verification code is:');
+        $expiresText = __translator('This code expires in 72 hours.');
+        $ignoreText = __translator("If you didn't request this code, you can safely ignore this email.");
 
         return <<<HTML
 <!DOCTYPE html>
@@ -128,20 +132,20 @@ class PlatformMailerService
     <div style="max-width: 480px; margin: 0 auto; background-color: #1a1a2e; border-radius: 8px; padding: 40px;">
         <h1 style="color: #00ff88; margin: 0 0 20px 0; font-size: 24px;">{$platformName}</h1>
         
-        {$welcomeText}
+        <p>{$welcomeText}</p>
         
-        <p>" . __translator('Your verification code is:') . "</p>
+        <p>{$codeLabel}</p>
         
         <div style="background-color: #0f0f1a; border-radius: 8px; padding: 20px; text-align: center; margin: 20px 0;">
             <span style="font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #00ff88;">{$code}</span>
         </div>
         
-        <p style="opacity: 0.7; font-size: 14px;">" . __translator('This code expires in 72 hours.') . "</p>
+        <p style="opacity: 0.7; font-size: 14px;">{$expiresText}</p>
         
         <hr style="border: none; border-top: 1px solid #2a2a4e; margin: 30px 0;">
         
         <p style="opacity: 0.5; font-size: 12px; margin: 0;">
-            " . __translator("If you didn't request this code, you can safely ignore this email.") . "
+            {$ignoreText}
         </p>
     </div>
 </body>

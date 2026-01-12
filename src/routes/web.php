@@ -57,6 +57,7 @@ Route::middleware('guest')->group(function () {
 });
 
 Route::post('/logout', [OtpAuthController::class, 'logout'])->name('logout')->middleware('auth');
+Route::get('/logout', [OtpAuthController::class, 'logout'])->middleware('auth');
 
 /*
 |--------------------------------------------------------------------------
@@ -110,6 +111,11 @@ Route::middleware([
                 abort(403, 'You do not have access to this account.');
             }
             
+            // If admin was impersonating and switches to their own account, exit impersonation
+            if (session('admin_impersonating_from')) {
+                session()->forget('admin_impersonating_from');
+            }
+            
             session(['active_account_id' => $account_id]);
             return redirect()->back();
         })->name('switch');
@@ -129,31 +135,57 @@ Route::middleware([
         Route::post('/settings/language', [MemberController::class, 'updateLanguage'])->name('settings.language');
     });
 
+    // Admin exit impersonation (no middleware - must always be accessible)
+    Route::get('/administrator/exit-impersonation', [AdminController::class, 'exitImpersonation'])->name('admin.exit-impersonation');
+
     // Administrator Routes (platform admins only)
-    Route::prefix('administrator')->name('admin.')->group(function () {
+    Route::prefix('administrator')->name('admin.')->middleware('platform.admin')->group(function () {
         Route::get('/', [AdminController::class, 'index'])->name('index');
         Route::get('/members', [AdminController::class, 'members'])->name('members');
         Route::post('/members/{member_id}/toggle-admin', [AdminController::class, 'toggleAdmin'])->name('members.toggle-admin');
+        Route::post('/members/{member_id}/update-email', [AdminController::class, 'updateEmail'])->name('members.update-email');
         Route::post('/members/{member_id}/impersonate', [AdminController::class, 'impersonate'])->name('members.impersonate');
         Route::get('/accounts', [AdminController::class, 'accounts'])->name('accounts');
+        Route::get('/accounts/search', [AdminController::class, 'accountsSearch'])->name('accounts.search');
         Route::post('/accounts/{account_id}/impersonate', [AdminController::class, 'impersonateAccount'])->name('accounts.impersonate');
+        Route::get('/members/search', [AdminController::class, 'membersSearch'])->name('members.search');
         Route::get('/theme', [AdminController::class, 'theme'])->name('theme');
         Route::post('/theme', [AdminController::class, 'updateTheme'])->name('theme.update');
         Route::get('/menu-items', [AdminController::class, 'menuItems'])->name('menu-items');
         Route::post('/menu-items', [AdminController::class, 'updateMenuItems'])->name('menu-items.update');
-        Route::get('/exit-impersonation', [AdminController::class, 'exitImpersonation'])->name('exit-impersonation');
+        
+        // Support Tickets Management
+        Route::get('/support-tickets', [AdminController::class, 'supportTickets'])->name('support-tickets');
+        Route::get('/support-tickets/search', [AdminController::class, 'supportTicketsSearch'])->name('support-tickets.search');
+        Route::get('/support-tickets/{ticket_id}', [AdminController::class, 'supportTicketShow'])->name('support-tickets.show');
+        Route::post('/support-tickets/{ticket_id}/respond', [AdminController::class, 'supportTicketRespond'])->name('support-tickets.respond');
+        Route::post('/support-tickets/{ticket_id}/status', [AdminController::class, 'supportTicketStatus'])->name('support-tickets.status');
+        Route::post('/support-tickets/{ticket_id}/assign', [AdminController::class, 'supportTicketAssign'])->name('support-tickets.assign');
     });
 
     // Optional Module Routes
     Route::prefix('modules')->name('modules.')->group(function () {
         // Developer Tools
         Route::get('/developer', [ModuleController::class, 'developer'])->name('developer');
+        Route::get('/developer/{tab?}', [ModuleController::class, 'developer'])->name('developer.tab');
+        
+        // Webhooks
+        Route::post('/webhooks', [ModuleController::class, 'webhookStore'])->name('webhooks.store');
+        Route::put('/webhooks/{webhook_id}', [ModuleController::class, 'webhookUpdate'])->name('webhooks.update');
+        Route::post('/webhooks/{webhook_id}/toggle', [ModuleController::class, 'webhookToggle'])->name('webhooks.toggle');
+        Route::delete('/webhooks/{webhook_id}', [ModuleController::class, 'webhookDestroy'])->name('webhooks.destroy');
+        
+        // API Keys
+        Route::post('/api-keys', [ModuleController::class, 'apiKeyStore'])->name('apikeys.store');
+        Route::post('/api-keys/{api_key_id}/toggle', [ModuleController::class, 'apiKeyToggle'])->name('apikeys.toggle');
+        Route::delete('/api-keys/{api_key_id}', [ModuleController::class, 'apiKeyDestroy'])->name('apikeys.destroy');
         
         // Support Tickets
         Route::get('/support', [ModuleController::class, 'supportIndex'])->name('support.index');
         Route::get('/support/create', [ModuleController::class, 'supportCreate'])->name('support.create');
         Route::post('/support', [ModuleController::class, 'supportStore'])->name('support.store');
         Route::get('/support/{ticket_id}', [ModuleController::class, 'supportShow'])->name('support.show');
+        Route::post('/support/{ticket_id}/reply', [ModuleController::class, 'supportReply'])->name('support.reply');
         
         // Transactions
         Route::get('/transactions', [ModuleController::class, 'transactions'])->name('transactions');

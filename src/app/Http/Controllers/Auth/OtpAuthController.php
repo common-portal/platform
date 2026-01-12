@@ -8,6 +8,7 @@ use App\Models\TenantAccount;
 use App\Models\TenantAccountMembership;
 use App\Models\OneTimePasswordToken;
 use App\Services\PlatformMailerService;
+use App\Services\RecaptchaService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -29,6 +30,14 @@ class OtpAuthController extends Controller
      */
     public function sendOtp(Request $request)
     {
+        // Verify reCAPTCHA
+        $recaptcha = new RecaptchaService();
+        $recaptchaResult = $recaptcha->verify($request->input('recaptcha_token'), 'otp_send');
+        
+        if (!$recaptchaResult['success']) {
+            return back()->withErrors(['email' => $recaptchaResult['error']])->withInput();
+        }
+
         $request->validate([
             'email' => 'required|email|max:255',
         ]);
@@ -192,6 +201,14 @@ class OtpAuthController extends Controller
      */
     public function loginWithPassword(Request $request)
     {
+        // Verify reCAPTCHA
+        $recaptcha = new RecaptchaService();
+        $recaptchaResult = $recaptcha->verify($request->input('recaptcha_token'), 'login_password');
+        
+        if (!$recaptchaResult['success']) {
+            return back()->withErrors(['email' => $recaptchaResult['error']])->withInput();
+        }
+
         $request->validate([
             'email' => 'required|email',
             'password' => 'required|string|min:8',
@@ -289,10 +306,18 @@ class OtpAuthController extends Controller
      */
     public function logout(Request $request)
     {
+        // Preserve language preference across logout
+        $preferredLanguage = session('preferred_language');
+
         Auth::logout();
 
         $request->session()->invalidate();
         $request->session()->regenerateToken();
+
+        // Restore language preference
+        if ($preferredLanguage) {
+            session(['preferred_language' => $preferredLanguage]);
+        }
 
         return redirect()->route('home');
     }
