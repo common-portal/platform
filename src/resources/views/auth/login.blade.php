@@ -82,6 +82,11 @@
 @push('head')
 @if(config('recaptcha.site_key'))
 <script src="https://www.google.com/recaptcha/api.js?render={{ config('recaptcha.site_key') }}"></script>
+<style>
+    .grecaptcha-badge {
+        bottom: 70px !important;
+    }
+</style>
 @endif
 @endpush
 
