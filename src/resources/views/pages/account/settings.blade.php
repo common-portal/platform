@@ -127,6 +127,7 @@
                        {{ $canEdit ? '' : 'disabled' }}>
             </div>
 
+            {{-- Whitelabel Subdomain field hidden per user request
             @if($account->isBusinessAccount())
             <div class="mb-4">
                 <label class="block text-sm font-medium mb-2">{{ __translator('Whitelabel Subdomain') }}</label>
@@ -146,6 +147,7 @@
                 <p class="text-xs opacity-60 mt-1">{{ __translator('Optional. Lowercase letters, numbers, and hyphens only.') }}</p>
             </div>
             @endif
+            --}}
 
             @if($canEdit)
             <button type="submit" 

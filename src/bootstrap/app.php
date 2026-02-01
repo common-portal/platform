@@ -15,6 +15,11 @@ return Application::configure(basePath: dirname(__DIR__))
         // Trust all proxies (nginx reverse proxy)
         $middleware->trustProxies(at: '*');
         
+        // Exclude logout GET from CSRF to prevent 419 errors on expired sessions
+        $middleware->validateCsrfTokens(except: [
+            '/logout',
+        ]);
+        
         $middleware->web(append: [
             \App\Http\Middleware\ResolveSubdomainTenant::class,
         ]);

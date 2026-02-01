@@ -1,0 +1,14 @@
+# Cloudflare API credentials for DNS-01 challenge
+# Required for wildcard certificates (*.xramp.io)
+#
+# To get your API token:
+# 1. Go to https://dash.cloudflare.com/profile/api-tokens
+# 2. Create a new token with:
+#    - Zone:DNS:Edit permissions
+#    - Include specific zone: xramp.io
+# 3. Copy the token and paste below
+#
+# Copy this file to: certbot/cloudflare.ini
+# And run: chmod 600 certbot/cloudflare.ini
+
+dns_cloudflare_api_token = YOUR_CLOUDFLARE_API_TOKEN_HERE

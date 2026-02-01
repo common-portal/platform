@@ -123,9 +123,12 @@
         personal: '{{ __translator("Personal") }}',
         business: '{{ __translator("Business") }}',
         impersonate: '{{ __translator("Impersonate") }}',
+        impersonated: '{{ __translator("Impersonating") }}',
         loadMore: '{{ __translator("Load More") }}',
         loading: '{{ __translator("Loading...") }}'
     };
+    
+    const currentImpersonatedAccountId = {{ session('active_account_id') ?? 'null' }};
     
     function getSearchParams(page = 1) {
         const keyword = document.getElementById('account-keyword').value.trim();
@@ -205,6 +208,12 @@
             ? `<span class="px-2 py-1 rounded text-xs" style="background-color: var(--status-success-color); color: white;">${translations.verified}</span>`
             : `<span class="px-2 py-1 rounded text-xs" style="background-color: var(--status-warning-color); color: #1a1a2e;">${translations.unverified}</span>`;
         
+        const isImpersonated = currentImpersonatedAccountId === account.id;
+        const buttonStyle = isImpersonated 
+            ? 'background-color: #dc2626; color: white;' 
+            : 'background-color: #f59e0b; color: #1a1a2e;';
+        const buttonText = isImpersonated ? translations.impersonated : translations.impersonate;
+        
         return `
             <tr class="border-b" style="border-color: var(--sidebar-hover-background-color);">
                 <td class="py-4">
@@ -219,12 +228,14 @@
                 <td class="py-4">${verifiedBadge}</td>
                 <td class="py-4 text-sm opacity-70">${account.created}</td>
                 <td class="py-4 text-right">
-                    <form method="POST" action="${impersonateUrl}/${account.id}/impersonate" class="inline" onsubmit="handleImpersonateSubmit(this)">
-                        <input type="hidden" name="_token" value="${csrfToken}">
-                        <button type="submit" class="impersonate-btn px-3 py-1 rounded text-sm" style="background-color: var(--brand-primary-color); color: var(--button-text-color);">
-                            ${translations.impersonate}
-                        </button>
-                    </form>
+                    <button type="button" 
+                            class="impersonate-btn px-3 py-1 rounded text-sm" 
+                            style="${buttonStyle}"
+                            data-account-id="${account.id}"
+                            onclick="handleImpersonate(this, ${account.id}, '${account.name.replace(/'/g, "\\'")}')"
+                            ${isImpersonated ? 'disabled' : ''}>
+                        ${buttonText}
+                    </button>
                 </td>
             </tr>
         `;
@@ -296,15 +307,84 @@
     // Global function for load more
     window.loadMoreAccounts = loadMore;
     
-    // Handle Impersonate button submit - disable and show spinner
-    window.handleImpersonateSubmit = function(form) {
-        const btn = form.querySelector('button[type="submit"]');
+    // Handle Impersonate button click - AJAX with spinner
+    window.handleImpersonate = function(button, accountId, accountName) {
+        if (button.disabled) return;
         
-        btn.disabled = true;
-        btn.style.opacity = '0.7';
-        btn.innerHTML = '<svg style="animation: spin 1s linear infinite; height: 16px; width: 16px; margin: 0 auto;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle style="opacity: 0.25;" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path style="opacity: 0.75;" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
+        // Reset ALL buttons to yellow "Impersonate" state first
+        document.querySelectorAll('.impersonate-btn').forEach(btn => {
+            btn.disabled = false;
+            btn.style.backgroundColor = '#f59e0b';
+            btn.style.color = '#1a1a2e';
+            btn.style.opacity = '1';
+            btn.innerHTML = translations.impersonate;
+        });
         
-        return true; // Allow form submission
+        // Show spinner on clicked button
+        button.disabled = true;
+        button.style.opacity = '0.7';
+        button.innerHTML = '<svg style="animation: spin 1s linear infinite; height: 16px; width: 16px; margin: 0 auto;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle style="opacity: 0.25;" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path style="opacity: 0.75;" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
+        
+        // Make AJAX request
+        fetch(`${impersonateUrl}/${accountId}/impersonate`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': csrfToken
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Update clicked button to red "Impersonating" state
+                button.style.backgroundColor = '#dc2626';
+                button.style.color = 'white';
+                button.innerHTML = translations.impersonated;
+                button.style.opacity = '1';
+                button.disabled = true;
+                
+                // Update global state
+                window.currentImpersonatedAccountId = accountId;
+                
+                // Show admin banner and adjust page padding
+                const adminBanner = document.getElementById('admin-banner');
+                const mainContainer = document.getElementById('main-container');
+                if (adminBanner) {
+                    adminBanner.classList.remove('hidden');
+                }
+                if (mainContainer && !mainContainer.classList.contains('pt-10')) {
+                    mainContainer.classList.add('pt-10');
+                }
+                
+                // Update admin banner with new account details
+                const bannerName = document.getElementById('admin-banner-account-name');
+                const bannerEmail = document.getElementById('admin-banner-account-email');
+                if (bannerName) {
+                    bannerName.textContent = data.account_name;
+                }
+                if (bannerEmail && data.account_email) {
+                    bannerEmail.textContent = data.account_email;
+                }
+            } else {
+                // Error - restore button to yellow
+                button.disabled = false;
+                button.style.backgroundColor = '#f59e0b';
+                button.style.color = '#1a1a2e';
+                button.style.opacity = '1';
+                button.innerHTML = translations.impersonate;
+                alert('Failed to impersonate account');
+            }
+        })
+        .catch(error => {
+            console.error('Impersonation error:', error);
+            button.disabled = false;
+            button.style.backgroundColor = '#f59e0b';
+            button.style.color = '#1a1a2e';
+            button.style.opacity = '1';
+            button.innerHTML = translations.impersonate;
+            alert('An error occurred while impersonating');
+        });
     };
     
     // Debounced keyword input - realtime search as user types

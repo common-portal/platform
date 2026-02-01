@@ -1,0 +1,120 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: xramp-app
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - APP_KEY=${APP_KEY}
+      - APP_URL=https://xramp.io
+      - DB_CONNECTION=pgsql
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT:-5432}
+      - DB_DATABASE=${DB_DATABASE}
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_SSLMODE=${DB_SSLMODE:-disable}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - CACHE_DRIVER=redis
+      - SESSION_DRIVER=redis
+      - QUEUE_CONNECTION=redis
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    volumes:
+      - ./src:/var/www/html
+      - ./docker/nginx-ssl.conf:/etc/nginx/http.d/default.conf
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+      - storage:/var/www/html/storage/app
+    networks:
+      - xramp-network
+    command: >
+      sh -c "nginx && php-fpm"
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: xramp-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_DATABASE:-xramp}
+      POSTGRES_USER: ${DB_USERNAME:-xramp}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-secret}
+    volumes:
+      - xramp_pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-xramp} -d ${DB_DATABASE:-xramp}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - xramp-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: xramp-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redisdata:/data
+    networks:
+      - xramp-network
+
+  queue:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: xramp-queue
+    restart: unless-stopped
+    command: php artisan queue:work --sleep=3 --tries=3 --max-jobs=1000
+    environment:
+      - APP_ENV=production
+      - APP_KEY=${APP_KEY}
+      - DB_CONNECTION=pgsql
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT:-5432}
+      - DB_DATABASE=${DB_DATABASE}
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_SSLMODE=${DB_SSLMODE:-disable}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - QUEUE_CONNECTION=redis
+    depends_on:
+      - app
+    volumes:
+      - ./src:/var/www/html
+    networks:
+      - xramp-network
+
+  certbot:
+    image: certbot/dns-digitalocean:latest
+    container_name: xramp-certbot
+    restart: unless-stopped
+    volumes:
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+      - ./certbot/digitalocean.ini:/etc/letsencrypt/digitalocean.ini:ro
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew --dns-digitalocean --dns-digitalocean-credentials /etc/letsencrypt/digitalocean.ini; sleep 12h & wait $${!}; done;'"
+    networks:
+      - xramp-network
+
+volumes:
+  xramp_pgdata:
+  redisdata:
+  storage:
+
+networks:
+  xramp-network:
+    driver: bridge

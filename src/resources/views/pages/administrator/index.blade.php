@@ -54,6 +54,10 @@
                 <p class="font-medium">Accounts</p>
                 <p class="text-sm opacity-70">View accounts</p>
             </a>
+            <a href="{{ route('admin.transactions') }}" class="p-4 rounded-lg text-center hover:opacity-80" style="background-color: var(--content-background-color);">
+                <p class="font-medium">Transactions</p>
+                <p class="text-sm opacity-70">Record transactions</p>
+            </a>
             <a href="{{ route('admin.theme') }}" class="p-4 rounded-lg text-center hover:opacity-80" style="background-color: var(--content-background-color);">
                 <p class="font-medium">Theme</p>
                 <p class="text-sm opacity-70">Platform branding</p>
@@ -61,6 +65,14 @@
             <a href="{{ route('admin.menu-items') }}" class="p-4 rounded-lg text-center hover:opacity-80" style="background-color: var(--content-background-color);">
                 <p class="font-medium">Menu Items</p>
                 <p class="text-sm opacity-70">Toggle features</p>
+            </a>
+            <a href="{{ route('admin.iban-host-banks') }}" class="p-4 rounded-lg text-center hover:opacity-80" style="background-color: var(--content-background-color);">
+                <p class="font-medium">IBAN Host Banks</p>
+                <p class="text-sm opacity-70">Manage host banks</p>
+            </a>
+            <a href="{{ route('admin.ibans') }}" class="p-4 rounded-lg text-center hover:opacity-80" style="background-color: var(--content-background-color);">
+                <p class="font-medium">IBANs</p>
+                <p class="text-sm opacity-70">Manage bank accounts</p>
             </a>
         </div>
     </div>

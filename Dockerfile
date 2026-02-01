@@ -14,7 +14,9 @@ RUN apk add --no-cache \
     nodejs \
     npm \
     supervisor \
-    nginx
+    nginx \
+    icu-dev \
+    icu-data-full
 
 # Install PHP extensions
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
@@ -25,7 +27,8 @@ RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
     gd \
     zip \
     opcache \
-    pcntl
+    pcntl \
+    intl
 
 # Install Redis extension
 RUN apk add --no-cache --virtual .build-deps $PHPIZE_DEPS \

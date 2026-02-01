@@ -35,3 +35,9 @@ src/coverage/
 # Docker volumes (local only)
 pgdata/
 redisdata/
+
+# SSL/TLS Certificates and credentials
+certbot/
+!certbot/.gitkeep
+docker/cloudflare.ini
+docker/digitalocean.ini

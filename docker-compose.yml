@@ -35,7 +35,7 @@ services:
       POSTGRES_USER: ${DB_USERNAME:-platform}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-secret}
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - xramp_pgdata:/var/lib/postgresql/data
     ports:
       - "5432:5432"
     healthcheck:
@@ -95,7 +95,9 @@ services:
       - platform-network
 
 volumes:
-  pgdata:
+  xramp_pgdata:
+    external: true
+    name: xrampio_xramp_pgdata
   redisdata:
 
 networks:

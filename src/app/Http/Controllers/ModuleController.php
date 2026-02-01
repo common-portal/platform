@@ -9,6 +9,7 @@ use App\Models\SupportTicketAttachment;
 use App\Models\SupportTicketMessage;
 use App\Models\TenantAccountMembership;
 use App\Models\TenantAccount;
+use App\Models\IbanAccount;
 use App\Mail\SupportTicketConfirmation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
@@ -405,20 +406,123 @@ class ModuleController extends Controller
     /**
      * Transactions history page.
      */
-    public function transactions()
+    public function transactions(Request $request)
     {
+        // Debug logging - FIRST THING
+        \Log::info('=== TRANSACTIONS METHOD HIT ===', [
+            'timestamp' => now(),
+            'url' => $request->fullUrl(),
+            'method' => $request->method(),
+            'user_id' => auth()->id(),
+            'is_admin' => auth()->user() ? auth()->user()->is_platform_administrator : null,
+            'active_account_id' => session('active_account_id'),
+            'admin_impersonating_from' => session('admin_impersonating_from'),
+            'transaction_id_param' => $request->input('transaction_id'),
+        ]);
+
         if (!$this->checkModulePermission('can_view_transaction_history')) {
+            \Log::warning('Permission denied for transaction history');
             abort(403, 'You do not have permission to view Transaction History.');
         }
 
         $activeAccountId = session('active_account_id');
         
         if (!$activeAccountId) {
+            \Log::warning('No active_account_id in session');
+            // If admin is impersonating, redirect back to admin panel instead of home
+            if (session('admin_impersonating_from') || (auth()->user() && auth()->user()->is_platform_administrator)) {
+                return redirect()->route('admin.accounts')
+                    ->withErrors(['account' => 'Please impersonate an account first to view transactions.']);
+            }
             return redirect()->route('home')->withErrors(['account' => 'Please select an account first.']);
         }
 
-        // Placeholder - in real implementation, would fetch from transactions table
-        $transactions = collect();
+        // Build query with filters
+        $query = \App\Models\Transaction::where('tenant_account_id', $activeAccountId);
+
+        // Transaction Hash search (search by record_unique_identifier only)
+        if ($request->filled('transaction_id')) {
+            $transactionHash = $request->transaction_id;
+            \Log::info('Transaction Hash search', [
+                'transaction_hash' => $transactionHash,
+            ]);
+            
+            // Only search by record_unique_identifier - never by auto-increment id
+            $query->where('record_unique_identifier', 'like', '%' . $transactionHash . '%');
+        }
+
+        // Received amount filter
+        if ($request->filled('received_amount')) {
+            $query->where('amount', '>=', $request->received_amount);
+        }
+
+        // Received currency filter
+        if ($request->filled('received_currency')) {
+            $query->where('currency_code', $request->received_currency);
+        }
+
+        // Date received range
+        if ($request->filled('date_received_from')) {
+            $query->where('datetime_received', '>=', $request->date_received_from . ' 00:00:00');
+        }
+        if ($request->filled('date_received_through')) {
+            $query->where('datetime_received', '<=', $request->date_received_through . ' 23:59:59.999999');
+        }
+
+        // Transaction status filter (default to all if none selected)
+        $statuses = $request->input('status', ['received', 'exchanged', 'settled']);
+        if (!empty($statuses)) {
+            $query->whereIn('transaction_status', $statuses);
+        }
+
+        // Exchange amount filter
+        if ($request->filled('exchange_amount')) {
+            $query->where('settlement_amount', '>=', $request->exchange_amount);
+        }
+
+        // Date exchanged range
+        if ($request->filled('date_exchanged_from')) {
+            $query->where('datetime_exchanged', '>=', $request->date_exchanged_from . ' 00:00:00');
+        }
+        if ($request->filled('date_exchanged_through')) {
+            $query->where('datetime_exchanged', '<=', $request->date_exchanged_through . ' 23:59:59.999999');
+        }
+
+        // Settlement amount filter
+        if ($request->filled('settlement_amount')) {
+            $query->where('final_settlement_amount', '>=', $request->settlement_amount);
+        }
+
+        // Date settled range
+        if ($request->filled('date_settled_from')) {
+            $query->where('datetime_settled', '>=', $request->date_settled_from . ' 00:00:00');
+        }
+        if ($request->filled('date_settled_through')) {
+            $query->where('datetime_settled', '<=', $request->date_settled_through . ' 23:59:59.999999');
+        }
+
+        // Date updated range
+        if ($request->filled('date_updated_from')) {
+            $query->where('datetime_updated', '>=', $request->date_updated_from . ' 00:00:00');
+        }
+        if ($request->filled('date_updated_through')) {
+            $query->where('datetime_updated', '<=', $request->date_updated_through . ' 23:59:59.999999');
+        }
+
+        // Fetch filtered transactions
+        try {
+            \Log::info('Executing transaction query', ['sql' => $query->toSql(), 'bindings' => $query->getBindings()]);
+            $transactions = $query->orderBy('datetime_created', 'desc')->get();
+        } catch (\Exception $e) {
+            \Log::error('Transaction query failed', [
+                'error' => $e->getMessage(),
+                'sql' => $query->toSql(),
+                'bindings' => $query->getBindings(),
+            ]);
+            return redirect()->back()
+                ->withErrors(['query' => 'There was an error searching transactions. Please try different search criteria.'])
+                ->withInput();
+        }
 
         return view('pages.modules.transactions', [
             'transactions' => $transactions,
@@ -445,6 +549,44 @@ class ModuleController extends Controller
 
         return view('pages.modules.billing', [
             'invoices' => $invoices,
+        ]);
+    }
+
+    /**
+     * IBANs page - display IBANs grouped by currency.
+     */
+    public function ibans()
+    {
+        if (!$this->checkModulePermission('can_view_ibans')) {
+            abort(403, 'You do not have permission to view IBANs.');
+        }
+
+        $activeAccountId = session('active_account_id');
+        
+        if (!$activeAccountId) {
+            return redirect()->route('home')->withErrors(['account' => 'Please select an account first.']);
+        }
+
+        $account = TenantAccount::find($activeAccountId);
+        
+        if (!$account) {
+            return redirect()->route('home')->withErrors(['account' => 'Account not found.']);
+        }
+
+        // Fetch IBANs for this account, grouped by currency
+        $ibans = IbanAccount::where('account_hash', $account->record_unique_identifier)
+            ->notDeleted()
+            ->with('host_bank')
+            ->orderBy('iban_currency_iso3')
+            ->orderBy('iban_friendly_name')
+            ->get();
+
+        // Group by currency
+        $ibansByCurrency = $ibans->groupBy('iban_currency_iso3');
+
+        return view('pages.modules.ibans', [
+            'ibansByCurrency' => $ibansByCurrency,
+            'account' => $account,
         ]);
     }
 }

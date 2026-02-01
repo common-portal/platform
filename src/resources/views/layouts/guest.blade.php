@@ -12,13 +12,16 @@
 
     <!-- Open Graph / Social Sharing -->
     <meta property="og:title" content="{{ $title ?? config('app.name', 'Common Portal') }}">
-    <meta property="og:description" content="{{ $metaDescription ?? 'A white-label, multi-tenant portal platform.' }}">
+    <meta property="og:description" content="{{ $metaDescription ?? 'Wholesale, High-Volume Fiat<>Crypto' }}">
     <meta property="og:image" content="{{ $metaImage ?? '/images/platform-defaults/meta-card-preview.png' }}">
     <meta property="og:type" content="website">
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700&display=swap" rel="stylesheet" />
+
+    <!-- Iconify -->
+    <script src="https://code.iconify.design/3/3.1.0/iconify.min.js"></script>
 
     <!-- Theme CSS Variables -->
     <style>
@@ -48,7 +51,7 @@
                 <img src="{{ $platformLogo ?? '/images/platform-defaults/platform-logo.png' }}" 
                      alt="{{ $platformName ?? 'Common Portal' }}" 
                      class="h-10 w-auto">
-                <span class="text-xl" style="color: #e3be3b; font-weight: 900;">
+                <span class="text-3xl" style="color: #e3be3b; font-weight: 900;">
                     {{ $platformName ?? 'Common Portal' }}
                 </span>
             </a>
@@ -95,12 +98,105 @@
 
             <!-- Center: Powered By -->
             <div class="text-sm opacity-60">
-                {{ __translator('Powered by') }} <a href="https://nsdb.com" target="_NSDB" class="hover:opacity-80" style="color: var(--brand-primary-color);">NSDB.COM</a>
+                {{ __translator('Powered by') }} <span style="color: var(--brand-primary-color);">CIDRUS SP ZOO</span>
             </div>
 
-            <!-- Right: Copyright -->
-            <div class="text-sm opacity-60">
-                {{ __translator('CC0 1.0 Universal - No Rights Reserved') }}
+            <!-- Right: Terms of Service -->
+            <div x-data="{ showTos: false }">
+                <button @click="showTos = true" 
+                        class="text-sm opacity-60 hover:opacity-100 underline transition-opacity">
+                    {{ __translator('Terms of Service') }}
+                </button>
+
+                <!-- Terms of Service Modal -->
+                <div x-show="showTos" 
+                     x-cloak
+                     @keydown.escape.window="showTos = false"
+                     class="fixed inset-0 z-50 overflow-y-auto"
+                     style="background-color: rgba(0,0,0,0.85);">
+                    <div class="flex min-h-screen items-center justify-center p-4">
+                        <div class="relative w-full max-w-3xl rounded-lg p-8 text-left"
+                             style="background-color: var(--card-background-color); max-height: 85vh; overflow-y: auto;"
+                             @click.away="showTos = false">
+                            
+                            <!-- Close Button -->
+                            <button @click="showTos = false" 
+                                    class="absolute top-4 right-4 text-2xl opacity-70 hover:opacity-100 leading-none">&times;</button>
+                            
+                            <!-- Modal Header -->
+                            <h2 class="text-2xl font-bold mb-4" style="color: var(--brand-primary-color);">
+                                {{ __translator('Terms of Service') }}
+                            </h2>
+                            <p class="text-sm opacity-60 mb-6">{{ __translator('CIDRUS SP. Z O.O. — Wholesale Crypto Exchange Services Agreement') }}</p>
+                            
+                            <!-- Section 1 -->
+                            <div class="mb-6">
+                                <h3 class="text-lg font-bold mb-3" style="color: #4ade80;">1. {{ __translator('Service Provider') }}</h3>
+                                <table class="w-full text-sm" style="border-collapse: separate; border-spacing: 0 0.25rem;">
+                                    <tr><td class="opacity-60 pr-4" style="width: 120px;">{{ __translator('Company') }}</td><td>CIDRUS SP. Z O.O.</td></tr>
+                                    <tr><td class="opacity-60 pr-4">{{ __translator('Jurisdiction') }}</td><td>{{ __translator('Poland (EU)') }}</td></tr>
+                                    <tr><td class="opacity-60 pr-4">{{ __translator('License') }}</td><td>{{ __translator('MSB / VASP') }}</td></tr>
+                                    <tr><td class="opacity-60 pr-4">{{ __translator('Brand') }}</td><td>XRAMP.io</td></tr>
+                                </table>
+                            </div>
+                            
+                            <!-- Section 2 -->
+                            <div class="mb-6">
+                                <h3 class="text-lg font-bold mb-3" style="color: #4ade80;">2. {{ __translator('Services Provided') }}</h3>
+                                <p class="opacity-80 text-sm mb-2">{{ __translator('Wholesale fiat-to-crypto and crypto-to-fiat conversion for institutional clients.') }}</p>
+                                <ul class="text-sm opacity-70 space-y-1">
+                                    <li>▸ {{ __translator('EUR, USD, GBP to USDC, EURC, BTC, ETH') }}</li>
+                                    <li>▸ {{ __translator('SEPA/SWIFT bank transfers') }}</li>
+                                    <li>▸ {{ __translator('1-5 day settlement') }}</li>
+                                    <li>▸ {{ __translator('€50,000 minimum') }}</li>
+                                </ul>
+                            </div>
+                            
+                            <!-- Section 3 -->
+                            <div class="mb-6">
+                                <h3 class="text-lg font-bold mb-3" style="color: #4ade80;">3. {{ __translator('Client Eligibility') }}</h3>
+                                <ul class="text-sm opacity-70 space-y-1">
+                                    <li>▸ {{ __translator('Registered businesses and corporations') }}</li>
+                                    <li>▸ {{ __translator('Licensed financial institutions') }}</li>
+                                    <li>▸ {{ __translator('Accredited institutional investors') }}</li>
+                                </ul>
+                                <p class="text-xs opacity-50 mt-2">{{ __translator('Retail clients not eligible.') }}</p>
+                            </div>
+                            
+                            <!-- Section 4 -->
+                            <div class="mb-6">
+                                <h3 class="text-lg font-bold mb-3" style="color: #4ade80;">4. {{ __translator('Compliance') }}</h3>
+                                <ul class="text-sm opacity-70 space-y-1">
+                                    <li>▸ {{ __translator('KYC/KYB per Polish AML regulations') }}</li>
+                                    <li>▸ {{ __translator('EU 5AMLD / MiCA compliant') }}</li>
+                                    <li>▸ {{ __translator('Segregated client funds') }}</li>
+                                    <li>▸ {{ __translator('Multi-signature custody') }}</li>
+                                </ul>
+                            </div>
+                            
+                            <!-- Section 5 -->
+                            <div class="mb-6">
+                                <h3 class="text-lg font-bold mb-3" style="color: #4ade80;">5. {{ __translator('Fees') }}</h3>
+                                <p class="text-sm opacity-70">{{ __translator('Per-client pricing based on volume, currency pairs, and settlement speed.') }}</p>
+                            </div>
+                            
+                            <!-- Section 6 -->
+                            <div class="mb-6">
+                                <h3 class="text-lg font-bold mb-3" style="color: #4ade80;">6. {{ __translator('Risk Disclosure') }}</h3>
+                                <p class="text-sm opacity-70">{{ __translator('Crypto transactions involve risks including volatility, regulatory changes, and counterparty risks. Clients confirm financial capacity for wholesale transactions.') }}</p>
+                            </div>
+                            
+                            <!-- Close Button -->
+                            <div class="mt-6 text-center">
+                                <button @click="showTos = false"
+                                        class="px-6 py-2 text-sm font-bold rounded-md transition-colors hover:opacity-90"
+                                        style="background-color: var(--brand-primary-color); color: var(--button-text-color);">
+                                    {{ __translator('Close') }}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </footer>

@@ -26,11 +26,23 @@ class ViewComposerServiceProvider extends ServiceProvider
             $this->composePlatformLayout($view);
         });
 
+        View::composer('layouts.guest', function ($view) {
+            $this->composeGuestLayout($view);
+        });
+
         View::composer('components.sidebar-menu', function ($view) {
             $this->composeSidebarMenu($view);
         });
 
         View::composer('pages.homepage', function ($view) {
+            $this->composeHomepage($view);
+        });
+
+        View::composer('pages.homepage-guest', function ($view) {
+            $this->composeHomepageGuest($view);
+        });
+
+        View::composer('pages.homepage-authenticated', function ($view) {
             $this->composeHomepage($view);
         });
 
@@ -57,6 +69,26 @@ class ViewComposerServiceProvider extends ServiceProvider
             'metaDescription' => PlatformSetting::getValue('social_sharing_meta_description', 'A white-label, multi-tenant portal platform.'),
             'themeColors' => $this->getThemeColors(),
             'subdomainTenant' => $subdomainTenant,
+        ]);
+    }
+
+    /**
+     * Compose guest layout variables (branding for public/guest pages).
+     */
+    protected function composeGuestLayout($view): void
+    {
+        $subdomainTenant = $this->getSubdomainTenant();
+        
+        $view->with([
+            'platformName' => $subdomainTenant?->account_display_name 
+                ?? PlatformSetting::getValue('platform_display_name', config('app.name', 'xramp.io')),
+            'platformLogo' => $subdomainTenant?->branding_logo_image_path 
+                ?? PlatformSetting::getValue('platform_logo_image_path', '/images/platform-defaults/platform-logo.png'),
+            'favicon' => PlatformSetting::getValue('platform_favicon_image_path', '/images/platform-defaults/favicon.png'),
+            'metaImage' => PlatformSetting::getValue('social_sharing_preview_image_path', '/images/platform-defaults/meta-card-preview.png'),
+            'metaDescription' => PlatformSetting::getValue('social_sharing_meta_description', 'A white-label, multi-tenant portal platform.'),
+            'themeColors' => $this->getThemeColors(),
+            'title' => config('app.name', 'xramp.io'),
         ]);
     }
 
@@ -107,10 +139,7 @@ class ViewComposerServiceProvider extends ServiceProvider
             }
         }
 
-        $menuToggles = json_decode(
-            PlatformSetting::getValue('sidebar_menu_item_visibility_toggles', '{}'),
-            true
-        ) ?? [];
+        $menuToggles = PlatformSetting::getValue('sidebar_menu_item_visibility_toggles', []);
 
         $view->with([
             'userAccounts' => $userAccounts,
@@ -124,6 +153,7 @@ class ViewComposerServiceProvider extends ServiceProvider
             'canAccessSupportTickets' => $this->canAccessMenuItem('can_access_support_tickets', $membership, $menuToggles, $user),
             'canViewTransactionHistory' => $this->canAccessMenuItem('can_view_transaction_history', $membership, $menuToggles, $user),
             'canViewBillingHistory' => $this->canAccessMenuItem('can_view_billing_history', $membership, $menuToggles, $user),
+            'canViewIbans' => $this->canAccessMenuItem('can_view_ibans', $membership, $menuToggles, $user),
         ]);
     }
 
@@ -200,7 +230,7 @@ class ViewComposerServiceProvider extends ServiceProvider
 
             if ($activeAccount) {
                 $memberRole = $activeAccount->pivot->account_membership_role ?? 'account_team_member';
-                $teamMemberCount = $activeAccount->members()->count();
+                $teamMemberCount = $activeAccount->platform_members()->count();
             }
         }
 
@@ -208,6 +238,23 @@ class ViewComposerServiceProvider extends ServiceProvider
             'activeAccount' => $activeAccount,
             'memberRole' => $memberRole,
             'teamMemberCount' => $teamMemberCount,
+        ]);
+    }
+
+    /**
+     * Compose homepage guest variables (branding for public homepage).
+     */
+    protected function composeHomepageGuest($view): void
+    {
+        $subdomainTenant = $this->getSubdomainTenant();
+        
+        $view->with([
+            'platformName' => $subdomainTenant?->account_display_name 
+                ?? PlatformSetting::getValue('platform_display_name', config('app.name', 'xramp.io')),
+            'platformLogo' => $subdomainTenant?->branding_logo_image_path 
+                ?? PlatformSetting::getValue('platform_logo_image_path', '/images/platform-defaults/platform-logo.png'),
+            'brandPrimaryColor' => $subdomainTenant?->branding_primary_color 
+                ?? PlatformSetting::getValue('primary_brand_color', '#e3be3b'),
         ]);
     }
 }

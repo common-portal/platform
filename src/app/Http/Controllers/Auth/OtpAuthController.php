@@ -319,6 +319,6 @@ class OtpAuthController extends Controller
             session(['preferred_language' => $preferredLanguage]);
         }
 
-        return redirect()->route('home');
+        return redirect()->route('login-register');
     }
 }

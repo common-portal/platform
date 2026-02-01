@@ -9,6 +9,37 @@ use App\Http\Controllers\MemberController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\ModuleController;
 use App\Http\Controllers\SupportController;
+use Illuminate\Support\Facades\Session;
+
+/*
+|--------------------------------------------------------------------------
+| Logout Route (No Middleware - Prevents 419 Errors)
+|--------------------------------------------------------------------------
+*/
+
+// GET logout - clears session without validation to prevent 419 errors
+Route::get('/logout', function () {
+    try {
+        // Preserve language preference
+        $preferredLanguage = session('preferred_language');
+        
+        \Illuminate\Support\Facades\Auth::logout();
+        Session::flush();
+        Session::regenerate();
+        
+        // Restore language preference
+        if ($preferredLanguage) {
+            session(['preferred_language' => $preferredLanguage]);
+        }
+    } catch (\Exception $e) {
+        // Silently catch any session/auth errors
+    }
+    return redirect('/login-register')->withHeaders([
+        'Cache-Control' => 'no-cache, no-store, must-revalidate',
+        'Pragma' => 'no-cache',
+        'Expires' => '0'
+    ]);
+})->withoutMiddleware([\Illuminate\Session\Middleware\StartSession::class, \Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
 
 /*
 |--------------------------------------------------------------------------
@@ -57,7 +88,6 @@ Route::middleware('guest')->group(function () {
 });
 
 Route::post('/logout', [OtpAuthController::class, 'logout'])->name('logout')->middleware('auth');
-Route::get('/logout', [OtpAuthController::class, 'logout'])->middleware('auth');
 
 /*
 |--------------------------------------------------------------------------
@@ -86,9 +116,7 @@ Route::middleware([
         Route::get('/create', [AccountController::class, 'showCreate'])->name('create');
         Route::post('/create', [AccountController::class, 'store'])->name('store');
         
-        Route::get('/dashboard', function () {
-            return view('pages.account.dashboard');
-        })->name('dashboard');
+        Route::get('/dashboard', [AccountController::class, 'dashboard'])->name('dashboard');
         
         Route::get('/team', [TeamController::class, 'index'])->name('team');
         Route::get('/team/invite', [TeamController::class, 'showInvite'])->name('team.invite');
@@ -98,6 +126,8 @@ Route::middleware([
         Route::post('/team/{membership_id}/permissions', [TeamController::class, 'updatePermissions'])->name('team.permissions');
         Route::post('/team/{membership_id}/revoke', [TeamController::class, 'revoke'])->name('team.revoke');
         Route::post('/team/{membership_id}/reactivate', [TeamController::class, 'reactivate'])->name('team.reactivate');
+        
+        Route::get('/transactions', [AccountController::class, 'transactions'])->name('transactions');
         
         Route::get('/switch/{account_id}', function ($account_id) {
             // Verify user has active membership in this account (exclude soft-deleted)
@@ -161,6 +191,29 @@ Route::middleware([
         Route::post('/support-tickets/{ticket_id}/respond', [AdminController::class, 'supportTicketRespond'])->name('support-tickets.respond');
         Route::post('/support-tickets/{ticket_id}/status', [AdminController::class, 'supportTicketStatus'])->name('support-tickets.status');
         Route::post('/support-tickets/{ticket_id}/assign', [AdminController::class, 'supportTicketAssign'])->name('support-tickets.assign');
+        
+        // Transactions Management
+        Route::get('/transactions', [AdminController::class, 'accounting'])->name('transactions');
+        Route::get('/transactions/transaction/{transaction_hash}', [AdminController::class, 'getTransaction'])->name('transactions.transaction');
+        Route::post('/transactions/phase1', [AdminController::class, 'storePhase1Received'])->name('transactions.phase1');
+        Route::patch('/transactions/phase2/{transaction_id}', [AdminController::class, 'updatePhase2Exchanged'])->name('transactions.phase2');
+        Route::patch('/transactions/phase3/{transaction_id}', [AdminController::class, 'updatePhase3Settled'])->name('transactions.phase3');
+        
+        // IBAN Host Banks Management
+        Route::get('/iban-host-banks', [AdminController::class, 'ibanHostBanks'])->name('iban-host-banks');
+        Route::get('/iban-host-banks/list', [AdminController::class, 'ibanHostBanksList'])->name('iban-host-banks.list');
+        Route::get('/iban-host-banks/{hash}', [AdminController::class, 'ibanHostBankGet'])->name('iban-host-banks.get');
+        Route::post('/iban-host-banks', [AdminController::class, 'ibanHostBankStore'])->name('iban-host-banks.store');
+        Route::put('/iban-host-banks/{hash}', [AdminController::class, 'ibanHostBankUpdate'])->name('iban-host-banks.update');
+        Route::delete('/iban-host-banks/{hash}', [AdminController::class, 'ibanHostBankDelete'])->name('iban-host-banks.delete');
+        
+        // IBAN Management
+        Route::get('/ibans', [AdminController::class, 'ibans'])->name('ibans');
+        Route::get('/ibans/list', [AdminController::class, 'ibansList'])->name('ibans.list');
+        Route::get('/ibans/{iban_hash}', [AdminController::class, 'ibanGet'])->name('ibans.get');
+        Route::post('/ibans', [AdminController::class, 'ibanStore'])->name('ibans.store');
+        Route::put('/ibans/{iban_hash}', [AdminController::class, 'ibanUpdate'])->name('ibans.update');
+        Route::delete('/ibans/{iban_hash}', [AdminController::class, 'ibanDelete'])->name('ibans.delete');
     });
 
     // Optional Module Routes
@@ -192,5 +245,8 @@ Route::middleware([
         
         // Billing
         Route::get('/billing', [ModuleController::class, 'billing'])->name('billing');
+        
+        // IBANs
+        Route::get('/ibans', [ModuleController::class, 'ibans'])->name('ibans');
     });
 });

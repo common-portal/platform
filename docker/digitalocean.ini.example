@@ -1,0 +1,14 @@
+# DigitalOcean API credentials for DNS-01 challenge
+# Required for wildcard certificates (*.xramp.io)
+#
+# To get your API token:
+# 1. Go to https://cloud.digitalocean.com/account/api/tokens
+# 2. Click "Generate New Token"
+# 3. Name it (e.g., "letsencrypt-xramp")
+# 4. Enable both Read and Write scopes
+# 5. Copy the token and paste below
+#
+# Copy this file to: certbot/digitalocean.ini
+# And run: chmod 600 certbot/digitalocean.ini
+
+dns_digitalocean_token = YOUR_DIGITALOCEAN_API_TOKEN_HERE
