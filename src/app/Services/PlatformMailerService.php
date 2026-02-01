@@ -180,7 +180,7 @@ HTML;
         <p>{$clickText}</p>
         
         <div style="text-align: center; margin: 30px 0;">
-            <a href="{$acceptUrl}" style="display: inline-block; background-color: #00ff88; color: #000000; padding: 14px 28px; border-radius: 6px; text-decoration: none; font-weight: 600;">
+            <a href="{$acceptUrl}" style="display: inline-block; background-color: #00ff88 !important; color: #000000 !important; padding: 14px 28px; border-radius: 6px; text-decoration: none; font-weight: 600;">
                 {$acceptText}
             </a>
         </div>

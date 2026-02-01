@@ -41,3 +41,4 @@ certbot/
 !certbot/.gitkeep
 docker/cloudflare.ini
 docker/digitalocean.ini
+docker-compose.override.yml
