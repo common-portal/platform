@@ -21,6 +21,8 @@ function ibanData() {
         friendlyName: '',
         currency: 'EUR',
         ibanNumber: '',
+        bicRouting: '',
+        ibanOwner: '',
         hostBankHash: '',
         isActive: true,
         
@@ -95,6 +97,8 @@ function ibanData() {
                     this.friendlyName = data.iban.friendly_name;
                     this.currency = data.iban.currency;
                     this.ibanNumber = data.iban.iban_number;
+                    this.bicRouting = data.iban.bic_routing || '';
+                    this.ibanOwner = data.iban.iban_owner || '';
                     this.hostBankHash = data.iban.host_bank_hash || '';
                     this.isActive = data.iban.is_active;
                 }
@@ -110,6 +114,8 @@ function ibanData() {
             this.friendlyName = '';
             this.currency = 'EUR';
             this.ibanNumber = '';
+            this.bicRouting = '';
+            this.ibanOwner = '';
             this.hostBankHash = '';
             this.isActive = true;
         },
@@ -132,6 +138,8 @@ function ibanData() {
                 iban_friendly_name: this.friendlyName,
                 iban_currency_iso3: this.currency,
                 iban_number: this.ibanNumber,
+                bic_routing: this.bicRouting || null,
+                iban_owner: this.ibanOwner || null,
                 iban_host_bank_hash: this.hostBankHash || null,
                 is_active: this.isActive,
             };
@@ -350,6 +358,20 @@ function ibanData() {
             <div>
                 <label class="block text-sm font-medium mb-2">IBAN Number *</label>
                 <input type="text" x-model="ibanNumber" class="w-full px-3 py-2 rounded-md font-mono" style="background-color: var(--content-background-color); border: 1px solid rgba(255,255,255,0.1);" placeholder="e.g., DE89370400440532013000">
+            </div>
+            
+            {{-- BIC Routing --}}
+            <div>
+                <label class="block text-sm font-medium mb-2">BIC Routing</label>
+                <input type="text" x-model="bicRouting" class="w-full px-3 py-2 rounded-md font-mono" style="background-color: var(--content-background-color); border: 1px solid rgba(255,255,255,0.1);" placeholder="e.g., DEUTDEFF" maxlength="11">
+                <p class="text-xs mt-1 opacity-70">Bank Identifier Code (BIC/SWIFT) - typically 8 or 11 characters</p>
+            </div>
+            
+            {{-- IBAN Owner --}}
+            <div>
+                <label class="block text-sm font-medium mb-2">IBAN Owner</label>
+                <input type="text" x-model="ibanOwner" class="w-full px-3 py-2 rounded-md" style="background-color: var(--content-background-color); border: 1px solid rgba(255,255,255,0.1);" placeholder="e.g., John Doe" maxlength="255">
+                <p class="text-xs mt-1 opacity-70">Name of the account holder</p>
             </div>
             
             {{-- Host Bank --}}

@@ -24,6 +24,8 @@ class IbanAccount extends Model
         'iban_friendly_name',
         'iban_currency_iso3',
         'iban_number',
+        'bic_routing',
+        'iban_owner',
         'iban_host_bank_hash',
         'creator_member_hash',
         'is_active',
