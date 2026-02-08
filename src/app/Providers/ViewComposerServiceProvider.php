@@ -141,19 +141,34 @@ class ViewComposerServiceProvider extends ServiceProvider
 
         $menuToggles = PlatformSetting::getValue('sidebar_menu_item_visibility_toggles', []);
 
+        // Pass both: admin-level visibility AND user permissions separately
+        // Admin toggles control whether item shows at all
+        // User permissions control whether shown item is enabled or disabled
         $view->with([
             'userAccounts' => $userAccounts,
             'activeAccountId' => $activeAccountId,
             'activeAccount' => $activeAccount,
             'membership' => $membership,
-            'canAccessAccountSettings' => $this->canAccessMenuItem('can_access_account_settings', $membership, $menuToggles, $user),
-            'canAccessAccountDashboard' => $this->canAccessMenuItem('can_access_account_dashboard', $membership, $menuToggles, $user),
-            'canManageTeamMembers' => $this->canAccessMenuItem('can_manage_team_members', $membership, $menuToggles, $user),
-            'canAccessDeveloperTools' => $this->canAccessMenuItem('can_access_developer_tools', $membership, $menuToggles, $user),
-            'canAccessSupportTickets' => $this->canAccessMenuItem('can_access_support_tickets', $membership, $menuToggles, $user),
-            'canViewTransactionHistory' => $this->canAccessMenuItem('can_view_transaction_history', $membership, $menuToggles, $user),
-            'canViewBillingHistory' => $this->canAccessMenuItem('can_view_billing_history', $membership, $menuToggles, $user),
-            'canViewIbans' => $this->canAccessMenuItem('can_view_ibans', $membership, $menuToggles, $user),
+            // Admin-level toggles (platform-wide visibility)
+            'menuItemEnabled' => [
+                'account_settings' => $menuToggles['can_access_account_settings'] ?? true,
+                'dashboard' => $menuToggles['can_access_account_dashboard'] ?? true,
+                'team' => $menuToggles['can_manage_team_members'] ?? true,
+                'developer' => $menuToggles['can_access_developer_tools'] ?? true,
+                'support' => $menuToggles['can_access_support_tickets'] ?? true,
+                'transactions' => $menuToggles['can_view_transaction_history'] ?? true,
+                'billing' => $menuToggles['can_view_billing_history'] ?? true,
+                'ibans' => $menuToggles['can_view_ibans'] ?? true,
+            ],
+            // User-level permissions (team member access)
+            'canAccessAccountSettings' => $this->hasUserPermission('can_access_account_settings', $membership, $user),
+            'canAccessAccountDashboard' => $this->hasUserPermission('can_access_account_dashboard', $membership, $user),
+            'canManageTeamMembers' => $this->hasUserPermission('can_manage_team_members', $membership, $user),
+            'canAccessDeveloperTools' => $this->hasUserPermission('can_access_developer_tools', $membership, $user),
+            'canAccessSupportTickets' => $this->hasUserPermission('can_access_support_tickets', $membership, $user),
+            'canViewTransactionHistory' => $this->hasUserPermission('can_view_transaction_history', $membership, $user),
+            'canViewBillingHistory' => $this->hasUserPermission('can_view_billing_history', $membership, $user),
+            'canViewIbans' => $this->hasUserPermission('can_view_ibans', $membership, $user),
         ]);
     }
 
@@ -199,6 +214,25 @@ class ViewComposerServiceProvider extends ServiceProvider
             return false;
         }
 
+        // Platform admins bypass all permission checks
+        if ($user && $user->is_platform_administrator) {
+            return true;
+        }
+
+        // Check membership permission
+        if ($membership) {
+            return $membership->hasPermission($permission);
+        }
+
+        return false;
+    }
+
+    /**
+     * Check if user has permission for a menu item (ignores admin toggle).
+     * Used for showing disabled state on items user lacks permission for.
+     */
+    protected function hasUserPermission(string $permission, $membership, $user): bool
+    {
         // Platform admins bypass all permission checks
         if ($user && $user->is_platform_administrator) {
             return true;

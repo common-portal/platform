@@ -17,7 +17,7 @@ class PlatformSettingsSeeder extends Seeder
             'platform_logo_image_path' => '/images/platform-defaults/platform-logo.png',
             'platform_favicon_image_path' => '/images/platform-defaults/favicon.png',
             'social_sharing_preview_image_path' => '/images/platform-defaults/meta-card-preview.png',
-            'social_sharing_meta_description' => 'A white-label, multi-tenant portal platform.',
+            'social_sharing_meta_description' => 'Wholesale, High-Volume Crypto<>Fiat Exchange Services',
             'active_theme_preset_name' => 'dark_mode',
             'custom_theme_color_overrides' => json_encode([
                 '--sidebar-background-color' => '#1a1a2e',

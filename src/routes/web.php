@@ -9,6 +9,7 @@ use App\Http\Controllers\MemberController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\ModuleController;
 use App\Http\Controllers\SupportController;
+use App\Http\Controllers\Webhook\ShFinancialController;
 use Illuminate\Support\Facades\Session;
 
 /*
@@ -249,4 +250,16 @@ Route::middleware([
         // IBANs
         Route::get('/ibans', [ModuleController::class, 'ibans'])->name('ibans');
     });
+});
+
+/*
+|--------------------------------------------------------------------------
+| Webhook Routes (No CSRF, No Auth)
+|--------------------------------------------------------------------------
+*/
+
+Route::prefix('webhooks')->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class])->group(function () {
+    // SH Financial webhooks
+    Route::post('/sh-financial/v1', [ShFinancialController::class, 'handle'])->name('webhooks.sh-financial.v1');
+    Route::post('/sh-financial/v1/', [ShFinancialController::class, 'handle']); // With trailing slash
 });
