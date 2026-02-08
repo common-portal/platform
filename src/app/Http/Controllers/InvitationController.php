@@ -2,15 +2,21 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\PlatformMember;
 use App\Models\TeamMembershipInvitation;
+use App\Models\TenantAccount;
 use App\Models\TenantAccountMembership;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class InvitationController extends Controller
 {
     /**
      * Show invitation acceptance page.
+     * 
+     * Clicking the invite link IS email verification - so we auto-create/login
+     * the user and accept the invitation immediately.
      */
     public function show($token)
     {
@@ -43,11 +49,114 @@ class InvitationController extends Controller
             ]);
         }
 
-        return view('pages.invitation-accept', [
-            'invitation' => $invitation,
-            'account' => $invitation->tenant_account,
-            'inviter' => $invitation->invited_by_member,
-        ]);
+        // If user is already logged in with the correct email, show acceptance page
+        if (auth()->check()) {
+            if (strtolower(auth()->user()->login_email_address) === strtolower($invitation->invited_email_address)) {
+                return view('pages.invitation-accept', [
+                    'invitation' => $invitation,
+                    'account' => $invitation->tenant_account,
+                    'inviter' => $invitation->invited_by_member,
+                ]);
+            }
+            // Wrong account - show the page to let them switch
+            return view('pages.invitation-accept', [
+                'invitation' => $invitation,
+                'account' => $invitation->tenant_account,
+                'inviter' => $invitation->invited_by_member,
+            ]);
+        }
+
+        // User is not logged in - clicking the invite link IS email verification
+        // Auto-create account if needed, login, and accept invitation
+        return $this->autoAcceptInvitation($invitation);
+    }
+
+    /**
+     * Auto-create account (if needed), login user, and accept invitation.
+     * This treats clicking the invite link as email verification.
+     */
+    protected function autoAcceptInvitation(TeamMembershipInvitation $invitation)
+    {
+        $email = strtolower($invitation->invited_email_address);
+
+        DB::beginTransaction();
+
+        try {
+            // Find or create the member
+            $member = PlatformMember::where('login_email_address', $email)->first();
+            $isNewMember = false;
+
+            if (!$member) {
+                // New member - create member + personal account
+                $member = PlatformMember::create([
+                    'login_email_address' => $email,
+                    'preferred_language_code' => session('preferred_language', 'eng'),
+                ]);
+
+                // Create personal account
+                $personalAccount = TenantAccount::create([
+                    'account_display_name' => 'Personal',
+                    'account_type' => 'personal_individual',
+                    'primary_contact_email_address' => $email,
+                ]);
+
+                // Create membership as owner of personal account
+                TenantAccountMembership::create([
+                    'tenant_account_id' => $personalAccount->id,
+                    'platform_member_id' => $member->id,
+                    'account_membership_role' => 'account_owner',
+                    'granted_permission_slugs' => [
+                        'can_access_account_settings',
+                        'can_access_account_dashboard',
+                        'can_manage_team_members',
+                    ],
+                    'membership_status' => 'membership_active',
+                    'membership_accepted_at_timestamp' => now(),
+                ]);
+
+                $isNewMember = true;
+            }
+
+            // Check if already a member of the invited account
+            $existingMembership = TenantAccountMembership::where('tenant_account_id', $invitation->tenant_account_id)
+                ->where('platform_member_id', $member->id)
+                ->first();
+
+            if (!$existingMembership) {
+                // Create membership with invited permissions
+                TenantAccountMembership::create([
+                    'tenant_account_id' => $invitation->tenant_account_id,
+                    'platform_member_id' => $member->id,
+                    'account_membership_role' => 'account_team_member',
+                    'granted_permission_slugs' => $invitation->invited_permission_slugs ?? TenantAccountMembership::defaultTeamMemberPermissions(),
+                    'membership_status' => 'membership_active',
+                    'membership_accepted_at_timestamp' => now(),
+                ]);
+            }
+
+            // Mark invitation as accepted
+            $invitation->accept();
+
+            DB::commit();
+
+            // Log the user in
+            Auth::login($member);
+
+            // Switch to the invited account
+            session(['active_account_id' => $invitation->tenant_account_id]);
+
+            $welcomeMessage = $isNewMember
+                ? 'Welcome! Your account has been created and you have joined ' . $invitation->tenant_account->account_display_name . '.'
+                : 'Welcome! You have joined ' . $invitation->tenant_account->account_display_name . '.';
+
+            return redirect()->route('home')->with('status', $welcomeMessage);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return view('pages.invitation-invalid', [
+                'reason' => 'Failed to process invitation. Please try again.',
+            ]);
+        }
     }
 
     /**

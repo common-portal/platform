@@ -191,6 +191,7 @@ class TenantAccountMembership extends Model
             'can_access_account_dashboard',
             'can_view_transaction_history',
             'can_view_billing_history',
+            'can_view_ibans',
             'can_access_developer_tools',
             'can_manage_team_members',
             'can_access_support_tickets',
@@ -203,13 +204,14 @@ class TenantAccountMembership extends Model
     public static function permissionLabels(): array
     {
         return [
-            'can_access_account_settings' => 'Account',
+            'can_access_account_settings' => 'Account Settings',
             'can_access_account_dashboard' => 'Dashboard',
             'can_view_transaction_history' => 'Transactions',
             'can_view_billing_history' => 'Billing',
+            'can_view_ibans' => 'IBANs',
             'can_access_developer_tools' => 'Developer',
-            'can_manage_team_members' => 'Team',
-            'can_access_support_tickets' => 'Support',
+            'can_manage_team_members' => 'Team Members',
+            'can_access_support_tickets' => 'Support Tickets',
         ];
     }
 

@@ -77,7 +77,7 @@
                                        value="{{ $perm }}"
                                        {{ in_array($perm, $membership->granted_permission_slugs ?? []) ? 'checked' : '' }}
                                        class="mr-2">
-                                {{ ucfirst(str_replace(['can_', '_'], ['', ' '], $perm)) }}
+                                {{ \App\Models\TenantAccountMembership::permissionLabels()[$perm] ?? ucwords(str_replace(['can_', '_'], ['', ' '], $perm)) }}
                             </label>
                             @endforeach
                         </div>

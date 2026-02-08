@@ -581,6 +581,11 @@ class ModuleController extends Controller
             ->orderBy('iban_friendly_name')
             ->get();
 
+        // Fetch balances from SH Financial API for each IBAN
+        foreach ($ibans as $iban) {
+            $iban->balance = $this->fetchIbanBalance($iban->iban_number);
+        }
+
         // Group by currency
         $ibansByCurrency = $ibans->groupBy('iban_currency_iso3');
 
@@ -588,5 +593,36 @@ class ModuleController extends Controller
             'ibansByCurrency' => $ibansByCurrency,
             'account' => $account,
         ]);
+    }
+
+    /**
+     * Fetch IBAN balance from SH Financial API
+     */
+    protected function fetchIbanBalance(string $ibanNumber): ?float
+    {
+        try {
+            $response = \Illuminate\Support\Facades\Http::timeout(5)->get(
+                'https://utilities.getmondo.co/gateway/sh-financial/get_ledger_account_balance_xramp.php',
+                ['iban_account_number' => $ibanNumber]
+            );
+
+            if ($response->successful()) {
+                $data = $response->json();
+                // API returns balance already in decimal format as 'account_balance'
+                return $data['account_balance'] ?? null;
+            }
+
+            \Illuminate\Support\Facades\Log::warning('SH Financial balance API error', [
+                'iban' => $ibanNumber,
+                'status' => $response->status(),
+            ]);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('SH Financial balance API request failed', [
+                'iban' => $ibanNumber,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        return null;
     }
 }

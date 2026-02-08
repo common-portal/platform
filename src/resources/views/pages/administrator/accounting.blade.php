@@ -332,7 +332,7 @@
         },
         async loadTransaction(transactionHash) {
             try {
-                const response = await fetch(`/administrator/accounting/transaction/${transactionHash}?tenant_account_id=${this.tenantAccountId}`, {
+                const response = await fetch(`/administrator/transactions/transaction/${transactionHash}?tenant_account_id=${this.tenantAccountId}`, {
                     method: 'GET',
                     headers: {
                         'Accept': 'application/json',
@@ -357,6 +357,14 @@
                     this.incomingTotalFee = txn.incoming_total_fee || 0;
                     this.incomingTotalFeeDisplay = this.formatNumber(txn.incoming_total_fee || 0);
                     this.datetimeReceived = txn.datetime_received || '';
+                    
+                    // Populate payment detail fields
+                    document.querySelector('input[name="payment_source_name"]').value = txn.payment_source_name || '';
+                    document.querySelector('input[name="payment_source_iban"]').value = txn.payment_source_iban || '';
+                    document.querySelector('input[name="payment_source_bic"]').value = txn.payment_source_bic || '';
+                    document.querySelector('input[name="payment_destination_iban"]').value = txn.payment_destination_iban || '';
+                    document.querySelector('input[name="payment_destination_bic"]').value = txn.payment_destination_bic || '';
+                    document.querySelector('input[name="payment_destination_name"]').value = txn.payment_destination_name || '';
                     
                     // Populate Phase 2 fields if exchanged
                     if (txn.datetime_exchanged) {
@@ -569,6 +577,41 @@
                        style="background-color: var(--content-background-color); border: 1px solid rgba(255,255,255,0.1);" 
                        placeholder="0.00000">
                 <input type="hidden" name="amount" x-model="receivedAmount" required>
+            </div>
+        </div>
+
+        {{-- Card 2.5: Payment Details --}}
+        <div class="rounded-lg p-6 mb-4" style="background-color: var(--card-background-color);">
+            <h2 class="text-lg font-semibold mb-4" style="color: var(--status-warning-color);">Payment Details</h2>
+            
+            <div class="mb-6">
+                <label class="block text-sm font-medium mb-2">Payment Source Name</label>
+                <input type="text" name="payment_source_name" class="w-full px-3 py-2 rounded-md" style="background-color: var(--content-background-color); border: 1px solid rgba(255,255,255,0.1);" placeholder="e.g., SHEA MOLLYNEAUX WRITER">
+            </div>
+
+            <div class="mb-6">
+                <label class="block text-sm font-medium mb-2">Payment Source IBAN</label>
+                <input type="text" name="payment_source_iban" maxlength="34" class="w-full px-3 py-2 rounded-md font-mono" style="background-color: var(--content-background-color); border: 1px solid rgba(255,255,255,0.1);" placeholder="e.g., BE22967487898747">
+            </div>
+
+            <div class="mb-6">
+                <label class="block text-sm font-medium mb-2">Payment Source BIC</label>
+                <input type="text" name="payment_source_bic" maxlength="20" class="w-full px-3 py-2 rounded-md font-mono" style="background-color: var(--content-background-color); border: 1px solid rgba(255,255,255,0.1);" placeholder="e.g., TRWIBEB1XXX">
+            </div>
+
+            <div class="mb-6">
+                <label class="block text-sm font-medium mb-2">Payment Destination IBAN</label>
+                <input type="text" name="payment_destination_iban" maxlength="34" class="w-full px-3 py-2 rounded-md font-mono" style="background-color: var(--content-background-color); border: 1px solid rgba(255,255,255,0.1);" placeholder="e.g., LT773981120000000442">
+            </div>
+
+            <div class="mb-6">
+                <label class="block text-sm font-medium mb-2">Payment Destination BIC</label>
+                <input type="text" name="payment_destination_bic" maxlength="20" class="w-full px-3 py-2 rounded-md font-mono" style="background-color: var(--content-background-color); border: 1px solid rgba(255,255,255,0.1);" placeholder="e.g., USTILT2VXXX">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium mb-2">Payment Destination Name</label>
+                <input type="text" name="payment_destination_name" class="w-full px-3 py-2 rounded-md" style="background-color: var(--content-background-color); border: 1px solid rgba(255,255,255,0.1);" placeholder="e.g., CIDRUS SP Zoo">
             </div>
         </div>
 

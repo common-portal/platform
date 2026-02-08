@@ -281,20 +281,28 @@
                 <tr x-show="expanded" style="display: none; {{ $rowClass }}">
                     <td colspan="5" class="p-0">
                         <div class="px-8 py-4">
-                            {{-- UPDATE Button --}}
+                            {{-- UPDATE Button (Admin Only) --}}
+                            @if(auth()->check() && auth()->user()->is_platform_administrator)
                             <div class="flex justify-end mb-4">
-                                <a href="{{ url('/administrator/accounting') }}?transaction_hash={{ $transaction->record_unique_identifier }}" 
+                                <a href="{{ url('/administrator/transactions') }}?transaction_hash={{ $transaction->record_unique_identifier }}" 
                                    class="px-4 py-2 rounded text-sm font-semibold transition-opacity hover:opacity-80"
                                    style="background-color: #ef4444; color: white;">
                                     UPDATE
                                 </a>
                             </div>
+                            @endif
 
                             @php
                                 $phase1Fields = [
                                     ['label' => 'Record Unique Identifier', 'value' => $transaction->record_unique_identifier],
                                     ['label' => 'Currency Code', 'value' => $transaction->currency_code],
                                     ['label' => 'Amount', 'value' => $transaction->amount],
+                                    ['label' => 'Payment Source Name', 'value' => $transaction->payment_source_name],
+                                    ['label' => 'Payment Source IBAN', 'value' => $transaction->payment_source_iban],
+                                    ['label' => 'Payment Source BIC', 'value' => $transaction->payment_source_bic],
+                                    ['label' => 'Payment Destination IBAN', 'value' => $transaction->payment_destination_iban],
+                                    ['label' => 'Payment Destination BIC', 'value' => $transaction->payment_destination_bic],
+                                    ['label' => 'Payment Destination Name', 'value' => $transaction->payment_destination_name],
                                     ['label' => 'Incoming Fixed Fee', 'value' => $transaction->incoming_fixed_fee],
                                     ['label' => 'Incoming Percentage Fee', 'value' => $transaction->incoming_percentage_fee],
                                     ['label' => 'Incoming Minimum Fee', 'value' => $transaction->incoming_minimum_fee],
