@@ -278,6 +278,79 @@ docker/digitalocean.ini
 
 ---
 
+## ⚠️ Naming Conventions & Conflict Avoidance (HIGH PRIORITY)
+
+Because all projects share a single codebase and merge from `main`, **every function, file, variable, and class name must be specific enough to avoid collisions across projects**. This is a standing mandate for all development going forward.
+
+### Rules
+
+1. **No generic names.** Every new controller, model method, service class, migration, route name, and Blade view must clearly indicate its domain or integration context.
+   - ❌ `fetchBalance()` → ✅ `fetchShFinancialIbanBalance()`
+   - ❌ `WebhookController` → ✅ `ShFinancialController`
+   - ❌ `process_payment.php` → ✅ `process_sh_financial_payment.php`
+   - ❌ `$balance` → ✅ `$shFinancialBalance`
+
+2. **Prefix project-specific features.** If a feature exists only for one project, prefix it clearly:
+   - DirectDebit-only: `MandateInvitation`, `Customer`, `PublicMandateController`
+   - XRAMP-only: `ShFinancialController`, `WebhookLog`
+   - Shared/core: Generic platform features (auth, team, settings, support)
+
+3. **Database migrations must be descriptive.** Include the table name and the specific change:
+   - ❌ `add_new_columns` → ✅ `add_bic_routing_to_iban_accounts`
+   - ❌ `update_table` → ✅ `add_payment_details_to_transactions_table`
+
+4. **Route names must be namespaced.** Use dot-notation that reflects the module:
+   - ❌ `webhook` → ✅ `webhook.sh-financial`
+   - ❌ `customers.update` → ✅ `account.customers.update`
+
+5. **All projects keep all functions.** We do not strip out project-specific code when merging. Instead, features are enabled/disabled per-project via:
+   - Platform settings / module toggles in the admin panel
+   - Sidebar menu visibility toggles
+   - Permission slugs on team memberships
+
+### Why This Matters
+
+When merging `origin/main` into any project branch, additive changes (new files, new functions) apply cleanly. Conflicts only arise when two projects modify the **same line** in the **same file**. Specific naming ensures that new code lands in distinct locations, keeping merges conflict-free.
+
+---
+
+## Mandatory Sync Cadence
+
+To minimize drift and reduce merge complexity, all projects **must sync with `main` regularly**.
+
+### Sync Schedule
+
+| Frequency | Action | Who |
+|-----------|--------|-----|
+| **Every development session** | `git fetch origin` to check for upstream changes | All developers |
+| **Before starting new features** | `git merge origin/main` into project branch | Project developer |
+| **After completing a feature on `main`** | Push to `origin/main` immediately | Feature developer |
+| **End of each work day** | Commit and push all work to the appropriate branch | All developers |
+
+### Sync Workflow
+
+```bash
+# At the start of each session on any project branch:
+git fetch origin
+git log --oneline origin/main..HEAD   # See what you have that main doesn't
+git log --oneline HEAD..origin/main   # See what main has that you don't
+
+# If main has new commits, merge them:
+git stash push -m "WIP before sync"
+git merge origin/main
+# Resolve any conflicts (should be rare with proper naming)
+git stash pop
+```
+
+### Why Frequent Syncs
+
+- **Smaller diffs** = fewer conflicts = easier resolution
+- Each project always has the latest shared improvements
+- Avoids "big bang" merges where weeks of divergence collide
+- Ensures all projects benefit from bug fixes immediately
+
+---
+
 ## Merge Strategy
 
 ### Framework Updates Flow
@@ -373,4 +446,5 @@ git diff origin/main
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 1.1 | 2026-02-08 | Added naming conventions, conflict avoidance policy, and mandatory sync cadence |
 | 1.0 | 2026-02-01 | Initial Git framework setup with branch structure and override pattern |

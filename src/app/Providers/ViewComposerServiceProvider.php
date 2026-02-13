@@ -126,7 +126,10 @@ class ViewComposerServiceProvider extends ServiceProvider
                 ->get();
 
             if (!$activeAccountId && $userAccounts->isNotEmpty()) {
-                $activeAccountId = $userAccounts->first()->id;
+                // Try to restore last active account from DB
+                $lastAccountId = \App\Models\MemberLastActiveAccount::recall($user->id);
+                $restoredAccount = $lastAccountId ? $userAccounts->firstWhere('id', $lastAccountId) : null;
+                $activeAccountId = $restoredAccount ? $restoredAccount->id : $userAccounts->first()->id;
                 session(['active_account_id' => $activeAccountId]);
             }
 
@@ -159,6 +162,7 @@ class ViewComposerServiceProvider extends ServiceProvider
                 'transactions' => $menuToggles['can_view_transaction_history'] ?? true,
                 'billing' => $menuToggles['can_view_billing_history'] ?? true,
                 'ibans' => $menuToggles['can_view_ibans'] ?? true,
+                'wallets' => $menuToggles['can_view_wallets'] ?? true,
             ],
             // User-level permissions (team member access)
             'canAccessAccountSettings' => $this->hasUserPermission('can_access_account_settings', $membership, $user),
@@ -169,6 +173,7 @@ class ViewComposerServiceProvider extends ServiceProvider
             'canViewTransactionHistory' => $this->hasUserPermission('can_view_transaction_history', $membership, $user),
             'canViewBillingHistory' => $this->hasUserPermission('can_view_billing_history', $membership, $user),
             'canViewIbans' => $this->hasUserPermission('can_view_ibans', $membership, $user),
+            'canViewWallets' => $this->hasUserPermission('can_view_wallets', $membership, $user),
         ]);
     }
 

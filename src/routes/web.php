@@ -90,6 +90,10 @@ Route::middleware('guest')->group(function () {
 
 Route::post('/logout', [OtpAuthController::class, 'logout'])->name('logout')->middleware('auth');
 
+// 2FA Challenge (semi-authenticated - user passed step 1 but not yet fully logged in)
+Route::get('/two-factor-challenge', [OtpAuthController::class, 'showTwoFactorChallenge'])->name('two-factor.challenge');
+Route::post('/two-factor-challenge', [OtpAuthController::class, 'verifyTwoFactorChallenge'])->name('two-factor.challenge.verify');
+
 /*
 |--------------------------------------------------------------------------
 | Authenticated Routes
@@ -148,6 +152,10 @@ Route::middleware([
             }
             
             session(['active_account_id' => $account_id]);
+
+            // Persist last active account for next login
+            \App\Models\MemberLastActiveAccount::remember(auth()->id(), $account_id);
+
             return redirect()->back();
         })->name('switch');
     });
@@ -164,6 +172,11 @@ Route::middleware([
         Route::post('/settings/password', [MemberController::class, 'updatePassword'])->name('settings.password');
         Route::delete('/settings/password', [MemberController::class, 'removePassword'])->name('settings.password.remove');
         Route::post('/settings/language', [MemberController::class, 'updateLanguage'])->name('settings.language');
+        
+        // 2FA Settings
+        Route::post('/settings/two-factor/enable', [MemberController::class, 'enableTwoFactor'])->name('settings.two-factor.enable');
+        Route::post('/settings/two-factor/confirm', [MemberController::class, 'confirmTwoFactor'])->name('settings.two-factor.confirm');
+        Route::delete('/settings/two-factor', [MemberController::class, 'disableTwoFactor'])->name('settings.two-factor.disable');
     });
 
     // Admin exit impersonation (no middleware - must always be accessible)
@@ -215,6 +228,15 @@ Route::middleware([
         Route::post('/ibans', [AdminController::class, 'ibanStore'])->name('ibans.store');
         Route::put('/ibans/{iban_hash}', [AdminController::class, 'ibanUpdate'])->name('ibans.update');
         Route::delete('/ibans/{iban_hash}', [AdminController::class, 'ibanDelete'])->name('ibans.delete');
+        
+        // Crypto Wallets Management
+        Route::get('/wallets', [AdminController::class, 'wallets'])->name('wallets');
+        Route::get('/wallets/list', [AdminController::class, 'walletsList'])->name('wallets.list');
+        Route::get('/wallets/{hash}', [AdminController::class, 'walletGet'])->name('wallets.get');
+        Route::post('/wallets', [AdminController::class, 'walletStore'])->name('wallets.store');
+        Route::put('/wallets/{hash}', [AdminController::class, 'walletUpdate'])->name('wallets.update');
+        Route::delete('/wallets/{hash}', [AdminController::class, 'walletDelete'])->name('wallets.delete');
+        Route::post('/wallets/{hash}/send', [AdminController::class, 'walletSend'])->name('wallets.send');
     });
 
     // Optional Module Routes
@@ -249,6 +271,14 @@ Route::middleware([
         
         // IBANs
         Route::get('/ibans', [ModuleController::class, 'ibans'])->name('ibans');
+        
+        // Wallets
+        Route::get('/wallets', [ModuleController::class, 'wallets'])->name('wallets');
+        Route::get('/wallets/balances', [ModuleController::class, 'walletBalances'])->name('wallets.balances');
+        Route::get('/wallets/{hash}/balance', [ModuleController::class, 'walletBalance'])->name('wallets.balance');
+        Route::get('/wallets/{hash}/transactions', [ModuleController::class, 'walletTransactions'])->name('wallets.transactions');
+        Route::get('/wallets/tx/{hash}/detail', [ModuleController::class, 'walletTxDetail'])->name('wallets.tx.detail');
+        Route::post('/wallets/{hash}/send', [ModuleController::class, 'walletSend'])->name('wallets.send');
     });
 });
 
@@ -258,8 +288,12 @@ Route::middleware([
 |--------------------------------------------------------------------------
 */
 
-Route::prefix('webhooks')->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class])->group(function () {
-    // SH Financial webhooks
-    Route::post('/sh-financial/v1', [ShFinancialController::class, 'handle'])->name('webhooks.sh-financial.v1');
-    Route::post('/sh-financial/v1/', [ShFinancialController::class, 'handle']); // With trailing slash
-});
+// SH Financial webhooks
+Route::post('/webhooks/sh-financial/v1/{trailing?}', [ShFinancialController::class, 'handle'])
+    ->where('trailing', '\/?\/?')
+    ->name('webhooks.sh-financial.v1');
+
+// WalletIDs.net webhooks (payment_detected, balance_changed)
+Route::post('/webhooks/walletids-net/v1/{trailing?}', [AdminController::class, 'walletIdsWebhook'])
+    ->where('trailing', '\/?\/?')
+    ->name('webhooks.walletids');

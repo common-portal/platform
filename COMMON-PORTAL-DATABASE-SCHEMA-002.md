@@ -60,6 +60,11 @@ All table names, column names, and enum values follow the **Highly Descriptive N
 | `external_service_api_credentials` | API keys for external services | Core |
 | `cached_text_translations` | Translation cache for translator service | Core |
 | `support_tickets` | Support ticket system | Optional |
+| `transactions` | Fiat/crypto exchange transactions | Optional |
+| `iban_host_banks` | IBAN host bank definitions | Optional |
+| `iban_accounts` | IBAN accounts assigned to clients | Optional |
+| `crypto_wallets` | Crypto wallets (master + client) via WalletIDs.net | Optional |
+| `crypto_wallet_transactions` | Incoming/outgoing wallet tx records with Solana tracking | Optional |
 
 ---
 
@@ -584,6 +589,16 @@ platform_settings (standalone key-value store)
 external_service_api_credentials (standalone)
 
 cached_text_translations (standalone - translator cache)
+
+crypto_wallets
+    ├── N:1 ── tenant_accounts (via account_hash)
+    ├── N:1 ── platform_members (via creator_member_hash)
+    └── 1:N ── crypto_wallet_transactions
+
+crypto_wallet_transactions
+    ├── N:1 ── crypto_wallets (via wallet_id)
+    ├── N:1 ── tenant_accounts (via account_hash)
+    └── N:1 ── platform_members (via initiated_by_member_hash)
 ```
 
 ---
@@ -601,6 +616,11 @@ Run migrations in this order to satisfy foreign key constraints:
 7. `external_service_api_credentials`
 8. `cached_text_translations`
 9. `support_tickets` (optional)
+10. `transactions` (optional)
+11. `iban_host_banks` (optional)
+12. `iban_accounts` (optional)
+13. `crypto_wallets` (optional)
+14. `crypto_wallet_transactions` (optional, requires `crypto_wallets`)
 
 ---
 

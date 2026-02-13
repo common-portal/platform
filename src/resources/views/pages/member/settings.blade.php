@@ -3,7 +3,7 @@
 @section('content')
 {{-- Member Settings Page with Tabs --}}
 
-<div class="max-w-2xl mx-auto" x-data="{ activeTab: 'profile' }">
+<div class="max-w-2xl mx-auto" x-data="{ activeTab: '{{ session('two_factor_status') || $errors->has('code') ? 'two-factor' : 'profile' }}' }">
     <h1 class="text-2xl font-bold mb-6">{{ __translator('My Profile') }}</h1>
 
     @if(session('status'))
@@ -46,13 +46,24 @@
         </button>
         <button @click="activeTab = 'password'" 
                 :class="activeTab === 'password' ? 'opacity-100' : 'opacity-60 hover:opacity-80'"
-                :style="'border-bottom: 2px solid ' + (activeTab === 'password' ? 'var(--brand-primary-color)' : 'transparent') + '; background-color: ' + (activeTab === 'password' ? 'var(--card-background-color)' : 'transparent') + ';'"
+                :style="'border-right: 1px solid rgba(255,255,255,0.15); border-bottom: 2px solid ' + (activeTab === 'password' ? 'var(--brand-primary-color)' : 'transparent') + '; background-color: ' + (activeTab === 'password' ? 'var(--card-background-color)' : 'transparent') + ';'"
                 class="flex-1 px-4 py-3 text-sm font-medium">
             <span class="flex items-center justify-center gap-2">
                 <svg style="width: 16px; height: 16px; flex-shrink: 0;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
                 </svg>
                 {{ __translator('Login Password') }}
+            </span>
+        </button>
+        <button @click="activeTab = 'two-factor'" 
+                :class="activeTab === 'two-factor' ? 'opacity-100' : 'opacity-60 hover:opacity-80'"
+                :style="'border-bottom: 2px solid ' + (activeTab === 'two-factor' ? 'var(--brand-primary-color)' : 'transparent') + '; background-color: ' + (activeTab === 'two-factor' ? 'var(--card-background-color)' : 'transparent') + ';'"
+                class="flex-1 px-4 py-3 text-sm font-medium">
+            <span class="flex items-center justify-center gap-2">
+                <svg style="width: 16px; height: 16px; flex-shrink: 0;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                </svg>
+                {{ __translator('2FA') }}
             </span>
         </button>
     </div>
@@ -240,6 +251,144 @@
                 @csrf
                 @method('DELETE')
             </form>
+        </div>
+
+        {{-- Two-Factor Authentication Tab --}}
+        <div x-show="activeTab === 'two-factor'" x-cloak>
+            @if(session('two_factor_status'))
+            <div class="mb-4 p-3 rounded-md text-sm" style="background-color: var(--status-success-color); color: white;">
+                {{ session('two_factor_status') }}
+            </div>
+            @endif
+
+            @if($errors->has('code'))
+            <div class="mb-4 p-3 rounded-md text-sm" style="background-color: var(--status-error-color); color: white;">
+                {{ $errors->first('code') }}
+            </div>
+            @endif
+
+            @if(auth()->user()->hasTwoFactorEnabled())
+                {{-- State C: 2FA Active --}}
+                <div class="flex items-center gap-3 mb-4 p-3 rounded-md" style="background-color: rgba(0, 255, 136, 0.1); border: 1px solid rgba(0, 255, 136, 0.3);">
+                    <svg style="width: 20px; height: 20px; flex-shrink: 0; color: var(--brand-primary-color);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                    </svg>
+                    <span class="text-sm font-medium" style="color: var(--brand-primary-color);">{{ __translator('Two-factor authentication is enabled.') }}</span>
+                </div>
+
+                <p class="mb-6 text-sm opacity-70">
+                    {{ __translator('Your account is protected with an authenticator app. You will be asked for a 6-digit code each time you log in.') }}
+                </p>
+
+                <button type="button"
+                        onclick="if(confirm('{{ __translator('Are you sure you want to disable two-factor authentication?') }}')) document.getElementById('disable-2fa-form').submit();"
+                        class="px-6 py-2 rounded-md font-medium"
+                        style="background-color: var(--status-error-color); color: white;">
+                    {{ __translator('Disable 2FA') }}
+                </button>
+
+                <form id="disable-2fa-form" method="POST" action="{{ route('member.settings.two-factor.disable') }}" class="hidden">
+                    @csrf
+                    @method('DELETE')
+                </form>
+
+            @elseif(auth()->user()->two_factor_secret_key)
+                {{-- State B: Secret generated, awaiting confirmation --}}
+                @php
+                    $google2fa = app(\PragmaRX\Google2FALaravel\Google2FA::class);
+                    $otpauthUrl = $google2fa->getQRCodeUrl(
+                        config('app.name'),
+                        auth()->user()->login_email_address,
+                        auth()->user()->two_factor_secret_key
+                    );
+                @endphp
+
+                <p class="mb-4 text-sm opacity-70">
+                    {{ __translator('Scan this QR code with your authenticator app (Google Authenticator, Authy, etc.), then enter the 6-digit code below to activate.') }}
+                </p>
+
+                {{-- QR Code --}}
+                <div class="flex justify-center mb-4">
+                    <div id="two-factor-qr-code" class="p-4 rounded-lg" style="background-color: white;"></div>
+                </div>
+
+                {{-- Manual entry secret --}}
+                <div class="mb-6 text-center">
+                    <p class="text-xs opacity-50 mb-1">{{ __translator('Or enter this code manually:') }}</p>
+                    <code class="text-sm font-mono px-3 py-1 rounded" style="background-color: var(--content-background-color);">{{ auth()->user()->two_factor_secret_key }}</code>
+                </div>
+
+                {{-- Confirmation form --}}
+                <form method="POST" action="{{ route('member.settings.two-factor.confirm') }}">
+                    @csrf
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium mb-2">{{ __translator('6-Digit Code') }}</label>
+                        <input type="text" 
+                               name="code" 
+                               class="w-full px-4 py-2 rounded-md border-0 text-center text-xl tracking-widest"
+                               style="background-color: var(--content-background-color); color: var(--content-text-color);"
+                               maxlength="6"
+                               pattern="[0-9]{6}"
+                               placeholder="000000"
+                               inputmode="numeric"
+                               autocomplete="one-time-code"
+                               autofocus
+                               required>
+                    </div>
+
+                    <div class="flex space-x-3">
+                        <button type="submit" 
+                                class="px-6 py-2 rounded-md font-medium"
+                                style="background-color: var(--brand-primary-color); color: var(--button-text-color);">
+                            {{ __translator('Verify & Activate') }}
+                        </button>
+
+                        <button type="button"
+                                onclick="if(confirm('{{ __translator('Cancel 2FA setup?') }}')) document.getElementById('cancel-2fa-form').submit();"
+                                class="px-6 py-2 rounded-md font-medium opacity-70 hover:opacity-100">
+                            {{ __translator('Cancel') }}
+                        </button>
+                    </div>
+                </form>
+
+                <form id="cancel-2fa-form" method="POST" action="{{ route('member.settings.two-factor.disable') }}" class="hidden">
+                    @csrf
+                    @method('DELETE')
+                </form>
+
+                {{-- QR Code rendering via qrcodejs --}}
+                <script src="https://cdn.jsdelivr.net/npm/davidshimjs-qrcodejs@0.0.2/qrcode.min.js"></script>
+                <script>
+                    document.addEventListener('DOMContentLoaded', function() {
+                        new QRCode(document.getElementById('two-factor-qr-code'), {
+                            text: @json($otpauthUrl),
+                            width: 200,
+                            height: 200,
+                            colorDark: '#000000',
+                            colorLight: '#ffffff',
+                            correctLevel: QRCode.CorrectLevel.M
+                        });
+                    });
+                </script>
+
+            @else
+                {{-- State A: 2FA Not Enabled --}}
+                <p class="mb-4 text-sm opacity-70">
+                    {{ __translator('Add an extra layer of security to your account by using an authenticator app (Google Authenticator, Authy, Microsoft Authenticator, etc.).') }}
+                </p>
+                <p class="mb-6 text-sm opacity-70">
+                    {{ __translator('When enabled, you will be asked for a 6-digit code from your authenticator app each time you log in.') }}
+                </p>
+
+                <form method="POST" action="{{ route('member.settings.two-factor.enable') }}">
+                    @csrf
+                    <button type="submit" 
+                            class="px-6 py-2 rounded-md font-medium"
+                            style="background-color: var(--brand-primary-color); color: var(--button-text-color);">
+                        {{ __translator('Enable 2FA') }}
+                    </button>
+                </form>
+            @endif
         </div>
     </div>
 </div>

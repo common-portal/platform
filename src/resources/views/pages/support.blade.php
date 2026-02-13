@@ -28,8 +28,9 @@
     @endif
 
     {{-- Support Form --}}
-    <form action="{{ route('support.submit') }}" method="POST" class="space-y-6" enctype="multipart/form-data">
+    <form action="{{ route('support.submit') }}" method="POST" class="space-y-6" enctype="multipart/form-data" id="support-form" data-recaptcha-action="support_submit">
         @csrf
+        <input type="hidden" name="recaptcha_token" id="support-recaptcha-token">
 
         {{-- From Name --}}
         <div>
@@ -267,3 +268,35 @@
 
 </div>
 @endsection
+
+@push('head')
+@if(config('recaptcha.site_key'))
+<script src="https://www.google.com/recaptcha/api.js?render={{ config('recaptcha.site_key') }}"></script>
+<style>
+    .grecaptcha-badge {
+        bottom: 70px !important;
+    }
+</style>
+@endif
+@endpush
+
+@push('scripts')
+<script>
+    const RECAPTCHA_SITE_KEY = '{{ config('recaptcha.site_key') }}';
+
+    if (RECAPTCHA_SITE_KEY && typeof grecaptcha !== 'undefined') {
+        grecaptcha.ready(function() {
+            const supportForm = document.getElementById('support-form');
+            if (supportForm) {
+                supportForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    grecaptcha.execute(RECAPTCHA_SITE_KEY, {action: 'support_submit'}).then(function(token) {
+                        document.getElementById('support-recaptcha-token').value = token;
+                        supportForm.submit();
+                    });
+                });
+            }
+        });
+    }
+</script>
+@endpush

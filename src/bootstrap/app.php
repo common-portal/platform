@@ -18,6 +18,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // Exclude logout GET from CSRF to prevent 419 errors on expired sessions
         $middleware->validateCsrfTokens(except: [
             '/logout',
+            '/webhooks/*',
         ]);
         
         $middleware->web(append: [

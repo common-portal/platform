@@ -53,6 +53,10 @@ class Transaction extends Model
         'datetime_received',
         'datetime_exchanged',
         'datetime_settled',
+        'solana_inbound_tx_signature',
+        'solana_outbound_tx_signature',
+        'master_wallet_id',
+        'client_wallet_id',
         'datetime_created',
         'datetime_updated',
     ];
