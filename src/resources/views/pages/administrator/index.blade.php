@@ -78,6 +78,10 @@
                 <p class="font-medium">Wallets</p>
                 <p class="text-sm opacity-70">Manage crypto wallets</p>
             </a>
+            <a href="{{ route('admin.fees') }}" class="p-4 rounded-lg text-center hover:opacity-80" style="background-color: var(--content-background-color);">
+                <p class="font-medium">Fees</p>
+                <p class="text-sm opacity-70">GBP & EUR fees</p>
+            </a>
         </div>
     </div>
 </div>

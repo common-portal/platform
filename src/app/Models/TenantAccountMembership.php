@@ -196,6 +196,8 @@ class TenantAccountMembership extends Model
             'can_access_developer_tools',
             'can_manage_team_members',
             'can_access_support_tickets',
+            'can_view_ibans',
+            'can_view_fees',
         ];
     }
 
@@ -212,8 +214,10 @@ class TenantAccountMembership extends Model
             'can_view_ibans' => 'IBANs',
             'can_view_wallets' => 'Wallets',
             'can_access_developer_tools' => 'Developer',
-            'can_manage_team_members' => 'Team Members',
-            'can_access_support_tickets' => 'Support Tickets',
+            'can_manage_team_members' => 'Team',
+            'can_access_support_tickets' => 'Support',
+            'can_view_ibans' => 'IBANs',
+            'can_view_fees' => 'Fees',
         ];
     }
 

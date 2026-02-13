@@ -10,6 +10,8 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\ModuleController;
 use App\Http\Controllers\SupportController;
 use App\Http\Controllers\Webhook\ShFinancialController;
+use App\Http\Controllers\Webhook\ShFinancialDirectDebitController;
+use App\Http\Controllers\PublicMandateController;
 use Illuminate\Support\Facades\Session;
 
 /*
@@ -52,7 +54,17 @@ Route::get('/', function () {
     if (auth()->check()) {
         return view('pages.homepage-authenticated');
     }
-    return view('pages.homepage-guest');
+    
+    // Load brand-specific homepage based on PROJECT_BRAND config
+    $brand = config('app.project_brand', 'common');
+    $brandView = "pages.homepage-{$brand}";
+    
+    // Fallback to default guest homepage if brand-specific view doesn't exist
+    if (!view()->exists($brandView)) {
+        $brandView = 'pages.homepage-guest';
+    }
+    
+    return view($brandView);
 })->name('home');
 
 // Language preference (available to guests too)
@@ -67,6 +79,11 @@ Route::post('/language', function () {
 
 // Invitation acceptance (public - works for logged in or guests)
 Route::get('/invitation/{token}', [InvitationController::class, 'show'])->name('invitation.accept');
+
+// Public mandate verification (no authentication required)
+Route::get('/public/customer/{customerHash}', [PublicMandateController::class, 'show'])->name('public.mandate.show');
+Route::post('/public/customer/{customerHash}', [PublicMandateController::class, 'confirm'])->name('public.mandate.confirm');
+Route::post('/public/lookup-bank', [PublicMandateController::class, 'lookupBank'])->name('public.lookup-bank');
 Route::post('/invitation/{token}/accept', [InvitationController::class, 'accept'])->name('invitation.accept.submit');
 
 // Support page (public)
@@ -123,6 +140,13 @@ Route::middleware([
         
         Route::get('/dashboard', [AccountController::class, 'dashboard'])->name('dashboard');
         
+        Route::get('/customers', [AccountController::class, 'customers'])->name('customers');
+        Route::post('/customers/invite', [AccountController::class, 'sendMandateInvitation'])->name('customers.invite');
+        Route::post('/customers/{customer}/update', [AccountController::class, 'updateCustomer'])->name('customers.update');
+        Route::post('/customers/{customer}/resend-mandate', [AccountController::class, 'resendMandateInvitation'])->name('customers.resend-mandate');
+        Route::post('/customers/{customer}/toggle-mandate-status', [AccountController::class, 'toggleMandateStatus'])->name('customers.toggle-mandate-status');
+        Route::get('/ibans-by-currency', [AccountController::class, 'ibansByCurrency'])->name('ibans-by-currency');
+        
         Route::get('/team', [TeamController::class, 'index'])->name('team');
         Route::get('/team/invite', [TeamController::class, 'showInvite'])->name('team.invite');
         Route::post('/team/invite', [TeamController::class, 'sendInvite'])->name('team.invite.send');
@@ -133,6 +157,7 @@ Route::middleware([
         Route::post('/team/{membership_id}/reactivate', [TeamController::class, 'reactivate'])->name('team.reactivate');
         
         Route::get('/transactions', [AccountController::class, 'transactions'])->name('transactions');
+        Route::post('/lookup-bank-from-bic', [AccountController::class, 'lookupBankFromBic'])->name('lookup-bank-from-bic');
         
         Route::get('/switch/{account_id}', function ($account_id) {
             // Verify user has active membership in this account (exclude soft-deleted)
@@ -237,10 +262,18 @@ Route::middleware([
         Route::put('/wallets/{hash}', [AdminController::class, 'walletUpdate'])->name('wallets.update');
         Route::delete('/wallets/{hash}', [AdminController::class, 'walletDelete'])->name('wallets.delete');
         Route::post('/wallets/{hash}/send', [AdminController::class, 'walletSend'])->name('wallets.send');
+        
+        // Account Fees Management
+        Route::get('/fees', [AdminController::class, 'fees'])->name('fees');
+        Route::get('/fees/list', [AdminController::class, 'feesList'])->name('fees.list');
+        Route::post('/fees', [AdminController::class, 'feesStore'])->name('fees.store');
     });
 
     // Optional Module Routes
     Route::prefix('modules')->name('modules.')->group(function () {
+        // Customers
+        Route::get('/customers', [ModuleController::class, 'customers'])->name('customers');
+        
         // Developer Tools
         Route::get('/developer', [ModuleController::class, 'developer'])->name('developer');
         Route::get('/developer/{tab?}', [ModuleController::class, 'developer'])->name('developer.tab');
@@ -265,6 +298,8 @@ Route::middleware([
         
         // Transactions
         Route::get('/transactions', [ModuleController::class, 'transactions'])->name('transactions');
+        Route::get('/transactions/directdebit', [ModuleController::class, 'directDebitTransactions'])->name('transactions.directdebit');
+        Route::post('/transactions/directdebit/{collection}/refund', [ModuleController::class, 'directDebitRefund'])->name('transactions.directdebit.refund');
         
         // Billing
         Route::get('/billing', [ModuleController::class, 'billing'])->name('billing');
@@ -279,6 +314,9 @@ Route::middleware([
         Route::get('/wallets/{hash}/transactions', [ModuleController::class, 'walletTransactions'])->name('wallets.transactions');
         Route::get('/wallets/tx/{hash}/detail', [ModuleController::class, 'walletTxDetail'])->name('wallets.tx.detail');
         Route::post('/wallets/{hash}/send', [ModuleController::class, 'walletSend'])->name('wallets.send');
+        
+        // Fees
+        Route::get('/fees', [ModuleController::class, 'fees'])->name('fees');
     });
 });
 
@@ -292,6 +330,11 @@ Route::middleware([
 Route::post('/webhooks/sh-financial/v1/{trailing?}', [ShFinancialController::class, 'handle'])
     ->where('trailing', '\/?\/?')
     ->name('webhooks.sh-financial.v1');
+
+// SH Financial Direct Debit collection status webhooks
+Route::post('/webhooks/sh-financial/directdebit/v1/{trailing?}', [ShFinancialDirectDebitController::class, 'handle'])
+    ->where('trailing', '\/?\/?')
+    ->name('webhooks.sh-financial.directdebit.v1');
 
 // WalletIDs.net webhooks (payment_detected, balance_changed)
 Route::post('/webhooks/walletids-net/v1/{trailing?}', [AdminController::class, 'walletIdsWebhook'])

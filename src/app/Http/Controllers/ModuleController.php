@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\AccountApiKey;
 use App\Models\AccountWebhook;
+use App\Models\AccountFeeConfig;
 use App\Models\SupportTicket;
 use App\Models\SupportTicketAttachment;
 use App\Models\SupportTicketMessage;
@@ -43,6 +44,29 @@ class ModuleController extends Controller
             ->first();
 
         return $membership && $membership->hasPermission($permission);
+    }
+
+    /**
+     * Customers page.
+     */
+    public function customers()
+    {
+        if (!$this->checkModulePermission('can_access_customers')) {
+            abort(403, 'You do not have permission to access Customers.');
+        }
+
+        $activeAccountId = session('active_account_id');
+        
+        if (!$activeAccountId) {
+            return redirect()->route('home')->withErrors(['account' => 'Please select an account first.']);
+        }
+
+        // Placeholder - in real implementation, would fetch customers data
+        $customers = collect();
+
+        return view('pages.modules.customers', [
+            'customers' => $customers,
+        ]);
     }
 
     /**
@@ -535,6 +559,127 @@ class ModuleController extends Controller
     }
 
     /**
+     * Direct Debit transactions history page.
+     */
+    public function directDebitTransactions(Request $request)
+    {
+        if (!$this->checkModulePermission('can_view_transaction_history')) {
+            abort(403, 'You do not have permission to view Transaction History.');
+        }
+
+        $activeAccountId = session('active_account_id');
+
+        if (!$activeAccountId) {
+            if (session('admin_impersonating_from') || (auth()->user() && auth()->user()->is_platform_administrator)) {
+                return redirect()->route('admin.accounts')
+                    ->withErrors(['account' => 'Please impersonate an account first to view transactions.']);
+            }
+            return redirect()->route('home')->withErrors(['account' => 'Please select an account first.']);
+        }
+
+        $query = \App\Models\DirectDebitCollection::where('tenant_account_id', $activeAccountId)
+            ->with('customer');
+
+        // Filter: customer name
+        if ($request->filled('customer_name')) {
+            $query->whereHas('customer', function ($q) use ($request) {
+                $q->where('customer_full_name', 'ilike', '%' . $request->customer_name . '%');
+            });
+        }
+
+        // Filter: status
+        if ($request->filled('status')) {
+            $statuses = (array) $request->input('status');
+            $query->whereIn('status', $statuses);
+        }
+
+        // Filter: date range
+        if ($request->filled('date_from')) {
+            $query->where('billing_date', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->where('billing_date', '<=', $request->date_to);
+        }
+
+        // Filter: reference
+        if ($request->filled('reference')) {
+            $query->where('reference', 'ilike', '%' . $request->reference . '%');
+        }
+
+        // Filter: min amount
+        if ($request->filled('min_amount')) {
+            $query->where('amount', '>=', $request->min_amount);
+        }
+
+        $collections = $query->orderBy('created_at_timestamp', 'desc')->paginate(25);
+
+        return view('pages.modules.transactions-directdebit', [
+            'collections' => $collections,
+        ]);
+    }
+
+    /**
+     * Refund a cleared direct debit collection.
+     */
+    public function directDebitRefund(Request $request, int $collection)
+    {
+        if (!$this->checkModulePermission('can_view_transaction_history')) {
+            return response()->json(['success' => false, 'message' => 'Permission denied.'], 403);
+        }
+
+        $activeAccountId = session('active_account_id');
+        if (!$activeAccountId) {
+            return response()->json(['success' => false, 'message' => 'No active account.'], 400);
+        }
+
+        $record = \App\Models\DirectDebitCollection::where('id', $collection)
+            ->where('tenant_account_id', $activeAccountId)
+            ->where('status', \App\Models\DirectDebitCollection::STATUS_CLEARED)
+            ->first();
+
+        if (!$record) {
+            return response()->json(['success' => false, 'message' => 'Collection not found or not eligible for refund.'], 404);
+        }
+
+        try {
+            $apiService = app(\App\Services\DirectDebitApiService::class);
+            $result = $apiService->submitPayment([
+                'correlationId' => $record->correlation_id . '_REFUND',
+                'sourceLedgerUid' => $record->destination_ledger_uid,
+                'destinationLedgerUid' => null,
+                'amount' => $record->amount_minor_units,
+                'reference' => 'REFUND-' . $record->reference,
+                'paymentReason' => 'Direct Debit Refund',
+            ]);
+
+            if ($result['success']) {
+                $record->update([
+                    'status' => 'refunded',
+                    'failure_reason' => 'Refund initiated by user. Refund TXN: ' . ($result['transaction_uid'] ?? 'N/A'),
+                    'updated_at_timestamp' => now(),
+                ]);
+
+                \Illuminate\Support\Facades\Log::channel('directdebit')->info('DD Refund initiated', [
+                    'collection_id' => $record->id,
+                    'customer_id' => $record->customer_id,
+                    'amount' => $record->amount,
+                    'refund_txn_uid' => $result['transaction_uid'] ?? null,
+                ]);
+
+                return response()->json(['success' => true, 'message' => 'Refund initiated successfully.']);
+            }
+
+            return response()->json(['success' => false, 'message' => $result['error'] ?? 'Refund API call failed.'], 500);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::channel('directdebit')->error('DD Refund exception', [
+                'collection_id' => $record->id,
+                'error' => $e->getMessage(),
+            ]);
+            return response()->json(['success' => false, 'message' => 'Refund failed: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
      * Billing history page.
      */
     public function billing()
@@ -554,6 +699,40 @@ class ModuleController extends Controller
 
         return view('pages.modules.billing', [
             'invoices' => $invoices,
+        ]);
+    }
+
+    /**
+     * Fees page - read-only display of account fee configs per currency.
+     */
+    public function fees()
+    {
+        if (!$this->checkModulePermission('can_view_fees')) {
+            abort(403, 'You do not have permission to view Fees.');
+        }
+
+        $activeAccountId = session('active_account_id');
+        
+        if (!$activeAccountId) {
+            return redirect()->route('home')->withErrors(['account' => 'Please select an account first.']);
+        }
+
+        $account = TenantAccount::find($activeAccountId);
+        
+        if (!$account) {
+            return redirect()->route('home')->withErrors(['account' => 'Account not found.']);
+        }
+
+        $fees = AccountFeeConfig::where('account_hash', $account->record_unique_identifier)
+            ->notDeleted()
+            ->whereIn('currency_code', ['GBP', 'EUR'])
+            ->get()
+            ->keyBy('currency_code');
+
+        return view('pages.modules.fees', [
+            'account' => $account,
+            'gbpFees' => $fees->get('GBP'),
+            'eurFees' => $fees->get('EUR'),
         ]);
     }
 

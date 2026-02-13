@@ -12,8 +12,17 @@ class PlatformSettingsSeeder extends Seeder
      */
     public function run(): void
     {
+        // Brand-specific settings
+        $brand = config('app.project_brand', 'common');
+        
+        $brandNames = [
+            'directdebit' => 'DirectDebit.now',
+            'xramp' => 'xRamp',
+            'common' => 'Common Portal',
+        ];
+        
         $default_settings = [
-            'platform_display_name' => 'Common Portal',
+            'platform_display_name' => $brandNames[$brand] ?? 'Common Portal',
             'platform_logo_image_path' => '/images/platform-defaults/platform-logo.png',
             'platform_favicon_image_path' => '/images/platform-defaults/favicon.png',
             'social_sharing_preview_image_path' => '/images/platform-defaults/meta-card-preview.png',

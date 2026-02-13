@@ -22,6 +22,7 @@ class IbanAccount extends Model
         'record_unique_identifier',
         'account_hash',
         'iban_friendly_name',
+        'iban_ledger',
         'iban_currency_iso3',
         'iban_number',
         'bic_routing',

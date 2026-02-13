@@ -29,6 +29,8 @@
             --sidebar-width: 260px;
             --brand-primary-color: {{ $themeColors['--brand-primary-color'] ?? '#00ff88' }};
             --brand-secondary-color: {{ $themeColors['--brand-secondary-color'] ?? '#0088ff' }};
+            --brand-success-color: {{ $themeColors['--brand-success-color'] ?? '#4ade80' }};
+            --brand-hover-color: {{ $themeColors['--brand-hover-color'] ?? '#60a5fa' }};
             --status-success-color: {{ $themeColors['--status-success-color'] ?? '#22c55e' }};
             --status-warning-color: {{ $themeColors['--status-warning-color'] ?? '#eab308' }};
             --status-error-color: {{ $themeColors['--status-error-color'] ?? '#ef4444' }};

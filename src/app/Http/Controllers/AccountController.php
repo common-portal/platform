@@ -5,9 +5,14 @@ namespace App\Http\Controllers;
 use App\Models\TenantAccount;
 use App\Models\TenantAccountMembership;
 use App\Models\Transaction;
+use App\Models\Customer;
+use App\Models\IbanAccount;
+use App\Mail\MandateInvitation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Mail;
 
 class AccountController extends Controller
 {
@@ -129,6 +134,7 @@ class AccountController extends Controller
             'account_display_name' => 'required|string|max:255',
             'primary_contact_full_name' => 'nullable|string|max:255',
             'primary_contact_email_address' => 'nullable|email|max:255',
+            'customer_support_email' => 'nullable|email|max:255',
             'whitelabel_subdomain_slug' => [
                 'nullable',
                 'string',
@@ -176,6 +182,7 @@ class AccountController extends Controller
             'account_display_name' => $request->account_display_name,
             'primary_contact_full_name' => $request->primary_contact_full_name,
             'primary_contact_email_address' => $request->primary_contact_email_address,
+            'customer_support_email' => $request->customer_support_email,
         ];
 
         // Only business accounts can have subdomains
@@ -434,6 +441,213 @@ class AccountController extends Controller
     }
 
     /**
+     * Show customers page with tabs.
+     */
+    public function customers()
+    {
+        $activeAccountId = session('active_account_id');
+        
+        if (!$activeAccountId) {
+            return redirect()->route('home')->with('error', 'No active account selected.');
+        }
+
+        $customers = Customer::forAccount($activeAccountId)
+            ->with('settlementIban')
+            ->orderBy('created_at_timestamp', 'desc')
+            ->get();
+
+        return view('pages.account.customers', [
+            'customers' => $customers,
+        ]);
+    }
+
+    /**
+     * Send mandate invitation to customer.
+     */
+    public function sendMandateInvitation(Request $request)
+    {
+        $activeAccountId = session('active_account_id');
+        
+        if (!$activeAccountId) {
+            return redirect()->route('home')->with('error', 'No active account selected.');
+        }
+
+        $request->validate([
+            'customer_full_name' => 'required|string|max:255',
+            'customer_primary_contact_name' => 'nullable|string|max:255',
+            'customer_primary_contact_email' => 'required|email|max:255',
+            'recurring_frequency' => 'required|in:daily,weekly,monthly',
+            'billing_amount' => 'required|numeric|min:0.01',
+            'billing_currency' => 'required|string|max:3',
+            'billing_dates' => 'required|array|min:1',
+            'billing_start_date' => 'required_if:recurring_frequency,daily|nullable|date|after_or_equal:today',
+            'billing_name_on_account' => 'nullable|string|max:255',
+            'customer_iban' => 'nullable|string|max:34',
+            'customer_bic' => 'nullable|string|max:11',
+            'billing_bank_name' => 'nullable|string|max:255',
+            'settlement_iban_hash' => 'nullable|string|max:32',
+        ]);
+
+        DB::beginTransaction();
+
+        try {
+            $customer = Customer::create([
+                'tenant_account_id' => $activeAccountId,
+                'customer_full_name' => $request->customer_full_name,
+                'customer_primary_contact_name' => $request->customer_primary_contact_name,
+                'customer_primary_contact_email' => $request->customer_primary_contact_email,
+                'recurring_frequency' => $request->recurring_frequency,
+                'billing_dates' => $request->billing_dates,
+                'billing_start_date' => $request->billing_start_date,
+                'billing_amount' => $request->billing_amount,
+                'billing_currency' => $request->billing_currency,
+                'settlement_iban_hash' => $request->settlement_iban_hash,
+                'billing_name_on_account' => $request->billing_name_on_account,
+                'customer_iban' => $request->customer_iban,
+                'customer_bic' => $request->customer_bic,
+                'billing_bank_name' => $request->billing_bank_name,
+                'mandate_status' => 'invitation_pending',
+                'mandate_active_or_paused' => 'paused',
+                'invitation_sent_at' => now(),
+            ]);
+
+            Mail::to($customer->customer_primary_contact_email)->send(
+                new MandateInvitation($customer)
+            );
+
+            DB::commit();
+
+            return redirect()->route('account.customers')
+                ->with('status', 'Mandate invitation sent successfully to ' . $customer->customer_primary_contact_email);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->withErrors(['error' => 'Failed to send mandate invitation: ' . $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Resend mandate authorization email to an existing customer.
+     */
+    public function resendMandateInvitation(Request $request, $customerId)
+    {
+        $activeAccountId = session('active_account_id');
+
+        if (!$activeAccountId) {
+            return redirect()->route('home')->with('error', 'No active account selected.');
+        }
+
+        $customer = Customer::where('id', $customerId)
+            ->where('tenant_account_id', $activeAccountId)
+            ->firstOrFail();
+
+        if ($customer->mandate_status !== 'invitation_pending') {
+            return redirect()->route('account.customers')
+                ->withErrors(['error' => 'This mandate has already been authorized and cannot be resent.']);
+        }
+
+        try {
+            Mail::to($customer->customer_primary_contact_email)->send(
+                new MandateInvitation($customer)
+            );
+
+            $customer->update(['invitation_sent_at' => now()]);
+
+            return redirect()->route('account.customers')
+                ->with('status', 'Mandate authorization resent successfully to ' . $customer->customer_primary_contact_email)
+                ->with('expanded_customer_id', $customer->id);
+        } catch (\Exception $e) {
+            return redirect()->route('account.customers')
+                ->withErrors(['error' => 'Failed to resend mandate: ' . $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Update an existing customer's details.
+     */
+    public function updateCustomer(Request $request, $customer)
+    {
+        $activeAccountId = session('active_account_id');
+        
+        if (!$activeAccountId) {
+            return redirect()->route('home')->with('error', 'No active account selected.');
+        }
+
+        $customerRecord = Customer::where('id', $customer)
+            ->where('tenant_account_id', $activeAccountId)
+            ->firstOrFail();
+
+        $request->validate([
+            'customer_full_name' => 'required|string|max:255',
+            'customer_primary_contact_name' => 'nullable|string|max:255',
+            'customer_primary_contact_email' => 'required|email|max:255',
+            'recurring_frequency' => 'required|in:daily,weekly,monthly',
+            'billing_amount' => 'required|numeric|min:0.01',
+            'billing_currency' => 'required|string|max:3',
+            'billing_dates' => 'required|array|min:1',
+            'billing_start_date' => 'required_if:recurring_frequency,daily|nullable|date',
+            'billing_name_on_account' => 'nullable|string|max:255',
+            'customer_iban' => 'nullable|string|max:34',
+            'customer_bic' => 'nullable|string|max:11',
+            'billing_bank_name' => 'nullable|string|max:255',
+            'settlement_iban_hash' => 'nullable|string|max:32',
+        ]);
+
+        // Detect which fields changed for the notification email
+        $fieldLabels = [
+            'customer_full_name' => 'Customer Name',
+            'customer_primary_contact_name' => 'Contact Name',
+            'customer_primary_contact_email' => 'Contact Email',
+            'recurring_frequency' => 'Payment Frequency',
+            'billing_amount' => 'Billing Amount',
+            'billing_currency' => 'Billing Currency',
+            'billing_name_on_account' => 'Name on Account',
+            'customer_iban' => 'Account IBAN',
+            'customer_bic' => 'Bank BIC',
+            'billing_bank_name' => 'Bank Name',
+        ];
+
+        $changedFields = [];
+        foreach ($fieldLabels as $field => $label) {
+            $oldValue = $customerRecord->getOriginal($field);
+            $newValue = $request->$field;
+            if ((string) $oldValue !== (string) $newValue) {
+                $changedFields[] = $label;
+            }
+        }
+        // Check billing_dates separately (array comparison)
+        if (json_encode($customerRecord->getOriginal('billing_dates')) !== json_encode($request->billing_dates)) {
+            $changedFields[] = 'Billing Schedule';
+        }
+
+        $customerRecord->update([
+            'customer_full_name' => $request->customer_full_name,
+            'customer_primary_contact_name' => $request->customer_primary_contact_name,
+            'customer_primary_contact_email' => $request->customer_primary_contact_email,
+            'recurring_frequency' => $request->recurring_frequency,
+            'billing_dates' => $request->billing_dates,
+            'billing_start_date' => $request->billing_start_date,
+            'billing_amount' => $request->billing_amount,
+            'billing_currency' => $request->billing_currency,
+            'settlement_iban_hash' => $request->settlement_iban_hash,
+            'billing_name_on_account' => $request->billing_name_on_account,
+            'customer_iban' => $request->customer_iban,
+            'customer_bic' => $request->customer_bic,
+            'billing_bank_name' => $request->billing_bank_name,
+        ]);
+
+        // Send update notice email to the customer
+        if (!empty($changedFields)) {
+            Mail::to($customerRecord->customer_primary_contact_email)->send(
+                new \App\Mail\MandateUpdateNotice($customerRecord, $changedFields)
+            );
+        }
+
+        return redirect()->route('account.customers')
+            ->with('status', 'Customer details updated successfully for ' . $customerRecord->customer_full_name)
+            ->with('expanded_customer_id', $customerRecord->id);
+    }
+
+    /**
      * Show transactions for the active account.
      */
     public function transactions()
@@ -449,5 +663,166 @@ class AccountController extends Controller
             ->paginate(20);
 
         return view('pages.account.transactions', compact('transactions'));
+    }
+
+    /**
+     * Lookup bank name from BIC or IBAN using xAI API.
+     */
+    public function lookupBankFromBic(Request $request)
+    {
+        $request->validate([
+            'bic' => 'nullable|string|max:11',
+            'iban' => 'nullable|string|max:34',
+        ]);
+
+        $bic = strtoupper(trim($request->bic ?? ''));
+        $iban = strtoupper(trim($request->iban ?? ''));
+        $type = $bic ? 'BIC' : ($iban ? 'IBAN' : null);
+        $value = $bic ?: $iban;
+
+        if (!$type || !$value) {
+            return response()->json([
+                'success' => false,
+                'message' => 'A BIC or IBAN is required',
+            ], 422);
+        }
+
+        $apiKey = config('services.xai.api_key');
+
+        \Log::info('Bank lookup request', ['type' => $type, 'value' => $value, 'api_key_set' => !empty($apiKey)]);
+
+        if (!$apiKey) {
+            return response()->json([
+                'success' => false,
+                'message' => 'xAI API key not configured',
+            ], 500);
+        }
+
+        $systemPrompt = $type === 'BIC'
+            ? 'You are a SWIFT/BIC banking directory lookup tool. Given a BIC/SWIFT code, return ONLY the full official registered bank or financial institution name from the SWIFT directory. Return the institution name exactly as registered — not a brand name, subsidiary, or abbreviation. Do not include explanations, country info, or formatting. If unrecognized, respond with exactly: UNKNOWN'
+            : 'You are a banking IBAN lookup tool. Given an IBAN, identify the bank from the embedded bank code portion of the IBAN. Return ONLY the full official registered bank or financial institution name. Return the institution name exactly as registered — not a brand name, subsidiary, or abbreviation. Do not include explanations, country info, or formatting. If unrecognized, respond with exactly: UNKNOWN';
+
+        $userPrompt = $type === 'BIC'
+            ? 'Look up the official registered bank name for BIC/SWIFT code: ' . $value
+            : 'Look up the official registered bank name for IBAN: ' . $value . ' (identify the bank from the bank code portion of this IBAN)';
+
+        try {
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $apiKey,
+                'Content-Type' => 'application/json',
+            ])->timeout(15)->post(config('services.xai.base_url') . '/chat/completions', [
+                'model' => config('services.xai.model', 'grok-4-1-fast-reasoning'),
+                'stream' => false,
+                'temperature' => 0,
+                'messages' => [
+                    ['role' => 'system', 'content' => $systemPrompt],
+                    ['role' => 'user', 'content' => $userPrompt],
+                ],
+            ]);
+
+            \Log::info('Bank lookup xAI response', [
+                'type' => $type,
+                'status' => $response->status(),
+                'body' => $response->body(),
+            ]);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                $bankName = trim($data['choices'][0]['message']['content'] ?? '');
+
+                \Log::info('Bank lookup parsed result', ['type' => $type, 'bank_name' => $bankName]);
+
+                if ($bankName && $bankName !== 'UNKNOWN') {
+                    return response()->json([
+                        'success' => true,
+                        'bank_name' => $bankName,
+                    ]);
+                }
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Could not identify bank from ' . $type . ' code',
+                ]);
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => 'API request failed',
+            ], 500);
+        } catch (\Exception $e) {
+            \Log::error('Bank lookup error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error looking up bank name',
+            ], 500);
+        }
+    }
+
+    /**
+     * Toggle mandate active/paused state for a customer.
+     */
+    public function toggleMandateStatus(Request $request, Customer $customer)
+    {
+        $activeAccountId = session('active_account_id');
+
+        if (!$activeAccountId || $customer->tenant_account_id != $activeAccountId) {
+            return back()->withErrors(['error' => 'Unauthorized.']);
+        }
+
+        $request->validate([
+            'mandate_active_or_paused' => 'required|in:active,paused',
+        ]);
+
+        $customer->update([
+            'mandate_active_or_paused' => $request->mandate_active_or_paused,
+        ]);
+
+        $statusLabel = $request->mandate_active_or_paused === 'active' ? 'activated' : 'paused';
+
+        return back()->with('status', "Mandate for {$customer->customer_full_name} has been {$statusLabel}.");
+    }
+
+    /**
+     * Get IBANs filtered by currency for the active account.
+     */
+    public function ibansByCurrency(Request $request)
+    {
+        $activeAccountId = session('active_account_id');
+
+        if (!$activeAccountId) {
+            return response()->json(['success' => false, 'ibans' => []], 403);
+        }
+
+        $account = TenantAccount::find($activeAccountId);
+
+        if (!$account) {
+            return response()->json(['success' => false, 'ibans' => []], 404);
+        }
+
+        $currency = $request->query('currency');
+
+        $query = IbanAccount::where('account_hash', $account->record_unique_identifier)
+            ->active()
+            ->whereNotNull('iban_ledger')
+            ->where('iban_ledger', '!=', '');
+
+        if ($currency) {
+            $query->where('iban_currency_iso3', $currency);
+        }
+
+        $ibans = $query->orderBy('iban_friendly_name')->get()->map(function ($iban) {
+            return [
+                'hash' => $iban->record_unique_identifier,
+                'friendly_name' => $iban->iban_friendly_name,
+                'iban_number' => $iban->iban_number,
+                'iban_ledger' => $iban->iban_ledger,
+                'currency' => $iban->iban_currency_iso3,
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'ibans' => $ibans,
+        ]);
     }
 }

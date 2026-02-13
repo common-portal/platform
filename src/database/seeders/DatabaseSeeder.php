@@ -31,5 +31,16 @@ class DatabaseSeeder extends Seeder
                 'preferred_language_code' => 'en',
             ]
         );
+
+        // Create or update administrator@directdebit.now as platform administrator
+        PlatformMember::updateOrCreate(
+            ['login_email_address' => 'administrator@directdebit.now'],
+            [
+                'member_first_name' => 'Administrator',
+                'member_last_name' => '',
+                'is_platform_administrator' => true,
+                'preferred_language_code' => 'en',
+            ]
+        );
     }
 }

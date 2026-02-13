@@ -21,6 +21,35 @@ class PlatformMailerService
     {
         $this->defaultFromName = PlatformSetting::getValue('platform_display_name', config('app.name', 'Common Portal'));
         $this->defaultFromEmail = config('mail.from.address', 'noreply@commonportal.com');
+        
+        // Apply brand-specific SMTP credentials
+        $this->applyBrandSmtpConfig();
+    }
+
+    /**
+     * Apply brand-specific SMTP configuration.
+     * When PROJECT_BRAND is 'directdebit', use directdebit.now SMTP credentials.
+     * When PROJECT_BRAND is 'xramp', use xramp.io SMTP credentials.
+     */
+    protected function applyBrandSmtpConfig(): void
+    {
+        $brand = config('app.project_brand', 'common');
+        
+        if ($brand === 'directdebit') {
+            config([
+                'mail.mailers.smtp.username' => 'support@directdebit.now',
+                'mail.mailers.smtp.password' => 'G4L)F1!0FfNAq64bYFKXvzkSF24EM3h3',
+                'mail.from.address' => 'support@directdebit.now',
+            ]);
+            $this->defaultFromEmail = 'support@directdebit.now';
+        } elseif ($brand === 'xramp') {
+            config([
+                'mail.mailers.smtp.username' => 'support@xramp.io',
+                'mail.mailers.smtp.password' => '5!Bkhwg6LXszH6UKKvZ!BHy11YxK$(tY',
+                'mail.from.address' => 'support@xramp.io',
+            ]);
+            $this->defaultFromEmail = 'support@xramp.io';
+        }
     }
 
     /**

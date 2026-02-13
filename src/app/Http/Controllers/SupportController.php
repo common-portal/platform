@@ -88,13 +88,14 @@ class SupportController extends Controller
     protected function buildEmailBody(Request $request, int $attachmentCount = 0): string
     {
         $attachmentInfo = $attachmentCount > 0 ? "\nAttachments: {$attachmentCount} file(s)" : '';
+        $mandateRef = $request->customer_mandate_ref ? "\nCustomer Mandate ID: {$request->customer_mandate_ref}" : '';
         
         return <<<EOT
 Support Form Submission
 
 From: {$request->from_name}
 Email: {$request->from_email}
-Subject: {$request->subject}{$attachmentInfo}
+Subject: {$request->subject}{$attachmentInfo}{$mandateRef}
 
 Message:
 {$request->message}

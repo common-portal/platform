@@ -13,6 +13,7 @@ use App\Models\IbanAccount;
 use App\Models\IbanHostBank;
 use App\Models\CryptoWallet;
 use App\Models\CryptoWalletTransaction;
+use App\Models\AccountFeeConfig;
 use App\Services\WalletIdsService;
 use App\Services\SolanaRpcService;
 use App\Services\SolanaTransferService;
@@ -247,6 +248,7 @@ class AdminController extends Controller
 
         $menuItems = [
             'can_access_account_dashboard' => 'Dashboard',
+            'can_access_customers' => 'Customers',
             'can_manage_team_members' => 'Team Management',
             'can_access_account_settings' => 'Account Settings',
             'can_access_developer_tools' => 'Developer Tools',
@@ -255,6 +257,7 @@ class AdminController extends Controller
             'can_view_billing_history' => 'Billing History',
             'can_view_ibans' => 'IBANs',
             'can_view_wallets' => 'Wallets',
+            'can_view_fees' => 'Fees',
         ];
 
         return view('pages.administrator.menu-items', compact('toggles', 'menuItems'));
@@ -270,6 +273,7 @@ class AdminController extends Controller
         // Get all available menu items (must match permission keys in ViewComposerServiceProvider)
         $allMenuItems = [
             'can_access_account_dashboard',
+            'can_access_customers',
             'can_manage_team_members',
             'can_access_account_settings',
             'can_access_developer_tools',
@@ -278,6 +282,7 @@ class AdminController extends Controller
             'can_view_billing_history',
             'can_view_ibans',
             'can_view_wallets',
+            'can_view_fees',
         ];
 
         // Build toggles array: explicitly set to true (checked) or false (unchecked)
@@ -1131,6 +1136,7 @@ class AdminController extends Controller
                 return [
                     'hash' => $iban->record_unique_identifier,
                     'friendly_name' => $iban->iban_friendly_name,
+                    'iban_ledger' => $iban->iban_ledger,
                     'currency' => $iban->iban_currency_iso3,
                     'iban_number' => $iban->iban_number,
                     'bic_routing' => $iban->bic_routing,
@@ -1164,6 +1170,7 @@ class AdminController extends Controller
                     'hash' => $iban->record_unique_identifier,
                     'account_hash' => $iban->account_hash,
                     'friendly_name' => $iban->iban_friendly_name,
+                    'iban_ledger' => $iban->iban_ledger,
                     'currency' => $iban->iban_currency_iso3,
                     'iban_number' => $iban->iban_number,
                     'bic_routing' => $iban->bic_routing,
@@ -1190,6 +1197,7 @@ class AdminController extends Controller
             $validated = $request->validate([
                 'account_hash' => 'required|string|max:32',
                 'iban_friendly_name' => 'required|string|max:255',
+                'iban_ledger' => 'nullable|string|max:36',
                 'iban_currency_iso3' => 'required|string|max:3|in:AUD,CNY,EUR,GBP,MXN,USD',
                 'iban_number' => 'required|string|max:34',
                 'bic_routing' => 'nullable|string|max:11',
@@ -1213,6 +1221,7 @@ class AdminController extends Controller
             $iban = IbanAccount::create([
                 'account_hash' => $validated['account_hash'],
                 'iban_friendly_name' => $validated['iban_friendly_name'],
+                'iban_ledger' => $validated['iban_ledger'] ?? null,
                 'iban_currency_iso3' => $validated['iban_currency_iso3'],
                 'iban_number' => $validated['iban_number'],
                 'bic_routing' => $validated['bic_routing'] ?? null,
@@ -1260,6 +1269,7 @@ class AdminController extends Controller
 
             $validated = $request->validate([
                 'iban_friendly_name' => 'required|string|max:255',
+                'iban_ledger' => 'nullable|string|max:36',
                 'iban_currency_iso3' => 'required|string|max:3|in:AUD,CNY,EUR,GBP,MXN,USD',
                 'iban_number' => 'required|string|max:34',
                 'bic_routing' => 'nullable|string|max:11',
@@ -1270,6 +1280,7 @@ class AdminController extends Controller
 
             $iban->update([
                 'iban_friendly_name' => $validated['iban_friendly_name'],
+                'iban_ledger' => $validated['iban_ledger'] ?? null,
                 'iban_currency_iso3' => $validated['iban_currency_iso3'],
                 'iban_number' => $validated['iban_number'],
                 'bic_routing' => $validated['bic_routing'] ?? null,
@@ -1770,6 +1781,142 @@ class AdminController extends Controller
         } catch (\Exception $e) {
             \Log::error('WalletIDs webhook error: ' . $e->getMessage());
             return response()->json(['error' => 'Internal error'], 500);
+        }
+    }
+
+    // ─── Account Fees Management ──────────────────────────────────────────
+
+    /**
+     * Account Fees management page.
+     */
+    public function fees()
+    {
+        $impersonatedAccount = null;
+        if (session('admin_impersonating_from') && session('active_account_id')) {
+            $impersonatedAccount = TenantAccount::find(session('active_account_id'));
+        }
+
+        $accounts = TenantAccount::where('is_soft_deleted', false)
+            ->orderBy('account_display_name')
+            ->get();
+
+        return view('pages.administrator.fees', compact('impersonatedAccount', 'accounts'));
+    }
+
+    /**
+     * Get fee configs for an account (GBP and EUR).
+     */
+    public function feesList(Request $request)
+    {
+        $accountHash = $request->input('account_hash');
+        
+        if (!$accountHash) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Account hash is required',
+                'fees' => []
+            ], 400);
+        }
+
+        $fees = AccountFeeConfig::where('account_hash', $accountHash)
+            ->notDeleted()
+            ->whereIn('currency_code', ['GBP', 'EUR'])
+            ->get()
+            ->keyBy('currency_code')
+            ->map(function ($fee) {
+                return [
+                    'hash' => $fee->record_unique_identifier,
+                    'currency_code' => $fee->currency_code,
+                    'fixed_fee' => $fee->fixed_fee,
+                    'percentage_fee' => $fee->percentage_fee,
+                    'minimum_fee' => $fee->minimum_fee,
+                    'is_active' => $fee->is_active,
+                ];
+            });
+
+        return response()->json([
+            'success' => true,
+            'fees' => [
+                'GBP' => $fees->get('GBP'),
+                'EUR' => $fees->get('EUR'),
+            ]
+        ]);
+    }
+
+    /**
+     * Store or update fee config for a currency.
+     */
+    public function feesStore(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'account_hash' => 'required|string|max:32',
+                'currency_code' => 'required|string|in:GBP,EUR',
+                'fixed_fee' => 'required|numeric|min:0',
+                'percentage_fee' => 'required|numeric|min:0|max:100',
+                'minimum_fee' => 'required|numeric|min:0',
+            ]);
+
+            $account = TenantAccount::where('record_unique_identifier', $validated['account_hash'])
+                ->where('is_soft_deleted', false)
+                ->first();
+
+            if (!$account) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Account not found'
+                ], 404);
+            }
+
+            $feeConfig = AccountFeeConfig::where('account_hash', $validated['account_hash'])
+                ->where('currency_code', $validated['currency_code'])
+                ->notDeleted()
+                ->first();
+
+            if ($feeConfig) {
+                $feeConfig->update([
+                    'fixed_fee' => $validated['fixed_fee'],
+                    'percentage_fee' => $validated['percentage_fee'],
+                    'minimum_fee' => $validated['minimum_fee'],
+                    'datetime_updated' => now(),
+                ]);
+                $message = 'Fee config updated successfully';
+            } else {
+                $feeConfig = AccountFeeConfig::create([
+                    'account_hash' => $validated['account_hash'],
+                    'currency_code' => $validated['currency_code'],
+                    'fixed_fee' => $validated['fixed_fee'],
+                    'percentage_fee' => $validated['percentage_fee'],
+                    'minimum_fee' => $validated['minimum_fee'],
+                    'creator_member_hash' => auth()->user()->record_unique_identifier,
+                    'is_active' => true,
+                    'is_deleted' => false,
+                    'datetime_created' => now(),
+                    'datetime_updated' => now(),
+                ]);
+                $message = 'Fee config created successfully';
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => $message,
+                'fee' => [
+                    'hash' => $feeConfig->record_unique_identifier,
+                    'currency_code' => $feeConfig->currency_code,
+                ]
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            \Log::error('Fee config store error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error saving fee config: ' . $e->getMessage()
+            ], 500);
         }
     }
 }

@@ -28,6 +28,8 @@
         :root {
             --brand-primary-color: {{ $themeColors['--brand-primary-color'] ?? '#00ff88' }};
             --brand-secondary-color: {{ $themeColors['--brand-secondary-color'] ?? '#0088ff' }};
+            --brand-success-color: {{ $themeColors['--brand-success-color'] ?? '#4ade80' }};
+            --brand-hover-color: {{ $themeColors['--brand-hover-color'] ?? '#60a5fa' }};
             --content-background-color: #0f0f1a;
             --content-text-color: #e0e0e0;
             --card-background-color: #1a1a2e;

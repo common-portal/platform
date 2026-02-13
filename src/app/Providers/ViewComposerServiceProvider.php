@@ -46,6 +46,10 @@ class ViewComposerServiceProvider extends ServiceProvider
             $this->composeHomepage($view);
         });
 
+        View::composer('pages.homepage-directdebit', function ($view) {
+            $this->composeHomepageGuest($view);
+        });
+
         View::composer('components.language-selector', function ($view) {
             $this->composeLanguageSelector($view);
         });
@@ -163,6 +167,7 @@ class ViewComposerServiceProvider extends ServiceProvider
                 'billing' => $menuToggles['can_view_billing_history'] ?? true,
                 'ibans' => $menuToggles['can_view_ibans'] ?? true,
                 'wallets' => $menuToggles['can_view_wallets'] ?? true,
+                'fees' => $menuToggles['can_view_fees'] ?? true,
             ],
             // User-level permissions (team member access)
             'canAccessAccountSettings' => $this->hasUserPermission('can_access_account_settings', $membership, $user),
@@ -174,6 +179,7 @@ class ViewComposerServiceProvider extends ServiceProvider
             'canViewBillingHistory' => $this->hasUserPermission('can_view_billing_history', $membership, $user),
             'canViewIbans' => $this->hasUserPermission('can_view_ibans', $membership, $user),
             'canViewWallets' => $this->hasUserPermission('can_view_wallets', $membership, $user),
+            'canViewFees' => $this->hasUserPermission('can_view_fees', $membership, $user),
         ]);
     }
 
@@ -196,16 +202,26 @@ class ViewComposerServiceProvider extends ServiceProvider
     }
 
     /**
-     * Get theme colors from platform settings.
+     * Get theme colors from platform settings and brand configuration.
      */
     protected function getThemeColors(): array
     {
-        $overrides = json_decode(
-            PlatformSetting::getValue('custom_theme_color_overrides', '{}'),
-            true
-        ) ?? [];
+        $overrides = PlatformSetting::getValue('custom_theme_color_overrides', []);
 
-        return $overrides;
+        // Get brand-specific colors
+        $brand = config('app.project_brand', 'common');
+        $brandColors = config("brands.{$brand}", []);
+        
+        // Merge brand colors with database overrides (database takes precedence)
+        $defaultColors = [
+            '--brand-primary-color' => $brandColors['primary'] ?? '#4ade80',
+            '--brand-secondary-color' => $brandColors['secondary'] ?? '#3b82f6',
+            '--brand-success-color' => $brandColors['success'] ?? '#4ade80',
+            '--brand-hover-color' => $brandColors['hover'] ?? '#60a5fa',
+            '--button-text-color' => '#ffffff',
+        ];
+
+        return array_merge($defaultColors, $overrides);
     }
 
     /**

@@ -19,6 +19,7 @@ function ibanData() {
         
         // Form fields
         friendlyName: '',
+        ibanLedger: '',
         currency: 'EUR',
         ibanNumber: '',
         bicRouting: '',
@@ -95,6 +96,7 @@ function ibanData() {
                 const data = await response.json();
                 if (data.success) {
                     this.friendlyName = data.iban.friendly_name;
+                    this.ibanLedger = data.iban.iban_ledger || '';
                     this.currency = data.iban.currency;
                     this.ibanNumber = data.iban.iban_number;
                     this.bicRouting = data.iban.bic_routing || '';
@@ -112,6 +114,7 @@ function ibanData() {
         
         resetForm() {
             this.friendlyName = '';
+            this.ibanLedger = '';
             this.currency = 'EUR';
             this.ibanNumber = '';
             this.bicRouting = '';
@@ -136,6 +139,7 @@ function ibanData() {
             const formData = {
                 account_hash: this.accountHash,
                 iban_friendly_name: this.friendlyName,
+                iban_ledger: this.ibanLedger || null,
                 iban_currency_iso3: this.currency,
                 iban_number: this.ibanNumber,
                 bic_routing: this.bicRouting || null,
@@ -339,6 +343,13 @@ function ibanData() {
             <div>
                 <label class="block text-sm font-medium mb-2">IBAN Friendly Name *</label>
                 <input type="text" x-model="friendlyName" class="w-full px-3 py-2 rounded-md" style="background-color: var(--content-background-color); border: 1px solid rgba(255,255,255,0.1);" placeholder="e.g., Main Business Account">
+            </div>
+            
+            {{-- IBAN Ledger (Admin-only, internal reference) --}}
+            <div>
+                <label class="block text-sm font-medium mb-2">IBAN Ledger</label>
+                <input type="text" x-model="ibanLedger" class="w-full px-3 py-2 rounded-md font-mono" style="background-color: var(--content-background-color); border: 1px solid rgba(255,255,255,0.1);" placeholder="e.g., 3fa85f64-5717-4562-b3fc-2c963f66afa6" maxlength="36">
+                <p class="text-xs mt-1 opacity-70">SH Financial Ledger UUID - internal reference for SEPA Direct Debit processing</p>
             </div>
             
             {{-- Currency --}}

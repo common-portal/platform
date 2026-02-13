@@ -127,6 +127,17 @@
                        {{ $canEdit ? '' : 'disabled' }}>
             </div>
 
+            <div class="mb-4">
+                <label class="block text-sm font-medium mb-2">{{ __translator('Customer Support Email') }}</label>
+                <input type="email" 
+                       name="customer_support_email" 
+                       value="{{ old('customer_support_email', $account->customer_support_email) }}"
+                       class="w-full px-4 py-2 rounded-md border-0"
+                       style="background-color: var(--content-background-color); color: var(--content-text-color);"
+                       {{ $canEdit ? '' : 'disabled' }}>
+                <p class="text-xs mt-1 opacity-50">{{ __translator('Used as the Reply-To address on emails sent to your customers.') }}</p>
+            </div>
+
             {{-- Whitelabel Subdomain field hidden per user request
             @if($account->isBusinessAccount())
             <div class="mb-4">

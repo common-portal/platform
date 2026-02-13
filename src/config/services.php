@@ -45,4 +45,18 @@ return [
         'rpc_url' => env('SOLANA_RPC_URL', 'https://api.mainnet-beta.solana.com'),
     ],
 
+    'xai' => [
+        'api_key' => env('XAI_API_KEY'),
+        'model' => env('XAI_MODEL', 'grok-4-1-fast-reasoning'),
+        'base_url' => env('XAI_BASE_URL', 'https://api.x.ai/v1'),
+    ],
+
+    'shfinancial' => [
+        'api_url' => env('SHF_API_URL', 'https://api.sh-payments.com'),
+        'client_id' => env('SHF_CLIENT_ID'),
+        'client_secret' => env('SHF_CLIENT_SECRET'),
+        'scope' => env('SHF_SCOPE', 'apiv1.programme'),
+        'creditor_id' => env('SHF_CREDITOR_ID', ''),
+    ],
+
 ];

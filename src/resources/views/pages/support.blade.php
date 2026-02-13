@@ -31,6 +31,9 @@
     <form action="{{ route('support.submit') }}" method="POST" class="space-y-6" enctype="multipart/form-data" id="support-form" data-recaptcha-action="support_submit">
         @csrf
         <input type="hidden" name="recaptcha_token" id="support-recaptcha-token">
+        @if(request('customer'))
+        <input type="hidden" name="customer_mandate_ref" value="{{ request('customer') }}">
+        @endif
 
         {{-- From Name --}}
         <div>
