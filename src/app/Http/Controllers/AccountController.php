@@ -65,6 +65,7 @@ class AccountController extends Controller
 
             // Switch to the new account
             session(['active_account_id' => $account->id]);
+            \App\Models\MemberLastActiveAccount::remember($member->id, $account->id);
 
             return redirect()->route('account.settings')
                 ->with('status', __translator('Business account created successfully!'));

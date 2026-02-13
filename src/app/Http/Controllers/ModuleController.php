@@ -10,6 +10,11 @@ use App\Models\SupportTicketMessage;
 use App\Models\TenantAccountMembership;
 use App\Models\TenantAccount;
 use App\Models\IbanAccount;
+use App\Models\CryptoWallet;
+use App\Models\CryptoWalletTransaction;
+use App\Services\WalletIdsService;
+use App\Services\SolanaRpcService;
+use App\Services\SolanaTransferService;
 use App\Mail\SupportTicketConfirmation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
@@ -624,5 +629,317 @@ class ModuleController extends Controller
         }
 
         return null;
+    }
+
+    // ─── Crypto Wallets Module ───────────────────────────────────────────
+
+    /**
+     * Client wallets page with wallet cards and transaction history.
+     */
+    public function wallets()
+    {
+        if (!$this->checkModulePermission('can_view_wallets')) {
+            abort(403, 'You do not have permission to view Wallets.');
+        }
+
+        $activeAccountId = session('active_account_id');
+        
+        if (!$activeAccountId) {
+            if (session('admin_impersonating_from') || (auth()->user() && auth()->user()->is_platform_administrator)) {
+                return redirect()->route('admin.accounts')
+                    ->withErrors(['account' => 'Please impersonate an account first to view wallets.']);
+            }
+            return redirect()->route('home')->withErrors(['account' => 'Please select an account first.']);
+        }
+
+        $account = TenantAccount::find($activeAccountId);
+        
+        if (!$account) {
+            return redirect()->route('home')->withErrors(['account' => 'Account not found.']);
+        }
+
+        // Fetch wallets assigned to this account
+        $wallets = CryptoWallet::where('account_hash', $account->record_unique_identifier)
+            ->notDeleted()
+            ->orderBy('wallet_currency')
+            ->orderBy('wallet_friendly_name')
+            ->get();
+
+        // Fetch all wallet transactions for this account (eager load wallet for display)
+        $transactions = CryptoWalletTransaction::where('account_hash', $account->record_unique_identifier)
+            ->with('wallet')
+            ->orderBy('datetime_created', 'desc')
+            ->limit(100)
+            ->get();
+
+        return view('pages.modules.wallets', [
+            'wallets' => $wallets,
+            'transactions' => $transactions,
+            'account' => $account,
+        ]);
+    }
+
+    /**
+     * Get real-time wallet balance (JSON) — single wallet.
+     */
+    public function walletBalance($hash)
+    {
+        if (!$this->checkModulePermission('can_view_wallets')) {
+            return response()->json(['error' => 'Permission denied'], 403);
+        }
+
+        try {
+            $activeAccountId = session('active_account_id');
+            $account = TenantAccount::find($activeAccountId);
+
+            $wallet = CryptoWallet::where('record_unique_identifier', $hash)
+                ->where('account_hash', $account->record_unique_identifier)
+                ->notDeleted()
+                ->firstOrFail();
+
+            $solanaRpc = app(SolanaRpcService::class);
+            $balance = $this->fetchSingleWalletBalance($solanaRpc, $wallet);
+
+            return response()->json([
+                'success' => true,
+                'token_balance' => $balance,
+                'currency' => $wallet->wallet_currency,
+                'wallet_hash' => $hash,
+            ]);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json(['success' => false, 'message' => 'Wallet not found'], 404);
+        } catch (\Exception $e) {
+            \Log::error('Wallet balance error: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Error fetching balance'], 500);
+        }
+    }
+
+    /**
+     * Get balances for ALL account wallets in one call (sequential RPC with delays).
+     */
+    public function walletBalances()
+    {
+        if (!$this->checkModulePermission('can_view_wallets')) {
+            return response()->json(['error' => 'Permission denied'], 403);
+        }
+
+        try {
+            $activeAccountId = session('active_account_id');
+            $account = TenantAccount::find($activeAccountId);
+
+            $wallets = CryptoWallet::where('account_hash', $account->record_unique_identifier)
+                ->notDeleted()
+                ->get();
+
+            $solanaRpc = app(SolanaRpcService::class);
+            $balances = [];
+
+            foreach ($wallets as $i => $wallet) {
+                if ($i > 0) {
+                    usleep(300000); // 300ms delay between wallets
+                }
+
+                $balances[$wallet->record_unique_identifier] = [
+                    'balance' => $this->fetchSingleWalletBalance($solanaRpc, $wallet),
+                    'currency' => $wallet->wallet_currency,
+                ];
+            }
+
+            return response()->json(['success' => true, 'balances' => $balances]);
+        } catch (\Exception $e) {
+            \Log::error('Wallet balances batch error: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Error fetching balances'], 500);
+        }
+    }
+
+    /**
+     * Fetch balance for a single wallet from Solana RPC.
+     */
+    protected function fetchSingleWalletBalance(SolanaRpcService $solanaRpc, CryptoWallet $wallet): ?float
+    {
+        try {
+            // SOL wallets (GAS): return native SOL balance
+            if ($wallet->wallet_currency === 'SOL') {
+                $solLamports = $solanaRpc->getBalance($wallet->wallet_address);
+                return $solLamports !== null ? round($solLamports / 1_000_000_000, 6) : null;
+            }
+
+            // SPL token wallets: return token balance
+            $mintAddress = SolanaTransferService::MINTS[$wallet->wallet_currency] ?? null;
+            if ($mintAddress) {
+                $tokenAccounts = $solanaRpc->getTokenAccountsByOwner($wallet->wallet_address, $mintAddress);
+                if ($tokenAccounts && isset($tokenAccounts['value']) && count($tokenAccounts['value']) > 0) {
+                    $tokenInfo = $tokenAccounts['value'][0]['account']['data']['parsed']['info']['tokenAmount'] ?? null;
+                    if ($tokenInfo) {
+                        return $tokenInfo['uiAmount'] ?? 0;
+                    }
+                }
+            }
+
+            return null;
+        } catch (\Exception $e) {
+            \Log::warning('Balance fetch failed', ['wallet' => $wallet->wallet_address, 'error' => $e->getMessage()]);
+            return null;
+        }
+    }
+
+    /**
+     * Get wallet transactions (JSON).
+     */
+    public function walletTransactions($hash)
+    {
+        if (!$this->checkModulePermission('can_view_wallets')) {
+            return response()->json(['error' => 'Permission denied'], 403);
+        }
+
+        try {
+            $activeAccountId = session('active_account_id');
+            $account = TenantAccount::find($activeAccountId);
+
+            $wallet = CryptoWallet::where('record_unique_identifier', $hash)
+                ->where('account_hash', $account->record_unique_identifier)
+                ->notDeleted()
+                ->firstOrFail();
+
+            $transactions = CryptoWalletTransaction::where('wallet_id', $wallet->id)
+                ->orderBy('datetime_created', 'desc')
+                ->limit(50)
+                ->get();
+
+            return response()->json([
+                'success' => true,
+                'transactions' => $transactions,
+            ]);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json(['success' => false, 'message' => 'Wallet not found'], 404);
+        } catch (\Exception $e) {
+            \Log::error('Wallet transactions error: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Error fetching transactions'], 500);
+        }
+    }
+
+    /**
+     * Get Solana tracking detail for a transaction (JSON).
+     * Returns step-by-step tracking info from Solana RPC.
+     */
+    public function walletTxDetail($hash)
+    {
+        if (!$this->checkModulePermission('can_view_wallets')) {
+            return response()->json(['error' => 'Permission denied'], 403);
+        }
+
+        try {
+            $activeAccountId = session('active_account_id');
+            $account = TenantAccount::find($activeAccountId);
+
+            $tx = CryptoWalletTransaction::where('record_unique_identifier', $hash)
+                ->where('account_hash', $account->record_unique_identifier)
+                ->firstOrFail();
+
+            if (!$tx->solana_tx_signature) {
+                return response()->json([
+                    'success' => true,
+                    'detail' => null,
+                    'message' => 'No Solana transaction signature available yet.',
+                ]);
+            }
+
+            $solanaService = app(SolanaRpcService::class);
+            $detail = $solanaService->getTrackingDetail($tx->solana_tx_signature);
+
+            return response()->json([
+                'success' => true,
+                'detail' => $detail,
+            ]);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json(['success' => false, 'message' => 'Transaction not found'], 404);
+        } catch (\Exception $e) {
+            \Log::error('Wallet tx detail error: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Error fetching transaction detail'], 500);
+        }
+    }
+
+    /**
+     * Client-initiated send from their designated wallet to a 3rd-party wallet.
+     */
+    public function walletSend(Request $request, $hash)
+    {
+        if (!$this->checkModulePermission('can_view_wallets')) {
+            return response()->json(['error' => 'Permission denied'], 403);
+        }
+
+        try {
+            $activeAccountId = session('active_account_id');
+            $account = TenantAccount::find($activeAccountId);
+
+            $wallet = CryptoWallet::where('record_unique_identifier', $hash)
+                ->where('account_hash', $account->record_unique_identifier)
+                ->notDeleted()
+                ->active()
+                ->firstOrFail();
+
+            $validated = $request->validate([
+                'to_wallet_address' => 'required|string|max:255',
+                'amount' => 'required|numeric|min:0.000001',
+                'memo_note' => 'nullable|string|max:1000',
+            ]);
+
+            // Record the transaction as submitted
+            $tx = CryptoWalletTransaction::create([
+                'wallet_id' => $wallet->id,
+                'account_hash' => $wallet->account_hash,
+                'direction' => 'outgoing',
+                'currency' => $wallet->wallet_currency,
+                'network' => $wallet->wallet_network,
+                'amount' => $validated['amount'],
+                'from_wallet_address' => $wallet->wallet_address,
+                'to_wallet_address' => $validated['to_wallet_address'],
+                'transaction_status' => 'submitted',
+                'memo_note' => $validated['memo_note'] ?? null,
+                'initiated_by_member_hash' => auth()->user()->record_unique_identifier,
+                'datetime_submitted' => now(),
+            ]);
+
+            // Execute the Solana SPL token transfer
+            $transferService = app(SolanaTransferService::class);
+            $result = $transferService->transfer(
+                $wallet,
+                $validated['to_wallet_address'],
+                (float) $validated['amount'],
+                $tx
+            );
+
+            if ($result['success']) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Transfer completed successfully.',
+                    'signature' => $result['signature'],
+                    'transaction' => $tx->fresh(),
+                ]);
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => $result['error'] ?? 'Transfer failed.',
+                    'transaction' => $tx->fresh(),
+                ], 502);
+            }
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Wallet not found or inactive'
+            ], 404);
+        } catch (\Exception $e) {
+            \Log::error('Client wallet send error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error sending from wallet: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }

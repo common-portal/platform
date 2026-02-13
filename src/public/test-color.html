@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Color Test</title>
+    <style>
+        :root {
+            --brand-primary-color: #e3be3b;
+        }
+        body {
+            background: #0f0f1a;
+            color: white;
+            font-family: Arial;
+            padding: 40px;
+        }
+    </style>
+</head>
+<body>
+    <h1 style="color: var(--brand-primary-color);">This should be YELLOW (#e3be3b)</h1>
+    <h2 style="color: #e3be3b;">This is hardcoded YELLOW</h2>
+    <h2 style="color: #4ade80;">This is hardcoded GREEN</h2>
+    
+    <div style="margin-top: 40px;">
+        <p>CSS Variable Value: <span id="varValue"></span></p>
+        <p>Computed Color: <span id="computed"></span></p>
+    </div>
+    
+    <script>
+        const root = getComputedStyle(document.documentElement);
+        document.getElementById('varValue').textContent = root.getPropertyValue('--brand-primary-color');
+        
+        const h1 = document.querySelector('h1');
+        document.getElementById('computed').textContent = getComputedStyle(h1).color;
+    </script>
+</body>
+</html>

@@ -74,6 +74,10 @@
                 <p class="font-medium">IBANs</p>
                 <p class="text-sm opacity-70">Manage bank accounts</p>
             </a>
+            <a href="{{ route('admin.wallets') }}" class="p-4 rounded-lg text-center hover:opacity-80" style="background-color: var(--content-background-color);">
+                <p class="font-medium">Wallets</p>
+                <p class="text-sm opacity-70">Manage crypto wallets</p>
+            </a>
         </div>
     </div>
 </div>

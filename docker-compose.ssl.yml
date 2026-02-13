@@ -22,6 +22,7 @@ services:
       - DB_SSLMODE=${DB_SSLMODE:-disable}
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
       - CACHE_DRIVER=redis
       - SESSION_DRIVER=redis
       - QUEUE_CONNECTION=redis
@@ -65,9 +66,10 @@ services:
     image: redis:7-alpine
     container_name: xramp-redis
     restart: unless-stopped
-    command: redis-server --appendonly yes
+    command: redis-server /usr/local/etc/redis/redis.conf
     volumes:
       - redisdata:/data
+      - ./docker/redis.conf:/usr/local/etc/redis/redis.conf:ro
     networks:
       - xramp-network
 
@@ -90,6 +92,7 @@ services:
       - DB_SSLMODE=${DB_SSLMODE:-disable}
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
       - QUEUE_CONNECTION=redis
     depends_on:
       - app
