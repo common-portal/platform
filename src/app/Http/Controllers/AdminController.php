@@ -8,6 +8,14 @@ use App\Models\SupportTicket;
 use App\Models\SupportTicketMessage;
 use App\Models\TenantAccount;
 use App\Models\TeamMembershipInvitation;
+use App\Models\Transaction;
+use App\Models\IbanAccount;
+use App\Models\IbanHostBank;
+use App\Models\CryptoWallet;
+use App\Models\CryptoWalletTransaction;
+use App\Services\WalletIdsService;
+use App\Services\SolanaRpcService;
+use App\Services\SolanaTransferService;
 use Illuminate\Http\Request;
 
 class AdminController extends Controller
@@ -238,13 +246,15 @@ class AdminController extends Controller
         $toggles = PlatformSetting::getValue('sidebar_menu_item_visibility_toggles', []);
 
         $menuItems = [
-            'dashboard' => 'Dashboard',
-            'team' => 'Team Management',
-            'settings' => 'Account Settings',
-            'developer' => 'Developer Tools',
-            'support' => 'Support Tickets',
-            'transactions' => 'Transaction History',
-            'billing' => 'Billing History',
+            'can_access_account_dashboard' => 'Dashboard',
+            'can_manage_team_members' => 'Team Management',
+            'can_access_account_settings' => 'Account Settings',
+            'can_access_developer_tools' => 'Developer Tools',
+            'can_access_support_tickets' => 'Support Tickets',
+            'can_view_transaction_history' => 'Transaction History',
+            'can_view_billing_history' => 'Billing History',
+            'can_view_ibans' => 'IBANs',
+            'can_view_wallets' => 'Wallets',
         ];
 
         return view('pages.administrator.menu-items', compact('toggles', 'menuItems'));
@@ -255,7 +265,26 @@ class AdminController extends Controller
      */
     public function updateMenuItems(Request $request)
     {
-        $toggles = $request->input('toggles', []);
+        $submittedToggles = $request->input('toggles', []);
+
+        // Get all available menu items (must match permission keys in ViewComposerServiceProvider)
+        $allMenuItems = [
+            'can_access_account_dashboard',
+            'can_manage_team_members',
+            'can_access_account_settings',
+            'can_access_developer_tools',
+            'can_access_support_tickets',
+            'can_view_transaction_history',
+            'can_view_billing_history',
+            'can_view_ibans',
+            'can_view_wallets',
+        ];
+
+        // Build toggles array: explicitly set to true (checked) or false (unchecked)
+        $toggles = [];
+        foreach ($allMenuItems as $key) {
+            $toggles[$key] = isset($submittedToggles[$key]) && $submittedToggles[$key] == '1';
+        }
 
         PlatformSetting::setValue('sidebar_menu_item_visibility_toggles', $toggles);
 
@@ -488,7 +517,7 @@ class AdminController extends Controller
     /**
      * Impersonate an account (view as account owner).
      */
-    public function impersonateAccount($account_id)
+    public function impersonateAccount(Request $request, $account_id)
     {
         $account = TenantAccount::where('is_soft_deleted', false)
             ->findOrFail($account_id);
@@ -496,6 +525,17 @@ class AdminController extends Controller
         // Store original admin ID
         session(['admin_impersonating_from' => auth()->id()]);
         session(['active_account_id' => $account->id]);
+
+        // If AJAX request, return JSON
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => "Now impersonating: {$account->account_display_name}",
+                'account_id' => $account->id,
+                'account_name' => $account->account_display_name,
+                'account_email' => $account->primary_contact_email_address,
+            ]);
+        }
 
         return redirect()->route('home')
             ->with('status', "Now viewing account: {$account->account_display_name}. Use admin panel to exit.");
@@ -677,5 +717,1060 @@ class AdminController extends Controller
         ]);
 
         return response()->json(['success' => true, 'message' => 'Assignment updated successfully.']);
+    }
+
+    /**
+     * Show accounting form to record transactions.
+     */
+    public function accounting()
+    {
+        $accounts = TenantAccount::where('is_soft_deleted', false)
+            ->orderBy('account_display_name')
+            ->get();
+
+        $impersonatedAccount = null;
+        if (session('admin_impersonating_from') && session('active_account_id')) {
+            $impersonatedAccount = TenantAccount::find(session('active_account_id'));
+        }
+
+        return view('pages.administrator.accounting', compact('accounts', 'impersonatedAccount'));
+    }
+
+    /**
+     * Phase 1: Create transaction with incoming funds data.
+     */
+    public function storePhase1Received(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'tenant_account_id' => 'required|exists:tenant_accounts,id',
+                'currency_code' => 'required|string|max:10',
+                'amount' => 'required|numeric|min:0',
+                'incoming_fixed_fee' => 'nullable|numeric|min:0',
+                'incoming_percentage_fee' => 'nullable|numeric|min:0',
+                'incoming_minimum_fee' => 'nullable|numeric|min:0',
+                'incoming_total_fee' => 'nullable|numeric|min:0',
+                'datetime_received' => 'required|date',
+            ]);
+
+            $transaction = Transaction::create(array_merge($validated, [
+                'transaction_status' => 'received',
+                'datetime_created' => now(),
+                'datetime_updated' => now(),
+            ]));
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Phase 1 recorded: Funds received.',
+                'transaction_id' => $transaction->id,
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            \Log::error('Phase 1 error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error saving transaction: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Phase 2: Update transaction with exchange data.
+     */
+    public function updatePhase2Exchanged(Request $request, $transaction_id)
+    {
+        try {
+            $transaction = Transaction::where('id', $transaction_id)
+                ->where('tenant_account_id', $request->input('tenant_account_id'))
+                ->firstOrFail();
+
+            $validated = $request->validate([
+                'tenant_account_id' => 'required|exists:tenant_accounts,id',
+                'settlement_currency_code' => 'nullable|string|max:10',
+                'exchange_ratio' => 'nullable|numeric|min:0',
+                'settlement_amount' => 'nullable|numeric|min:0',
+                'exchange_fixed_fee' => 'nullable|numeric|min:0',
+                'exchange_percentage_fee' => 'nullable|numeric|min:0',
+                'exchange_minimum_fee' => 'nullable|numeric|min:0',
+                'exchange_total_fee' => 'nullable|numeric|min:0',
+                'datetime_exchanged' => 'required|date',
+            ]);
+
+            $transaction->update(array_merge($validated, [
+                'transaction_status' => 'exchanged',
+                'datetime_updated' => now(),
+            ]));
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Phase 2 recorded: Funds exchanged.',
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Transaction not found or access denied'
+            ], 404);
+        } catch (\Exception $e) {
+            \Log::error('Phase 2 error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error updating transaction: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Phase 3: Update transaction with settlement data.
+     */
+    public function updatePhase3Settled(Request $request, $transaction_id)
+    {
+        try {
+            $transaction = Transaction::where('id', $transaction_id)
+                ->where('tenant_account_id', $request->input('tenant_account_id'))
+                ->firstOrFail();
+
+            $validated = $request->validate([
+                'tenant_account_id' => 'required|exists:tenant_accounts,id',
+                'outgoing_fixed_fee' => 'nullable|numeric|min:0',
+                'outgoing_percentage_fee' => 'nullable|numeric|min:0',
+                'outgoing_minimum_fee' => 'nullable|numeric|min:0',
+                'outgoing_total_fee' => 'nullable|numeric|min:0',
+                'final_settlement_currency_code' => 'nullable|string|max:10',
+                'final_settlement_amount' => 'nullable|numeric|min:0',
+                'settlement_account_type' => 'required|in:crypto,fiat',
+                'crypto_wallet_address' => 'required_if:settlement_account_type,crypto|nullable|string|max:255',
+                'crypto_network' => 'required_if:settlement_account_type,crypto|nullable|string|max:50',
+                'fiat_payment_method' => 'required_if:settlement_account_type,fiat|nullable|string|max:50',
+                'fiat_bank_account_number' => 'required_if:settlement_account_type,fiat|nullable|string|max:100',
+                'fiat_bank_routing_number' => 'nullable|string|max:100',
+                'fiat_bank_swift_code' => 'nullable|string|max:50',
+                'fiat_account_holder_name' => 'required_if:settlement_account_type,fiat|nullable|string|max:255',
+                'fiat_bank_address' => 'nullable|string',
+                'fiat_bank_country' => 'required_if:settlement_account_type,fiat|nullable|string|max:100',
+                'datetime_settled' => 'required|date',
+            ]);
+
+            $transaction->update(array_merge($validated, [
+                'transaction_status' => 'settled',
+                'datetime_updated' => now(),
+            ]));
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Phase 3 recorded: Transaction settled.',
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Transaction not found or access denied'
+            ], 404);
+        } catch (\Exception $e) {
+            \Log::error('Phase 3 error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error updating transaction: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function getTransaction($transaction_hash)
+    {
+        try {
+            // Admin can access any transaction by hash, no tenant_account_id restriction
+            $transaction = Transaction::where('record_unique_identifier', $transaction_hash)
+                ->firstOrFail();
+
+            return response()->json([
+                'success' => true,
+                'transaction' => $transaction
+            ]);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Transaction not found'
+            ], 404);
+        } catch (\Exception $e) {
+            \Log::error('Get transaction error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error fetching transaction: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * IBAN Host Banks management page.
+     */
+    public function ibanHostBanks()
+    {
+        return view('pages.administrator.iban-host-banks');
+    }
+
+    /**
+     * Get list of all host banks.
+     */
+    public function ibanHostBanksList()
+    {
+        $hostBanks = IbanHostBank::notDeleted()
+            ->orderBy('host_bank_name')
+            ->get()
+            ->map(function ($bank) {
+                return [
+                    'hash' => $bank->record_unique_identifier,
+                    'name' => $bank->host_bank_name,
+                    'is_active' => $bank->is_active,
+                    'created_at' => $bank->datetime_created?->format('M j, Y H:i'),
+                ];
+            });
+
+        return response()->json([
+            'success' => true,
+            'host_banks' => $hostBanks
+        ]);
+    }
+
+    /**
+     * Get a single host bank by hash.
+     */
+    public function ibanHostBankGet($hash)
+    {
+        try {
+            $bank = IbanHostBank::where('record_unique_identifier', $hash)
+                ->notDeleted()
+                ->firstOrFail();
+
+            return response()->json([
+                'success' => true,
+                'host_bank' => [
+                    'hash' => $bank->record_unique_identifier,
+                    'name' => $bank->host_bank_name,
+                    'is_active' => $bank->is_active,
+                    'created_at' => $bank->datetime_created?->format('M j, Y H:i'),
+                ]
+            ]);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Host bank not found'
+            ], 404);
+        }
+    }
+
+    /**
+     * Store a new host bank.
+     */
+    public function ibanHostBankStore(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'host_bank_name' => 'required|string|max:255',
+                'is_active' => 'boolean',
+            ]);
+
+            $bank = IbanHostBank::create([
+                'host_bank_name' => $validated['host_bank_name'],
+                'is_active' => $validated['is_active'] ?? true,
+                'is_deleted' => false,
+                'datetime_created' => now(),
+                'datetime_updated' => now(),
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Host bank created successfully',
+                'host_bank' => [
+                    'hash' => $bank->record_unique_identifier,
+                    'name' => $bank->host_bank_name,
+                ]
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            \Log::error('Host bank store error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error creating host bank: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Update an existing host bank.
+     */
+    public function ibanHostBankUpdate(Request $request, $hash)
+    {
+        try {
+            $bank = IbanHostBank::where('record_unique_identifier', $hash)
+                ->notDeleted()
+                ->firstOrFail();
+
+            $validated = $request->validate([
+                'host_bank_name' => 'required|string|max:255',
+                'is_active' => 'boolean',
+            ]);
+
+            $bank->update([
+                'host_bank_name' => $validated['host_bank_name'],
+                'is_active' => $validated['is_active'] ?? $bank->is_active,
+                'datetime_updated' => now(),
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Host bank updated successfully'
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Host bank not found'
+            ], 404);
+        } catch (\Exception $e) {
+            \Log::error('Host bank update error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error updating host bank: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Soft delete a host bank.
+     */
+    public function ibanHostBankDelete($hash)
+    {
+        try {
+            $bank = IbanHostBank::where('record_unique_identifier', $hash)
+                ->notDeleted()
+                ->firstOrFail();
+
+            $bank->softDelete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Host bank deleted successfully'
+            ]);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Host bank not found'
+            ], 404);
+        } catch (\Exception $e) {
+            \Log::error('Host bank delete error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error deleting host bank: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * IBAN management page.
+     */
+    public function ibans()
+    {
+        $impersonatedAccount = null;
+        if (session('admin_impersonating_from') && session('active_account_id')) {
+            $impersonatedAccount = TenantAccount::find(session('active_account_id'));
+        }
+
+        $accounts = TenantAccount::where('is_soft_deleted', false)
+            ->orderBy('account_display_name')
+            ->get();
+
+        return view('pages.administrator.ibans', compact('impersonatedAccount', 'accounts'));
+    }
+
+    /**
+     * Get list of IBANs for an account.
+     */
+    public function ibansList(Request $request)
+    {
+        $accountHash = $request->input('account_hash');
+        
+        if (!$accountHash) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Account hash is required',
+                'ibans' => []
+            ], 400);
+        }
+
+        $ibans = IbanAccount::where('account_hash', $accountHash)
+            ->notDeleted()
+            ->with('host_bank')
+            ->orderBy('iban_friendly_name')
+            ->get()
+            ->map(function ($iban) {
+                return [
+                    'hash' => $iban->record_unique_identifier,
+                    'friendly_name' => $iban->iban_friendly_name,
+                    'currency' => $iban->iban_currency_iso3,
+                    'iban_number' => $iban->iban_number,
+                    'bic_routing' => $iban->bic_routing,
+                    'iban_owner' => $iban->iban_owner,
+                    'host_bank_hash' => $iban->iban_host_bank_hash,
+                    'host_bank_name' => $iban->host_bank?->host_bank_name,
+                    'is_active' => $iban->is_active,
+                    'created_at' => $iban->datetime_created?->format('M j, Y H:i'),
+                ];
+            });
+
+        return response()->json([
+            'success' => true,
+            'ibans' => $ibans
+        ]);
+    }
+
+    /**
+     * Get a single IBAN by hash.
+     */
+    public function ibanGet($iban_hash)
+    {
+        try {
+            $iban = IbanAccount::where('record_unique_identifier', $iban_hash)
+                ->notDeleted()
+                ->firstOrFail();
+
+            return response()->json([
+                'success' => true,
+                'iban' => [
+                    'hash' => $iban->record_unique_identifier,
+                    'account_hash' => $iban->account_hash,
+                    'friendly_name' => $iban->iban_friendly_name,
+                    'currency' => $iban->iban_currency_iso3,
+                    'iban_number' => $iban->iban_number,
+                    'bic_routing' => $iban->bic_routing,
+                    'iban_owner' => $iban->iban_owner,
+                    'host_bank_hash' => $iban->iban_host_bank_hash,
+                    'is_active' => $iban->is_active,
+                    'created_at' => $iban->datetime_created?->format('M j, Y H:i'),
+                ]
+            ]);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'IBAN not found'
+            ], 404);
+        }
+    }
+
+    /**
+     * Store a new IBAN.
+     */
+    public function ibanStore(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'account_hash' => 'required|string|max:32',
+                'iban_friendly_name' => 'required|string|max:255',
+                'iban_currency_iso3' => 'required|string|max:3|in:AUD,CNY,EUR,GBP,MXN,USD',
+                'iban_number' => 'required|string|max:34',
+                'bic_routing' => 'nullable|string|max:11',
+                'iban_owner' => 'nullable|string|max:255',
+                'iban_host_bank_hash' => 'nullable|string|max:32',
+                'is_active' => 'boolean',
+            ]);
+
+            // Verify the account exists
+            $account = TenantAccount::where('record_unique_identifier', $validated['account_hash'])
+                ->where('is_soft_deleted', false)
+                ->first();
+
+            if (!$account) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Account not found'
+                ], 404);
+            }
+
+            $iban = IbanAccount::create([
+                'account_hash' => $validated['account_hash'],
+                'iban_friendly_name' => $validated['iban_friendly_name'],
+                'iban_currency_iso3' => $validated['iban_currency_iso3'],
+                'iban_number' => $validated['iban_number'],
+                'bic_routing' => $validated['bic_routing'] ?? null,
+                'iban_owner' => $validated['iban_owner'] ?? null,
+                'iban_host_bank_hash' => $validated['iban_host_bank_hash'] ?? null,
+                'creator_member_hash' => auth()->user()->record_unique_identifier,
+                'is_active' => $validated['is_active'] ?? true,
+                'is_deleted' => false,
+                'datetime_created' => now(),
+                'datetime_updated' => now(),
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'IBAN created successfully',
+                'iban' => [
+                    'hash' => $iban->record_unique_identifier,
+                    'friendly_name' => $iban->iban_friendly_name,
+                ]
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            \Log::error('IBAN store error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error creating IBAN: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Update an existing IBAN.
+     */
+    public function ibanUpdate(Request $request, $iban_hash)
+    {
+        try {
+            $iban = IbanAccount::where('record_unique_identifier', $iban_hash)
+                ->notDeleted()
+                ->firstOrFail();
+
+            $validated = $request->validate([
+                'iban_friendly_name' => 'required|string|max:255',
+                'iban_currency_iso3' => 'required|string|max:3|in:AUD,CNY,EUR,GBP,MXN,USD',
+                'iban_number' => 'required|string|max:34',
+                'bic_routing' => 'nullable|string|max:11',
+                'iban_owner' => 'nullable|string|max:255',
+                'iban_host_bank_hash' => 'nullable|string|max:32',
+                'is_active' => 'boolean',
+            ]);
+
+            $iban->update([
+                'iban_friendly_name' => $validated['iban_friendly_name'],
+                'iban_currency_iso3' => $validated['iban_currency_iso3'],
+                'iban_number' => $validated['iban_number'],
+                'bic_routing' => $validated['bic_routing'] ?? null,
+                'iban_owner' => $validated['iban_owner'] ?? null,
+                'iban_host_bank_hash' => $validated['iban_host_bank_hash'] ?? null,
+                'is_active' => $validated['is_active'] ?? $iban->is_active,
+                'datetime_updated' => now(),
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'IBAN updated successfully'
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'IBAN not found'
+            ], 404);
+        } catch (\Exception $e) {
+            \Log::error('IBAN update error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error updating IBAN: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Soft delete an IBAN.
+     */
+    public function ibanDelete($iban_hash)
+    {
+        try {
+            $iban = IbanAccount::where('record_unique_identifier', $iban_hash)
+                ->notDeleted()
+                ->firstOrFail();
+
+            $iban->softDelete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'IBAN deleted successfully'
+            ]);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'IBAN not found'
+            ], 404);
+        } catch (\Exception $e) {
+            \Log::error('IBAN delete error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error deleting IBAN: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    // ─── Crypto Wallets Management ───────────────────────────────────────
+
+    /**
+     * Crypto wallets management page.
+     */
+    public function wallets()
+    {
+        $accounts = TenantAccount::where('is_soft_deleted', false)
+            ->orderBy('account_display_name')
+            ->get();
+
+        return view('pages.administrator.wallets', compact('accounts'));
+    }
+
+    /**
+     * List wallets (JSON), optionally filtered by account.
+     */
+    public function walletsList(Request $request)
+    {
+        try {
+            $query = CryptoWallet::notDeleted();
+
+            if ($request->filled('account_hash')) {
+                $query->where('account_hash', $request->account_hash);
+            }
+
+            $wallets = $query->orderBy('datetime_created', 'desc')->get();
+
+            // Fetch balances for each wallet (with delay to avoid RPC 429 rate limits)
+            $solanaRpc = app(SolanaRpcService::class);
+            $isFirst = true;
+            $walletsWithBalances = $wallets->map(function ($wallet) use ($solanaRpc, &$isFirst) {
+                $walletArray = $wallet->toArray();
+                try {
+                    if (!$isFirst) {
+                        usleep(250000); // 250ms delay between wallets to avoid RPC rate limits
+                    }
+                    $isFirst = false;
+                    $balances = $this->fetchWalletBalances($solanaRpc, $wallet);
+                    $walletArray['token_balance'] = $balances['token_ui_amount'];
+                    $walletArray['sol_balance'] = $balances['sol_balance'];
+                } catch (\Exception $e) {
+                    $walletArray['token_balance'] = null;
+                    $walletArray['sol_balance'] = null;
+                }
+                return $walletArray;
+            });
+
+            return response()->json([
+                'success' => true,
+                'wallets' => $walletsWithBalances
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Wallet list error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error fetching wallets: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get a single wallet by hash (includes SOL + token balances).
+     */
+    public function walletGet($hash)
+    {
+        try {
+            $wallet = CryptoWallet::where('record_unique_identifier', $hash)
+                ->notDeleted()
+                ->firstOrFail();
+
+            // Fetch balances from Solana RPC
+            $solanaRpc = app(SolanaRpcService::class);
+            $balances = $this->fetchWalletBalances($solanaRpc, $wallet);
+
+            return response()->json([
+                'success' => true,
+                'wallet' => $wallet,
+                'balances' => $balances,
+            ]);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Wallet not found'
+            ], 404);
+        }
+    }
+
+    /**
+     * Fetch SOL and token balances for a wallet from Solana RPC.
+     */
+    protected function fetchWalletBalances(SolanaRpcService $solanaRpc, CryptoWallet $wallet): array
+    {
+        $balances = [
+            'sol_lamports' => null,
+            'sol_balance' => null,
+            'sol_low' => false,
+            'token_balance' => null,
+            'token_ui_amount' => null,
+        ];
+
+        try {
+            // SOL balance (for gas fees)
+            $solLamports = $solanaRpc->getBalance($wallet->wallet_address);
+            if ($solLamports !== null) {
+                $balances['sol_lamports'] = $solLamports;
+                $balances['sol_balance'] = round($solLamports / 1_000_000_000, 6);
+                $balances['sol_low'] = $solLamports < 10_000_000; // < 0.01 SOL
+            }
+
+            // SPL token balance (USDT/USDC only — skip for SOL wallets)
+            $mintAddress = \App\Services\SolanaTransferService::MINTS[$wallet->wallet_currency] ?? null;
+            if ($mintAddress) {
+                usleep(150000); // 150ms delay between RPC calls
+                $tokenAccounts = $solanaRpc->getTokenAccountsByOwner($wallet->wallet_address, $mintAddress);
+                if ($tokenAccounts && isset($tokenAccounts['value']) && count($tokenAccounts['value']) > 0) {
+                    $tokenInfo = $tokenAccounts['value'][0]['account']['data']['parsed']['info']['tokenAmount'] ?? null;
+                    if ($tokenInfo) {
+                        $balances['token_balance'] = $tokenInfo['amount'] ?? '0';
+                        $balances['token_ui_amount'] = $tokenInfo['uiAmount'] ?? 0;
+                    }
+                }
+            }
+        } catch (\Exception $e) {
+            \Log::warning('Failed to fetch wallet balances', ['wallet' => $wallet->wallet_address, 'error' => $e->getMessage()]);
+        }
+
+        return $balances;
+    }
+
+    /**
+     * Create a new crypto wallet via WalletIDs.net API.
+     */
+    public function walletStore(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'wallet_friendly_name' => 'required|string|max:255',
+                'wallet_currency' => 'required|in:USDT,USDC,EURC,SOL',
+                'wallet_network' => 'required|in:solana',
+                'wallet_type' => 'required|in:client,admin,gas',
+                'account_hash' => 'required|string|max:32',
+            ]);
+
+            // Only one GAS wallet allowed per network
+            if ($validated['wallet_type'] === 'gas') {
+                $existingGas = CryptoWallet::where('wallet_type', 'gas')
+                    ->where('wallet_network', $validated['wallet_network'])
+                    ->notDeleted()
+                    ->first();
+                if ($existingGas) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'A GAS wallet already exists for the ' . $validated['wallet_network'] . ' network. Only one GAS wallet per network is allowed.'
+                    ], 422);
+                }
+            }
+
+            // Call WalletIDs.net to create the wallet
+            $walletIdsService = app(WalletIdsService::class);
+
+            $webhookUrl = route('webhooks.walletids');
+            $externalId = $validated['account_hash'] . '_' . time();
+
+            $apiResponse = $walletIdsService->createWallet(
+                $validated['wallet_network'],
+                strtolower($validated['wallet_currency']),
+                'standalone',
+                $validated['wallet_friendly_name'],
+                $externalId,
+                $webhookUrl
+            );
+
+            $walletData = $apiResponse['data']['wallet'] ?? null;
+
+            if (!$apiResponse || !$walletData || !isset($walletData['hash'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to create wallet via WalletIDs.net. Please check API credentials and try again.'
+                ], 502);
+            }
+
+            $wallet = CryptoWallet::create([
+                'account_hash' => $validated['account_hash'],
+                'wallet_friendly_name' => $validated['wallet_friendly_name'],
+                'wallet_currency' => $validated['wallet_currency'],
+                'wallet_network' => $validated['wallet_network'],
+                'wallet_type' => $validated['wallet_type'],
+                'wallet_address' => $walletData['wallet_address'] ?? '',
+                'walletids_wallet_hash' => $walletData['hash'],
+                'walletids_external_id' => $externalId,
+                'creator_member_hash' => auth()->user()->record_unique_identifier,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Wallet created successfully',
+                'wallet' => $wallet
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            \Log::warning('Wallet create validation failed', ['errors' => $e->errors()]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed: ' . collect($e->errors())->flatten()->implode(', '),
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            \Log::error('Wallet create error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error creating wallet: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Update a crypto wallet.
+     */
+    public function walletUpdate(Request $request, $hash)
+    {
+        try {
+            $wallet = CryptoWallet::where('record_unique_identifier', $hash)
+                ->notDeleted()
+                ->firstOrFail();
+
+            $validated = $request->validate([
+                'wallet_friendly_name' => 'required|string|max:255',
+                'account_hash' => 'required|string|max:32',
+                'is_active' => 'required|boolean',
+            ]);
+
+            $wallet->update(array_merge($validated, [
+                'datetime_updated' => now(),
+            ]));
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Wallet updated successfully',
+                'wallet' => $wallet->fresh()
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Wallet not found'
+            ], 404);
+        } catch (\Exception $e) {
+            \Log::error('Wallet update error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error updating wallet: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Soft delete a crypto wallet.
+     */
+    public function walletDelete($hash)
+    {
+        try {
+            $wallet = CryptoWallet::where('record_unique_identifier', $hash)
+                ->notDeleted()
+                ->firstOrFail();
+
+            $wallet->softDelete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Wallet deleted successfully'
+            ]);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Wallet not found'
+            ], 404);
+        } catch (\Exception $e) {
+            \Log::error('Wallet delete error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error deleting wallet: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Admin-initiated send (sub-distribution from master wallet to client wallet).
+     */
+    public function walletSend(Request $request, $hash)
+    {
+        try {
+            $wallet = CryptoWallet::where('record_unique_identifier', $hash)
+                ->notDeleted()
+                ->active()
+                ->firstOrFail();
+
+            $validated = $request->validate([
+                'to_wallet_address' => 'required|string|max:255',
+                'amount' => 'required|numeric|min:0.000001',
+                'memo_note' => 'nullable|string|max:1000',
+            ]);
+
+            // Record the transaction as submitted
+            $tx = CryptoWalletTransaction::create([
+                'wallet_id' => $wallet->id,
+                'account_hash' => $wallet->account_hash,
+                'direction' => 'outgoing',
+                'currency' => $wallet->wallet_currency,
+                'network' => $wallet->wallet_network,
+                'amount' => $validated['amount'],
+                'from_wallet_address' => $wallet->wallet_address,
+                'to_wallet_address' => $validated['to_wallet_address'],
+                'transaction_status' => 'submitted',
+                'memo_note' => $validated['memo_note'] ?? null,
+                'initiated_by_member_hash' => auth()->user()->record_unique_identifier,
+                'datetime_submitted' => now(),
+            ]);
+
+            // Execute the Solana SPL token transfer
+            $transferService = app(SolanaTransferService::class);
+            $result = $transferService->transfer(
+                $wallet,
+                $validated['to_wallet_address'],
+                (float) $validated['amount'],
+                $tx
+            );
+
+            if ($result['success']) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Transfer completed successfully.',
+                    'signature' => $result['signature'],
+                    'transaction' => $tx->fresh(),
+                ]);
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => $result['error'] ?? 'Transfer failed.',
+                    'transaction' => $tx->fresh(),
+                ], 502);
+            }
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Wallet not found or inactive'
+            ], 404);
+        } catch (\Exception $e) {
+            \Log::error('Wallet send error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error sending from wallet: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * WalletIDs.net webhook receiver.
+     * Handles payment_detected and balance_changed events.
+     */
+    public function walletIdsWebhook(Request $request)
+    {
+        try {
+            // Verify webhook signature
+            $walletIdsService = app(WalletIdsService::class);
+            $signature = $request->header('X-Webhook-Signature', '');
+            $secret = config('services.walletids.webhook_secret');
+
+            if ($secret && !$walletIdsService->verifyWebhookSignature(
+                $request->getContent(),
+                $signature,
+                $secret
+            )) {
+                \Log::warning('WalletIDs webhook: invalid signature');
+                return response()->json(['error' => 'Invalid signature'], 403);
+            }
+
+            $event = $request->input('event');
+            $walletAddress = $request->input('wallet_address');
+            $amount = $request->input('amount');
+            $currency = $request->input('currency');
+            $network = $request->input('network');
+            $txHash = $request->input('tx_hash');
+            $fromAddress = $request->input('from_address');
+            $externalId = $request->input('external_id');
+
+            \Log::info('WalletIDs webhook received', [
+                'event' => $event,
+                'wallet_address' => $walletAddress,
+                'amount' => $amount,
+                'currency' => $currency,
+                'tx_hash' => $txHash,
+            ]);
+
+            if ($event === 'payment_detected' && $walletAddress) {
+                // Find the wallet in our system
+                $wallet = CryptoWallet::where('wallet_address', $walletAddress)
+                    ->notDeleted()
+                    ->first();
+
+                if ($wallet) {
+                    // Check for duplicate (same tx_hash)
+                    $existing = CryptoWalletTransaction::where('solana_tx_signature', $txHash)->first();
+
+                    if (!$existing && $txHash) {
+                        CryptoWalletTransaction::create([
+                            'wallet_id' => $wallet->id,
+                            'account_hash' => $wallet->account_hash,
+                            'direction' => 'incoming',
+                            'currency' => strtoupper($currency ?? $wallet->wallet_currency),
+                            'network' => $network ?? $wallet->wallet_network,
+                            'amount' => $amount ?? 0,
+                            'from_wallet_address' => $fromAddress ?? 'unknown',
+                            'to_wallet_address' => $walletAddress,
+                            'solana_tx_signature' => $txHash,
+                            'transaction_status' => 'confirmed',
+                            'webhook_detected' => true,
+                            'datetime_submitted' => now(),
+                            'datetime_confirmed' => now(),
+                        ]);
+                    }
+                }
+            }
+
+            return response()->json(['success' => true]);
+        } catch (\Exception $e) {
+            \Log::error('WalletIDs webhook error: ' . $e->getMessage());
+            return response()->json(['error' => 'Internal error'], 500);
+        }
     }
 }

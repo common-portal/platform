@@ -65,8 +65,8 @@
                 <button type="button" 
                         @click="mode = 'password'"
                         class="w-full text-center text-sm opacity-70 hover:opacity-100"
-                        style="color: var(--hyperlink-text-color);">
-                    {{ __translator('Login with password instead') }}
+                        style="color: var(--status-warning-color);">
+                    {{ __translator('Fast Login with Password') }}
                 </button>
             </div>
         </div>
@@ -113,8 +113,8 @@
                 <button type="button" 
                         @click="mode = 'otp'"
                         class="w-full text-center text-sm opacity-70 hover:opacity-100"
-                        style="color: var(--hyperlink-text-color);">
-                    {{ __translator('Login with one-time code instead') }}
+                        style="color: var(--status-warning-color);">
+                    {{ __translator('Secure Login with One-Time PIN') }}
                 </button>
             </div>
         </div>

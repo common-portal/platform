@@ -86,15 +86,15 @@ Stored in `custom_theme_color_overrides` as JSON object:
 use App\Models\PlatformSetting;
 
 // Set brand name
-PlatformSetting::setValue('platform_display_name', 'Common Portal');
+PlatformSetting::setValue('platform_display_name', 'xRAMP.io');
 
 // Set logo path
 PlatformSetting::setValue('platform_logo_image_path', 'uploads/platform/logo.png');
 
 // Set theme colors
 PlatformSetting::setValue('custom_theme_color_overrides', [
-    '--brand-primary-color' => '#3b82f6',
-    '--sidebar-background-color' => '#1e293b',
+    '--brand-primary-color' => '#e3be3b',
+    '--sidebar-background-color' => '#1a1a1a',
 ]);
 
 // Get values
@@ -107,9 +107,9 @@ $brandName = PlatformSetting::getCached('platform_display_name'); // Cached vers
 Set fallback defaults in `.env`:
 
 ```bash
-APP_NAME="Common Portal"
-DEFAULT_BRAND_NAME="Common Portal"
-DEFAULT_BRAND_COLOR="#3b82f6"
+APP_NAME="xRAMP.io"
+DEFAULT_BRAND_NAME="xRAMP.io"
+DEFAULT_BRAND_COLOR="#e3be3b"
 ```
 
 ---
@@ -126,7 +126,7 @@ DEFAULT_BRAND_COLOR="#3b82f6"
 | Database Column | Type | Purpose |
 |----------------|------|---------|
 | `account_display_name` | string | Account name (overrides platform name on subdomain) |
-| `whitelabel_subdomain_slug` | string | Custom subdomain (e.g., `acme` → `acme.commonportal.com`) |
+| `whitelabel_subdomain_slug` | string | Custom subdomain (e.g., `acme` → `acme.xramp.io`) |
 | `branding_logo_image_path` | string | Account logo (overrides platform logo on subdomain) |
 
 ### Subdomain Detection
@@ -180,7 +180,7 @@ $account->update([
 {sanitized_name}_{hash_prefix}_{datetime}.{ext}
 ```
 
-**Example:** `common-portal-logo_a1b2c3d4_20260128_120000.png`
+**Example:** `xramp-logo_a1b2c3d4_20260128_120000.png`
 
 ### Accessing Uploaded Files
 
@@ -262,7 +262,7 @@ PlatformSetting::setValue('active_theme_preset_name', 'dark-mode');
 
 // Optionally override specific colors
 PlatformSetting::setValue('custom_theme_color_overrides', [
-    '--brand-primary-color' => '#3b82f6', // Blue
+    '--brand-primary-color' => '#e3be3b', // Gold
 ]);
 ```
 
@@ -272,17 +272,17 @@ PlatformSetting::setValue('custom_theme_color_overrides', [
 
 ### Example 1: Default Platform Access
 
-**URL:** `https://commonportal.com/dashboard`
+**URL:** `https://xramp.io/dashboard`
 
 | Setting | Value |
 |---------|-------|
-| Brand Name | `"Common Portal"` (from `platform_settings`) |
-| Logo | `/storage/uploads/platform/common-portal-logo.png` |
+| Brand Name | `"xRAMP.io"` (from `platform_settings`) |
+| Logo | `/storage/uploads/platform/xramp-logo.png` |
 | Sidebar Colors | Platform theme colors |
 
 ### Example 2: Subdomain Tenant Access
 
-**URL:** `https://acme.commonportal.com/dashboard`
+**URL:** `https://acme.xramp.io/dashboard`
 
 **Database:**
 ```
@@ -302,26 +302,26 @@ tenant_accounts.branding_logo_image_path = "uploads/accounts/icons/acme-logo.png
 
 ## Rebranding Checklist
 
-When rebranding the platform (e.g., from "Common Portal" to "YourBrand"):
+When rebranding the platform (e.g., from "Common Portal" to "xRAMP.io"):
 
 ### 1. Update Environment Files
 
 ```bash
 # .env and .env.example
-APP_NAME="YourBrand"
-DEFAULT_BRAND_NAME="YourBrand"
-DEFAULT_BRAND_COLOR="#3b82f6"
-APP_URL=https://yourbrand.com
-APP_BASE_DOMAIN=yourbrand.com
+APP_NAME="xRAMP.io"
+DEFAULT_BRAND_NAME="xRAMP.io"
+DEFAULT_BRAND_COLOR="#e3be3b"
+APP_URL=https://xramp.io
+APP_BASE_DOMAIN=xramp.io
 ```
 
 ### 2. Update Platform Settings (Database)
 
 ```php
-PlatformSetting::setValue('platform_display_name', 'YourBrand');
-PlatformSetting::setValue('platform_logo_image_path', 'uploads/platform/yourbrand-logo.png');
+PlatformSetting::setValue('platform_display_name', 'xRAMP.io');
+PlatformSetting::setValue('platform_logo_image_path', 'uploads/platform/xramp-logo.png');
 PlatformSetting::setValue('custom_theme_color_overrides', [
-    '--brand-primary-color' => '#3b82f6',
+    '--brand-primary-color' => '#e3be3b',
 ]);
 ```
 
@@ -334,7 +334,7 @@ PlatformSetting::setValue('custom_theme_color_overrides', [
 
 ### 4. Upload New Assets
 
-- Platform logo: `storage/app/public/uploads/platform/yourbrand-logo.png`
+- Platform logo: `storage/app/public/uploads/platform/xramp-logo.png`
 - Favicon: `storage/app/public/uploads/platform/favicon.ico`
 - Meta card image: `storage/app/public/uploads/platform/meta-card-preview.png`
 
@@ -343,8 +343,8 @@ PlatformSetting::setValue('custom_theme_color_overrides', [
 ```php
 // config/mail.php
 'from' => [
-    'address' => 'noreply@yourbrand.com',
-    'name' => env('APP_NAME', 'YourBrand'),
+    'address' => 'noreply@xramp.io',
+    'name' => env('APP_NAME', 'xRAMP.io'),
 ],
 ```
 
@@ -366,7 +366,7 @@ For accounts wanting custom domains (e.g., `portal.acme.com`):
 
 **Option 1: CNAME Record**
 ```
-CNAME: portal.acme.com → acme.commonportal.com
+CNAME: portal.acme.com → acme.xramp.io
 ```
 
 **Option 2: A Record**
@@ -397,10 +397,10 @@ GET /api/branding/platform
 **Response:**
 ```json
 {
-  "platform_name": "Common Portal",
-  "platform_logo_url": "https://commonportal.com/storage/uploads/platform/common-portal-logo.png",
+  "platform_name": "xRAMP.io",
+  "platform_logo_url": "https://xramp.io/storage/uploads/platform/xramp-logo.png",
   "theme_colors": {
-    "--brand-primary-color": "#3b82f6",
+    "--brand-primary-color": "#e3be3b",
     "--sidebar-background-color": "#1e293b"
   }
 }
@@ -418,7 +418,7 @@ Authorization: Bearer {api_token}
 {
   "account_name": "Acme Corporation",
   "subdomain_slug": "acme",
-  "logo_url": "https://commonportal.com/storage/uploads/accounts/icons/acme-logo.png"
+  "logo_url": "https://xramp.io/storage/uploads/accounts/icons/acme-logo.png"
 }
 ```
 
@@ -437,7 +437,7 @@ Authorization: Bearer {api_token}
 
 ### Brand Name Guidelines
 
-- **Platform Name:** Short, memorable (e.g., "Common Portal")
+- **Platform Name:** Short, memorable (e.g., "xRAMP.io")
 - **Account Name:** Company/organization name (e.g., "Acme Corporation")
 - Avoid special characters that may break URLs/subdomains
 
@@ -478,12 +478,12 @@ Test with tools like [WebAIM Contrast Checker](https://webaim.org/resources/cont
 
 1. **Check DNS records:**
    ```bash
-   nslookup acme.commonportal.com
+   nslookup acme.xramp.io
    ```
 
 2. **Verify wildcard DNS:**
    ```
-   *.commonportal.com → [server_ip]
+   *.xramp.io → [server_ip]
    ```
 
 3. **Check tenant account:**

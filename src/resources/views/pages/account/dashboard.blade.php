@@ -8,13 +8,13 @@
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <div class="rounded-lg p-6 text-center" style="background-color: var(--card-background-color);">
-            <p class="text-3xl font-bold" style="color: var(--brand-primary-color);">{{ $teamMemberCount ?? 1 }}</p>
-            <p class="text-sm opacity-70">{{ __translator('Team Members') }}</p>
+            <p class="text-3xl font-bold" style="color: var(--brand-primary-color);">{{ $transactionCount ?? 0 }}</p>
+            <p class="text-sm opacity-70">{{ __translator('Transactions (Count)') }}</p>
         </div>
         
         <div class="rounded-lg p-6 text-center" style="background-color: var(--card-background-color);">
-            <p class="text-3xl font-bold" style="color: var(--brand-primary-color);">0</p>
-            <p class="text-sm opacity-70">{{ __translator('Pending Invitations') }}</p>
+            <p class="text-3xl font-bold" style="color: var(--brand-primary-color);">{{ number_format($transactionTotal ?? 0, 2) }}</p>
+            <p class="text-sm opacity-70">{{ __translator('Transactions (Amount)') }}</p>
         </div>
         
         <div class="rounded-lg p-6 text-center" style="background-color: var(--card-background-color);">

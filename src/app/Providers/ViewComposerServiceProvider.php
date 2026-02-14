@@ -26,11 +26,23 @@ class ViewComposerServiceProvider extends ServiceProvider
             $this->composePlatformLayout($view);
         });
 
+        View::composer('layouts.guest', function ($view) {
+            $this->composeGuestLayout($view);
+        });
+
         View::composer('components.sidebar-menu', function ($view) {
             $this->composeSidebarMenu($view);
         });
 
         View::composer('pages.homepage', function ($view) {
+            $this->composeHomepage($view);
+        });
+
+        View::composer('pages.homepage-guest', function ($view) {
+            $this->composeHomepageGuest($view);
+        });
+
+        View::composer('pages.homepage-authenticated', function ($view) {
             $this->composeHomepage($view);
         });
 
@@ -57,6 +69,26 @@ class ViewComposerServiceProvider extends ServiceProvider
             'metaDescription' => PlatformSetting::getValue('social_sharing_meta_description', 'A white-label, multi-tenant portal platform.'),
             'themeColors' => $this->getThemeColors(),
             'subdomainTenant' => $subdomainTenant,
+        ]);
+    }
+
+    /**
+     * Compose guest layout variables (branding for public/guest pages).
+     */
+    protected function composeGuestLayout($view): void
+    {
+        $subdomainTenant = $this->getSubdomainTenant();
+        
+        $view->with([
+            'platformName' => $subdomainTenant?->account_display_name 
+                ?? PlatformSetting::getValue('platform_display_name', config('app.name', 'xramp.io')),
+            'platformLogo' => $subdomainTenant?->branding_logo_image_path 
+                ?? PlatformSetting::getValue('platform_logo_image_path', '/images/platform-defaults/platform-logo.png'),
+            'favicon' => PlatformSetting::getValue('platform_favicon_image_path', '/images/platform-defaults/favicon.png'),
+            'metaImage' => PlatformSetting::getValue('social_sharing_preview_image_path', '/images/platform-defaults/meta-card-preview.png'),
+            'metaDescription' => PlatformSetting::getValue('social_sharing_meta_description', 'A white-label, multi-tenant portal platform.'),
+            'themeColors' => $this->getThemeColors(),
+            'title' => config('app.name', 'xramp.io'),
         ]);
     }
 
@@ -94,7 +126,10 @@ class ViewComposerServiceProvider extends ServiceProvider
                 ->get();
 
             if (!$activeAccountId && $userAccounts->isNotEmpty()) {
-                $activeAccountId = $userAccounts->first()->id;
+                // Try to restore last active account from DB
+                $lastAccountId = \App\Models\MemberLastActiveAccount::recall($user->id);
+                $restoredAccount = $lastAccountId ? $userAccounts->firstWhere('id', $lastAccountId) : null;
+                $activeAccountId = $restoredAccount ? $restoredAccount->id : $userAccounts->first()->id;
                 session(['active_account_id' => $activeAccountId]);
             }
 
@@ -107,23 +142,40 @@ class ViewComposerServiceProvider extends ServiceProvider
             }
         }
 
-        $menuToggles = json_decode(
-            PlatformSetting::getValue('sidebar_menu_item_visibility_toggles', '{}'),
-            true
-        ) ?? [];
+        $menuToggles = PlatformSetting::getValue('sidebar_menu_item_visibility_toggles', []);
 
+        // Pass both: admin-level visibility AND user permissions separately
+        // Admin toggles control whether item shows at all
+        // User permissions control whether shown item is enabled or disabled
         $view->with([
             'userAccounts' => $userAccounts,
             'activeAccountId' => $activeAccountId,
             'activeAccount' => $activeAccount,
             'membership' => $membership,
-            'canAccessAccountSettings' => $this->canAccessMenuItem('can_access_account_settings', $membership, $menuToggles, $user),
-            'canAccessAccountDashboard' => $this->canAccessMenuItem('can_access_account_dashboard', $membership, $menuToggles, $user),
-            'canManageTeamMembers' => $this->canAccessMenuItem('can_manage_team_members', $membership, $menuToggles, $user),
-            'canAccessDeveloperTools' => $this->canAccessMenuItem('can_access_developer_tools', $membership, $menuToggles, $user),
-            'canAccessSupportTickets' => $this->canAccessMenuItem('can_access_support_tickets', $membership, $menuToggles, $user),
-            'canViewTransactionHistory' => $this->canAccessMenuItem('can_view_transaction_history', $membership, $menuToggles, $user),
-            'canViewBillingHistory' => $this->canAccessMenuItem('can_view_billing_history', $membership, $menuToggles, $user),
+            // Admin-level toggles (platform-wide visibility)
+            'menuItemEnabled' => [
+                'account_settings' => $menuToggles['can_access_account_settings'] ?? true,
+                'dashboard' => $menuToggles['can_access_account_dashboard'] ?? true,
+                'team' => $menuToggles['can_manage_team_members'] ?? true,
+                'developer' => $menuToggles['can_access_developer_tools'] ?? true,
+                'support' => $menuToggles['can_access_support_tickets'] ?? true,
+                'transactions' => $menuToggles['can_view_transaction_history'] ?? true,
+                'billing' => $menuToggles['can_view_billing_history'] ?? true,
+                'ibans' => $menuToggles['can_view_ibans'] ?? true,
+                'wallets' => $menuToggles['can_view_wallets'] ?? true,
+                'payout' => $menuToggles['can_initiate_payout'] ?? true,
+            ],
+            // User-level permissions (team member access)
+            'canAccessAccountSettings' => $this->hasUserPermission('can_access_account_settings', $membership, $user),
+            'canAccessAccountDashboard' => $this->hasUserPermission('can_access_account_dashboard', $membership, $user),
+            'canManageTeamMembers' => $this->hasUserPermission('can_manage_team_members', $membership, $user),
+            'canAccessDeveloperTools' => $this->hasUserPermission('can_access_developer_tools', $membership, $user),
+            'canAccessSupportTickets' => $this->hasUserPermission('can_access_support_tickets', $membership, $user),
+            'canViewTransactionHistory' => $this->hasUserPermission('can_view_transaction_history', $membership, $user),
+            'canViewBillingHistory' => $this->hasUserPermission('can_view_billing_history', $membership, $user),
+            'canViewIbans' => $this->hasUserPermission('can_view_ibans', $membership, $user),
+            'canViewWallets' => $this->hasUserPermission('can_view_wallets', $membership, $user),
+            'canInitiatePayout' => $this->hasUserPermission('can_initiate_payout', $membership, $user),
         ]);
     }
 
@@ -183,6 +235,25 @@ class ViewComposerServiceProvider extends ServiceProvider
     }
 
     /**
+     * Check if user has permission for a menu item (ignores admin toggle).
+     * Used for showing disabled state on items user lacks permission for.
+     */
+    protected function hasUserPermission(string $permission, $membership, $user): bool
+    {
+        // Platform admins bypass all permission checks
+        if ($user && $user->is_platform_administrator) {
+            return true;
+        }
+
+        // Check membership permission
+        if ($membership) {
+            return $membership->hasPermission($permission);
+        }
+
+        return false;
+    }
+
+    /**
      * Compose homepage variables.
      */
     protected function composeHomepage($view): void
@@ -200,7 +271,7 @@ class ViewComposerServiceProvider extends ServiceProvider
 
             if ($activeAccount) {
                 $memberRole = $activeAccount->pivot->account_membership_role ?? 'account_team_member';
-                $teamMemberCount = $activeAccount->members()->count();
+                $teamMemberCount = $activeAccount->platform_members()->count();
             }
         }
 
@@ -208,6 +279,23 @@ class ViewComposerServiceProvider extends ServiceProvider
             'activeAccount' => $activeAccount,
             'memberRole' => $memberRole,
             'teamMemberCount' => $teamMemberCount,
+        ]);
+    }
+
+    /**
+     * Compose homepage guest variables (branding for public homepage).
+     */
+    protected function composeHomepageGuest($view): void
+    {
+        $subdomainTenant = $this->getSubdomainTenant();
+        
+        $view->with([
+            'platformName' => $subdomainTenant?->account_display_name 
+                ?? PlatformSetting::getValue('platform_display_name', config('app.name', 'xramp.io')),
+            'platformLogo' => $subdomainTenant?->branding_logo_image_path 
+                ?? PlatformSetting::getValue('platform_logo_image_path', '/images/platform-defaults/platform-logo.png'),
+            'brandPrimaryColor' => $subdomainTenant?->branding_primary_color 
+                ?? PlatformSetting::getValue('primary_brand_color', '#e3be3b'),
         ]);
     }
 }

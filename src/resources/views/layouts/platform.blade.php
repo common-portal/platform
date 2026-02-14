@@ -12,7 +12,7 @@
 
     <!-- Open Graph / Social Sharing -->
     <meta property="og:title" content="{{ $title ?? config('app.name', 'Common Portal') }}">
-    <meta property="og:description" content="{{ $metaDescription ?? 'A white-label, multi-tenant portal platform.' }}">
+    <meta property="og:description" content="{{ $metaDescription ?? 'Wholesale, High-Volume Fiat<>Crypto' }}">
     <meta property="og:image" content="{{ $metaImage ?? '/images/platform-defaults/meta-card-preview.png' }}">
     <meta property="og:type" content="website">
 
@@ -35,9 +35,6 @@
             --hyperlink-text-color: {{ $themeColors['--hyperlink-text-color'] ?? '#3b82f6' }};
             --button-background-color: {{ $themeColors['--button-background-color'] ?? '#00ff88' }};
             --button-text-color: {{ $themeColors['--button-text-color'] ?? '#1a1a2e' }};
-            --content-background-color: #0f0f1a;
-            --content-text-color: #e0e0e0;
-            --card-background-color: #1a1a2e;
             --admin-banner-background-color: #dc2626;
             --admin-banner-text-color: #ffffff;
         }
@@ -52,19 +49,18 @@
 <body class="font-sans antialiased" style="background-color: var(--content-background-color); color: var(--content-text-color);">
     
     <!-- Admin Impersonation Banner -->
-    @if(session('admin_impersonating_from'))
     @php
-        $impersonatedAccount = \App\Models\TenantAccount::find(session('active_account_id'));
+        $isImpersonating = session('admin_impersonating_from') ? true : false;
+        $impersonatedAccount = $isImpersonating ? \App\Models\TenantAccount::find(session('active_account_id')) : null;
     @endphp
-    <div id="admin-banner" class="fixed top-0 left-0 right-0 z-50 px-4 py-2 text-center text-sm font-medium" 
+    <div id="admin-banner" class="fixed top-0 left-0 right-0 z-50 px-4 py-2 text-center text-sm font-medium {{ !$isImpersonating ? 'hidden' : '' }}" 
          style="background-color: var(--admin-banner-background-color); color: var(--admin-banner-text-color);">
-        {{ __translator('ADMIN VIEW') }}: {{ __translator('Managing account') }} "<strong>{{ $impersonatedAccount?->account_display_name ?? 'Unknown' }}</strong>" 
-        ({{ $impersonatedAccount?->primary_contact_email_address ?? '' }})
+        {{ __translator('ADMIN VIEW') }}: {{ __translator('Managing account') }} "<strong id="admin-banner-account-name">{{ $impersonatedAccount?->account_display_name ?? 'Unknown' }}</strong>" 
+        (<span id="admin-banner-account-email">{{ $impersonatedAccount?->primary_contact_email_address ?? '' }}</span>)
         <a href="{{ route('admin.exit-impersonation') }}" class="ml-4 underline hover:no-underline">{{ __translator('Exit Admin View') }}</a>
     </div>
-    @endif
 
-    <div class="flex {{ session('admin_impersonating_from') ? 'pt-10' : '' }}">
+    <div id="main-container" class="flex {{ session('admin_impersonating_from') ? 'pt-10' : '' }}">
         
         <!-- Sidebar: always visible on md+, off-screen toggle on mobile -->
         <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 flex flex-col h-screen transition-transform duration-300
@@ -115,14 +111,14 @@
             </header>
 
             <!-- Page Content -->
-            <main class="flex-1 p-4 md:p-8">
+            <main class="flex-1 p-4 md:p-8" style="background-color: var(--page-background-color);">
                 @yield('content')
             </main>
 
             <!-- Footer -->
             <footer class="p-4 text-center text-sm opacity-60"
                     style="background-color: var(--sidebar-background-color); color: var(--sidebar-text-color);">
-                <p>{{ __translator('Powered by') }} <a href="https://nsdb.com" target="_NSDB" class="hover:opacity-80" style="color: var(--brand-primary-color);">NSDB.COM</a> · {{ __translator('CC0 1.0 Universal - No Rights Reserved') }}</p>
+                <p>{{ __translator('Powered by') }} <span style="color: var(--brand-primary-color);">CIDRUS SP ZOO</span></p>
             </footer>
         </div>
     </div>

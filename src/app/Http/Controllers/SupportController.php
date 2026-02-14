@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use App\Models\PlatformSetting;
 use App\Models\SupportTicketAttachment;
+use App\Services\RecaptchaService;
 
 class SupportController extends Controller
 {
@@ -22,6 +23,16 @@ class SupportController extends Controller
      */
     public function submit(Request $request)
     {
+        // Verify reCAPTCHA token
+        $recaptcha = new RecaptchaService();
+        $recaptchaResult = $recaptcha->verify($request->input('recaptcha_token'), 'support_submit');
+
+        if (!$recaptchaResult['success']) {
+            return redirect()->route('support')
+                ->withInput()
+                ->withErrors(['recaptcha_token' => $recaptchaResult['error'] ?? __('reCAPTCHA verification failed. Please try again.')]);
+        }
+
         $request->validate([
             'from_name' => 'required|string|max:255',
             'from_email' => 'required|email|max:255',

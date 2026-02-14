@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\TenantAccountMembership;
 use App\Models\TeamMembershipInvitation;
 use App\Models\PlatformMember;
+use App\Models\PlatformSetting;
 use App\Services\PlatformMailerService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -69,12 +70,22 @@ class TeamController extends Controller
             ->orderBy('created_at_timestamp', 'desc')
             ->get();
 
+        // Get menu toggles to filter available permissions
+        $menuToggles = PlatformSetting::getValue('sidebar_menu_item_visibility_toggles', []);
+        
+        // Filter permissions based on enabled menu items
+        $allPermissions = TenantAccountMembership::allPermissionSlugs();
+        $enabledPermissions = array_filter($allPermissions, function($permission) use ($menuToggles) {
+            // If toggle doesn't exist or is true, show the permission
+            return !isset($menuToggles[$permission]) || $menuToggles[$permission];
+        });
+
         return view('pages.account.team', [
             'account' => $account,
             'memberships' => $memberships,
             'pendingInvitations' => $pendingInvitations,
             'currentMembership' => $currentMembership,
-            'allPermissions' => TenantAccountMembership::allPermissionSlugs(),
+            'allPermissions' => array_values($enabledPermissions),
         ]);
     }
 
@@ -237,9 +248,19 @@ class TeamController extends Controller
             }
         }
 
+        // Get menu toggles to filter available permissions
+        $menuToggles = PlatformSetting::getValue('sidebar_menu_item_visibility_toggles', []);
+        
+        // Filter permissions based on enabled menu items
+        $allPermissions = TenantAccountMembership::allPermissionSlugs();
+        $enabledPermissions = array_filter($allPermissions, function($permission) use ($menuToggles) {
+            // If toggle doesn't exist or is true, show the permission
+            return !isset($menuToggles[$permission]) || $menuToggles[$permission];
+        });
+
         return view('pages.account.team-invite', [
             'account' => $account,
-            'allPermissions' => TenantAccountMembership::allPermissionSlugs(),
+            'allPermissions' => array_values($enabledPermissions),
             'permissionLabels' => TenantAccountMembership::permissionLabels(),
             'defaultPermissions' => TenantAccountMembership::defaultTeamMemberPermissions(),
         ]);

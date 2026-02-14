@@ -35,4 +35,14 @@ return [
         ],
     ],
 
+    'walletids' => [
+        'base_url' => env('WALLETIDS_BASE_URL', 'https://walletids.net/api'),
+        'api_key' => env('WALLETIDS_API_KEY', ''),
+        'webhook_secret' => env('WALLETIDS_WEBHOOK_SECRET', ''),
+    ],
+
+    'solana' => [
+        'rpc_url' => env('SOLANA_RPC_URL', 'https://api.mainnet-beta.solana.com'),
+    ],
+
 ];

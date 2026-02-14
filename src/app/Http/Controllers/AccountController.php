@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\TenantAccount;
 use App\Models\TenantAccountMembership;
+use App\Models\Transaction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -34,10 +35,13 @@ class AccountController extends Controller
             $member = auth()->user();
 
             // Create business account
+            // Use member name only if they have an actual name set (not email fallback)
+            $memberName = trim("{$member->member_first_name} {$member->member_last_name}");
+            
             $account = TenantAccount::create([
                 'account_display_name' => $request->account_display_name,
                 'account_type' => 'business_organization',
-                'primary_contact_full_name' => $member->full_name,
+                'primary_contact_full_name' => $memberName ?: '',
                 'primary_contact_email_address' => $request->primary_contact_email_address ?: $member->login_email_address,
             ]);
 
@@ -61,6 +65,7 @@ class AccountController extends Controller
 
             // Switch to the new account
             session(['active_account_id' => $account->id]);
+            \App\Models\MemberLastActiveAccount::remember($member->id, $account->id);
 
             return redirect()->route('account.settings')
                 ->with('status', __translator('Business account created successfully!'));
@@ -99,6 +104,13 @@ class AccountController extends Controller
                         ->first();
                 }
             }
+        }
+
+        // If primary_contact_full_name is empty, default to current member's name (not email)
+        if ($account && empty($account->primary_contact_full_name)) {
+            $member = auth()->user();
+            $memberName = trim("{$member->member_first_name} {$member->member_last_name}");
+            $account->primary_contact_full_name = $memberName ?: '';
         }
 
         return view('pages.account.settings', [
@@ -395,5 +407,47 @@ class AccountController extends Controller
         }
 
         return back()->with('status', __translator('Account logo removed.'));
+    }
+
+    /**
+     * Show account dashboard with statistics.
+     */
+    public function dashboard()
+    {
+        $activeAccountId = session('active_account_id');
+        
+        if (!$activeAccountId) {
+            return redirect()->route('home')->with('error', 'No active account selected.');
+        }
+
+        // Get transaction count
+        $transactionCount = Transaction::where('tenant_account_id', $activeAccountId)->count();
+        
+        // Get total transaction amount (sum of all received amounts)
+        $transactionTotal = Transaction::where('tenant_account_id', $activeAccountId)
+            ->sum('amount');
+
+        return view('pages.account.dashboard', [
+            'transactionCount' => $transactionCount,
+            'transactionTotal' => $transactionTotal,
+        ]);
+    }
+
+    /**
+     * Show transactions for the active account.
+     */
+    public function transactions()
+    {
+        $accountId = session('active_account_id');
+        
+        if (!$accountId) {
+            return redirect()->route('dashboard')->with('error', 'No active account selected.');
+        }
+
+        $transactions = Transaction::where('tenant_account_id', $accountId)
+            ->orderBy('datetime_updated', 'desc')
+            ->paginate(20);
+
+        return view('pages.account.transactions', compact('transactions'));
     }
 }

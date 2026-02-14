@@ -25,7 +25,7 @@
         
         {{-- Logo --}}
         @if($logoPath)
-            <img src="{{ Storage::url($logoPath) }}" 
+            <img src="{{ asset($logoPath) }}" 
                  alt="{{ $platformName }}" 
                  class="w-auto mb-10"
                  style="height: 333px;">
@@ -36,11 +36,6 @@
                  class="w-auto mb-8"
                  style="height: 300px;">
         @endif
-        
-        {{-- Powered By --}}
-        <p class="text-xl opacity-60 mt-6">
-            Powered by <a href="https://nsdb.com/?tab=services" target="_NSDB" class="hover:opacity-80" style="color: var(--brand-primary-color);">NSDB.COM</a>
-        </p>
     </div>
 
     {{-- Account Overview --}}

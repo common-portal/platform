@@ -177,20 +177,128 @@ HTML;
         
         <p>{$inviteText}</p>
         
-        <p>{$clickText}</p>
+        <p style="margin-bottom: 30px;">{$clickText}</p>
         
-        <div style="text-align: center; margin: 30px 0;">
-            <a href="{$acceptUrl}" style="display: inline-block; background-color: #00ff88; color: #1a1a2e; padding: 14px 28px; border-radius: 6px; text-decoration: none; font-weight: 600;">
-                {$acceptText}
-            </a>
-        </div>
+        <p style="font-size: 18px; margin: 30px 0;">
+            <a href="{$acceptUrl}" style="color: #00ff88; text-decoration: underline; font-weight: 600;">➜ {$acceptText}</a>
+        </p>
         
-        <p style="opacity: 0.7; font-size: 14px;">{$copyText} <a href="{$acceptUrl}" style="color: #3b82f6;">{$acceptUrl}</a></p>
+        <p style="opacity: 0.7; font-size: 14px; margin-top: 30px;">{$copyText}</p>
+        <p style="opacity: 0.7; font-size: 14px;"><a href="{$acceptUrl}" style="color: #3b82f6;">{$acceptUrl}</a></p>
         
         <hr style="border: none; border-top: 1px solid #2a2a4e; margin: 30px 0;">
         
         <p style="opacity: 0.5; font-size: 12px; margin: 0;">
             {$ignoreText}
+        </p>
+    </div>
+</body>
+</html>
+HTML;
+    }
+
+    /**
+     * Send payment received notification email.
+     */
+    public function sendPaymentReceivedEmail(
+        string $recipientEmail,
+        string $recipientName,
+        string $accountName,
+        string $amount,
+        string $currencyCode,
+        string $ibanNumber,
+        string $senderName,
+        string $transactionDateTime
+    ): array {
+        $platformName = $this->defaultFromName;
+        $subject = "Payment Received: {$currencyCode} {$amount}";
+
+        $htmlMessage = $this->buildPaymentReceivedEmailHtml(
+            $accountName,
+            $amount,
+            $currencyCode,
+            $ibanNumber,
+            $senderName,
+            $transactionDateTime,
+            $platformName
+        );
+
+        return $this->send(
+            recipientEmail: $recipientEmail,
+            subject: $subject,
+            htmlMessage: $htmlMessage,
+            recipientName: $recipientName
+        );
+    }
+
+    /**
+     * Build HTML for payment received email.
+     */
+    protected function buildPaymentReceivedEmailHtml(
+        string $accountName,
+        string $amount,
+        string $currencyCode,
+        string $ibanNumber,
+        string $senderName,
+        string $transactionDateTime,
+        string $platformName
+    ): string {
+        $headerText = __translator('Payment Received');
+        $introText = __translator("A payment has been received into your account.");
+        $accountLabel = __translator('Account');
+        $amountLabel = __translator('Amount');
+        $senderLabel = __translator('Sender');
+        $ibanLabel = __translator('IBAN');
+        $dateLabel = __translator('Date/Time');
+        $footerText = __translator('This is an automated notification. Please log in to your account to view full transaction details.');
+
+        // Mask IBAN for security (show last 4 digits)
+        $maskedIban = '****' . substr($ibanNumber, -4);
+
+        return <<<HTML
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #0f0f1a; color: #e0e0e0; padding: 40px 20px; margin: 0;">
+    <div style="max-width: 480px; margin: 0 auto; background-color: #1a1a2e; border-radius: 8px; padding: 40px;">
+        <h1 style="color: #00ff88; margin: 0 0 20px 0; font-size: 24px;">{$platformName}</h1>
+        
+        <h2 style="color: #00ff88; margin: 0 0 20px 0; font-size: 20px;">✓ {$headerText}</h2>
+        
+        <p>{$introText}</p>
+        
+        <div style="background-color: #0f0f1a; border-radius: 8px; padding: 20px; margin: 20px 0;">
+            <table style="width: 100%; border-collapse: collapse;">
+                <tr>
+                    <td style="padding: 8px 0; opacity: 0.7;">{$accountLabel}:</td>
+                    <td style="padding: 8px 0; text-align: right; font-weight: 600;">{$accountName}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px 0; opacity: 0.7;">{$amountLabel}:</td>
+                    <td style="padding: 8px 0; text-align: right; font-weight: 600; color: #00ff88; font-size: 18px;">{$currencyCode} {$amount}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px 0; opacity: 0.7;">{$senderLabel}:</td>
+                    <td style="padding: 8px 0; text-align: right; font-weight: 500;">{$senderName}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px 0; opacity: 0.7;">{$ibanLabel}:</td>
+                    <td style="padding: 8px 0; text-align: right; font-family: monospace;">{$maskedIban}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px 0; opacity: 0.7;">{$dateLabel}:</td>
+                    <td style="padding: 8px 0; text-align: right;">{$transactionDateTime}</td>
+                </tr>
+            </table>
+        </div>
+        
+        <hr style="border: none; border-top: 1px solid #2a2a4e; margin: 30px 0;">
+        
+        <p style="opacity: 0.5; font-size: 12px; margin: 0;">
+            {$footerText}
         </p>
     </div>
 </body>

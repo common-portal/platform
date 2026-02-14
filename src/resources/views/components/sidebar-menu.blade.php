@@ -74,13 +74,15 @@
     <div class="space-y-1">
         
         {{-- Account Settings --}}
-        @if($canAccessAccountSettings ?? true)
         @php
             $currentAccount = \App\Models\TenantAccount::find(session('active_account_id'));
+            $isAccountSettingsEnabled = $menuItemEnabled['account_settings'] ?? true;
+            $hasAccountSettingsAccess = $canAccessAccountSettings ?? true;
         @endphp
+        @if($isAccountSettingsEnabled && $hasAccountSettingsAccess)
         <a href="/account/settings" 
            class="sidebar-menu-item flex items-center px-3 py-2 rounded-md text-sm transition-colors"
-           style="color: var(--sidebar-text-color);">
+           style="color: var(--sidebar-text-color); {{ request()->is('account/settings') ? 'background-color: var(--sidebar-hover-background-color); border-left: 3px solid var(--brand-primary-color); padding-left: calc(0.75rem - 3px);' : '' }}">
             @if($currentAccount && $currentAccount->branding_logo_image_path)
             <img src="{{ asset('storage/' . $currentAccount->branding_logo_image_path) }}" 
                  alt="{{ $currentAccount->account_display_name }}" 
@@ -93,94 +95,322 @@
             @endif
             {{ __translator('Account') }}
         </a>
+        @elseif($isAccountSettingsEnabled)
+        {{-- Enabled but no permission - show disabled --}}
+        <div class="relative" x-data="{ showTooltip: false }" @mouseenter="showTooltip = true" @mouseleave="showTooltip = false">
+            <span class="sidebar-menu-item flex items-center px-3 py-2 rounded-md text-sm transition-colors cursor-not-allowed opacity-50"
+                  style="color: var(--sidebar-text-color);">
+                @if($currentAccount && $currentAccount->branding_logo_image_path)
+                <img src="{{ asset('storage/' . $currentAccount->branding_logo_image_path) }}" 
+                     alt="{{ $currentAccount->account_display_name }}" 
+                     class="w-5 h-5 mr-3 rounded object-cover">
+                @else
+                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                          d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                </svg>
+                @endif
+                {{ __translator('Account') }}
+            </span>
+            <div x-show="showTooltip" 
+                 x-cloak
+                 class="fixed px-3 py-2 rounded-md text-sm z-[9999] shadow-lg"
+                 style="left: 270px; min-width: 280px; background-color: var(--card-background-color); color: var(--status-warning-color); border: 1px solid var(--sidebar-hover-background-color);">
+                {{ __translator('Access denied - contact your account administrator') }}
+            </div>
+        </div>
         @endif
+        {{-- If not enabled at admin level, don't show at all --}}
 
         {{-- Dashboard --}}
-        @if($canAccessAccountDashboard ?? true)
+        @php
+            $isDashboardEnabled = $menuItemEnabled['dashboard'] ?? true;
+            $hasDashboardAccess = $canAccessAccountDashboard ?? true;
+        @endphp
+        @if($isDashboardEnabled && $hasDashboardAccess)
         <a href="/account/dashboard" 
            class="sidebar-menu-item flex items-center px-3 py-2 rounded-md text-sm transition-colors"
-           style="color: var(--sidebar-text-color);">
+           style="color: var(--sidebar-text-color); {{ request()->is('account/dashboard') ? 'background-color: var(--sidebar-hover-background-color); border-left: 3px solid var(--brand-primary-color); padding-left: calc(0.75rem - 3px);' : '' }}">
             <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                       d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"/>
             </svg>
             {{ __translator('Dashboard') }}
         </a>
+        @elseif($isDashboardEnabled)
+        <div class="relative" x-data="{ showTooltip: false }" @mouseenter="showTooltip = true" @mouseleave="showTooltip = false">
+            <span class="sidebar-menu-item flex items-center px-3 py-2 rounded-md text-sm transition-colors cursor-not-allowed opacity-50"
+                  style="color: var(--sidebar-text-color);">
+                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                          d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"/>
+                </svg>
+                {{ __translator('Dashboard') }}
+            </span>
+            <div x-show="showTooltip" 
+                 x-cloak
+                 class="fixed px-3 py-2 rounded-md text-sm z-[9999] shadow-lg"
+                 style="left: 270px; min-width: 280px; background-color: var(--card-background-color); color: var(--status-warning-color); border: 1px solid var(--sidebar-hover-background-color);">
+                {{ __translator('Access denied - contact your account administrator') }}
+            </div>
+        </div>
         @endif
 
         {{-- Transactions (optional module) --}}
-        @if($canViewTransactionHistory ?? false)
+        @php
+            $isTransactionsEnabled = $menuItemEnabled['transactions'] ?? true;
+            $hasTransactionAccess = $canViewTransactionHistory ?? false;
+        @endphp
+        @if($isTransactionsEnabled && $hasTransactionAccess)
         <a href="/modules/transactions" 
            class="sidebar-menu-item flex items-center px-3 py-2 rounded-md text-sm transition-colors"
-           style="color: var(--sidebar-text-color);">
+           style="color: var(--sidebar-text-color); {{ request()->is('modules/transactions*') ? 'background-color: var(--sidebar-hover-background-color); border-left: 3px solid var(--brand-primary-color); padding-left: calc(0.75rem - 3px);' : '' }}">
             <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                       d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
             </svg>
             {{ __translator('Transactions') }}
         </a>
+        @elseif($isTransactionsEnabled)
+        <div class="relative" x-data="{ showTooltip: false }" @mouseenter="showTooltip = true" @mouseleave="showTooltip = false">
+            <span class="sidebar-menu-item flex items-center px-3 py-2 rounded-md text-sm transition-colors cursor-not-allowed opacity-50"
+                  style="color: var(--sidebar-text-color);">
+                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                          d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+                </svg>
+                {{ __translator('Transactions') }}
+            </span>
+            <div x-show="showTooltip" 
+                 x-cloak
+                 class="fixed px-3 py-2 rounded-md text-sm z-[9999] shadow-lg"
+                 style="left: 270px; min-width: 280px; background-color: var(--card-background-color); color: var(--status-warning-color); border: 1px solid var(--sidebar-hover-background-color);">
+                {{ __translator('Access denied - contact your account administrator') }}
+            </div>
+        </div>
+        @endif
+
+        {{-- Payout (optional module) --}}
+        @php
+            $isPayoutEnabled = $menuItemEnabled['payout'] ?? true;
+            $hasPayoutAccess = $canInitiatePayout ?? false;
+        @endphp
+        @if($isPayoutEnabled && $hasPayoutAccess)
+        <a href="/modules/payout" 
+           class="sidebar-menu-item flex items-center px-3 py-2 rounded-md text-sm transition-colors"
+           style="color: var(--sidebar-text-color); {{ request()->is('modules/payout*') ? 'background-color: var(--sidebar-hover-background-color); border-left: 3px solid var(--brand-primary-color); padding-left: calc(0.75rem - 3px);' : '' }}">
+            <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                      d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+            </svg>
+            {{ __translator('Payout') }}
+        </a>
+        @elseif($isPayoutEnabled)
+        <div class="relative" x-data="{ showTooltip: false }" @mouseenter="showTooltip = true" @mouseleave="showTooltip = false">
+            <span class="sidebar-menu-item flex items-center px-3 py-2 rounded-md text-sm transition-colors cursor-not-allowed opacity-50"
+                  style="color: var(--sidebar-text-color);">
+                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                          d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+                </svg>
+                {{ __translator('Payout') }}
+            </span>
+            <div x-show="showTooltip" 
+                 x-cloak
+                 class="fixed px-3 py-2 rounded-md text-sm z-[9999] shadow-lg"
+                 style="left: 270px; min-width: 280px; background-color: var(--card-background-color); color: var(--status-warning-color); border: 1px solid var(--sidebar-hover-background-color);">
+                {{ __translator('Access denied - contact your account administrator') }}
+            </div>
+        </div>
         @endif
 
         {{-- Billing (optional module) --}}
-        @if($canViewBillingHistory ?? false)
+        @php
+            $isBillingEnabled = $menuItemEnabled['billing'] ?? true;
+            $hasBillingAccess = $canViewBillingHistory ?? false;
+        @endphp
+        @if($isBillingEnabled && $hasBillingAccess)
         <a href="/modules/billing" 
            class="sidebar-menu-item flex items-center px-3 py-2 rounded-md text-sm transition-colors"
-           style="color: var(--sidebar-text-color);">
+           style="color: var(--sidebar-text-color); {{ request()->is('modules/billing*') ? 'background-color: var(--sidebar-hover-background-color); border-left: 3px solid var(--brand-primary-color); padding-left: calc(0.75rem - 3px);' : '' }}">
             <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                       d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
             </svg>
             {{ __translator('Billing') }}
         </a>
+        @elseif($isBillingEnabled)
+        <div class="relative" x-data="{ showTooltip: false }" @mouseenter="showTooltip = true" @mouseleave="showTooltip = false">
+            <span class="sidebar-menu-item flex items-center px-3 py-2 rounded-md text-sm transition-colors cursor-not-allowed opacity-50"
+                  style="color: var(--sidebar-text-color);">
+                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                {{ __translator('Billing') }}
+            </span>
+            <div x-show="showTooltip" 
+                 x-cloak
+                 class="fixed px-3 py-2 rounded-md text-sm z-[9999] shadow-lg"
+                 style="left: 270px; min-width: 280px; background-color: var(--card-background-color); color: var(--status-warning-color); border: 1px solid var(--sidebar-hover-background-color);">
+                {{ __translator('Access denied - contact your account administrator') }}
+            </div>
+        </div>
+        @endif
+
+        {{-- IBANs (optional module) --}}
+        @php
+            $isIbansEnabled = $menuItemEnabled['ibans'] ?? true;
+            $hasIbanAccess = $canViewIbans ?? false;
+        @endphp
+        @if($isIbansEnabled && $hasIbanAccess)
+        <a href="/modules/ibans" 
+           class="sidebar-menu-item flex items-center px-3 py-2 rounded-md text-sm transition-colors"
+           style="color: var(--sidebar-text-color); {{ request()->is('modules/ibans*') ? 'background-color: var(--sidebar-hover-background-color); border-left: 3px solid var(--brand-primary-color); padding-left: calc(0.75rem - 3px);' : '' }}">
+            <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                      d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+            </svg>
+            {{ __translator('IBANs') }}
+        </a>
+        @elseif($isIbansEnabled)
+        <div class="relative" x-data="{ showTooltip: false }" @mouseenter="showTooltip = true" @mouseleave="showTooltip = false">
+            <span class="sidebar-menu-item flex items-center px-3 py-2 rounded-md text-sm transition-colors cursor-not-allowed opacity-50"
+                  style="color: var(--sidebar-text-color);">
+                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                          d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                </svg>
+                {{ __translator('IBANs') }}
+            </span>
+            <div x-show="showTooltip" 
+                 x-cloak
+                 class="fixed px-3 py-2 rounded-md text-sm z-[9999] shadow-lg"
+                 style="left: 270px; min-width: 280px; background-color: var(--card-background-color); color: var(--status-warning-color); border: 1px solid var(--sidebar-hover-background-color);">
+                {{ __translator('Access denied - contact your account administrator') }}
+            </div>
+        </div>
+        @endif
+
+        {{-- Wallets (optional module) --}}
+        @php
+            $isWalletsEnabled = $menuItemEnabled['wallets'] ?? true;
+            $hasWalletAccess = $canViewWallets ?? false;
+        @endphp
+        @if($isWalletsEnabled && $hasWalletAccess)
+        <a href="/modules/wallets" 
+           class="sidebar-menu-item flex items-center px-3 py-2 rounded-md text-sm transition-colors"
+           style="color: var(--sidebar-text-color); {{ request()->is('modules/wallets*') ? 'background-color: var(--sidebar-hover-background-color); border-left: 3px solid var(--brand-primary-color); padding-left: calc(0.75rem - 3px);' : '' }}">
+            <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                      d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
+            </svg>
+            {{ __translator('Wallets') }}
+        </a>
+        @elseif($isWalletsEnabled)
+        <div class="relative" x-data="{ showTooltip: false }" @mouseenter="showTooltip = true" @mouseleave="showTooltip = false">
+            <span class="sidebar-menu-item flex items-center px-3 py-2 rounded-md text-sm transition-colors cursor-not-allowed opacity-50"
+                  style="color: var(--sidebar-text-color);">
+                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                          d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
+                </svg>
+                {{ __translator('Wallets') }}
+            </span>
+            <div x-show="showTooltip" 
+                 x-cloak
+                 class="fixed px-3 py-2 rounded-md text-sm z-[9999] shadow-lg"
+                 style="left: 270px; min-width: 280px; background-color: var(--card-background-color); color: var(--status-warning-color); border: 1px solid var(--sidebar-hover-background-color);">
+                {{ __translator('Access denied - contact your account administrator') }}
+            </div>
+        </div>
         @endif
 
         {{-- Developer (optional module) --}}
-        @if($canAccessDeveloperTools ?? false)
+        @php
+            $isDeveloperEnabled = $menuItemEnabled['developer'] ?? true;
+            $hasDeveloperAccess = $canAccessDeveloperTools ?? false;
+        @endphp
+        @if($isDeveloperEnabled && $hasDeveloperAccess)
         <a href="/modules/developer" 
            class="sidebar-menu-item flex items-center px-3 py-2 rounded-md text-sm transition-colors"
-           style="color: var(--sidebar-text-color);">
+           style="color: var(--sidebar-text-color); {{ request()->is('modules/developer*') ? 'background-color: var(--sidebar-hover-background-color); border-left: 3px solid var(--brand-primary-color); padding-left: calc(0.75rem - 3px);' : '' }}">
             <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                       d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/>
             </svg>
             {{ __translator('Developer') }}
         </a>
+        @elseif($isDeveloperEnabled)
+        <div class="relative" x-data="{ showTooltip: false }" @mouseenter="showTooltip = true" @mouseleave="showTooltip = false">
+            <span class="sidebar-menu-item flex items-center px-3 py-2 rounded-md text-sm transition-colors cursor-not-allowed opacity-50"
+                  style="color: var(--sidebar-text-color);">
+                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                          d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/>
+                </svg>
+                {{ __translator('Developer') }}
+            </span>
+            <div x-show="showTooltip" 
+                 x-cloak
+                 class="fixed px-3 py-2 rounded-md text-sm z-[9999] shadow-lg"
+                 style="left: 270px; min-width: 280px; background-color: var(--card-background-color); color: var(--status-warning-color); border: 1px solid var(--sidebar-hover-background-color);">
+                {{ __translator('Access denied - contact your account administrator') }}
+            </div>
+        </div>
         @endif
 
-        {{-- Team (disabled for Personal accounts with tooltip) --}}
+        {{-- Team (disabled for Personal accounts or no permission) --}}
         @php
             $activeAccount = \App\Models\TenantAccount::find(session('active_account_id'));
             $isPersonalAccount = $activeAccount && $activeAccount->account_type === 'personal_individual';
+            $isTeamEnabled = $menuItemEnabled['team'] ?? true;
+            $hasTeamAccess = $canManageTeamMembers ?? true;
         @endphp
-        @if($canManageTeamMembers ?? true)
-            @if($isPersonalAccount)
-            <div class="relative" x-data="{ showTooltip: false }" @mouseenter="showTooltip = true" @mouseleave="showTooltip = false">
-                <span class="sidebar-menu-item flex items-center px-3 py-2 rounded-md text-sm transition-colors cursor-not-allowed opacity-50"
-                      style="color: var(--sidebar-text-color);">
-                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                              d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
-                    </svg>
-                    {{ __translator('Team') }}
-                </span>
-                <div x-show="showTooltip" 
-                     x-cloak
-                     class="fixed px-3 py-2 rounded-md text-sm z-[9999] shadow-lg"
-                     style="left: 270px; min-width: 280px; background-color: var(--card-background-color); color: var(--status-warning-color); border: 1px solid var(--sidebar-hover-background-color);">
-                    {{ __translator('Add / Select a Business Account to invite Team members.') }}
-                </div>
-            </div>
-            @else
-            <a href="/account/team" 
-               class="sidebar-menu-item flex items-center px-3 py-2 rounded-md text-sm transition-colors"
-               style="color: var(--sidebar-text-color);">
+        @if($isTeamEnabled && $isPersonalAccount)
+        <div class="relative" x-data="{ showTooltip: false }" @mouseenter="showTooltip = true" @mouseleave="showTooltip = false">
+            <span class="sidebar-menu-item flex items-center px-3 py-2 rounded-md text-sm transition-colors cursor-not-allowed opacity-50"
+                  style="color: var(--sidebar-text-color);">
                 <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                           d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
                 </svg>
                 {{ __translator('Team') }}
-            </a>
-            @endif
+            </span>
+            <div x-show="showTooltip" 
+                 x-cloak
+                 class="fixed px-3 py-2 rounded-md text-sm z-[9999] shadow-lg"
+                 style="left: 270px; min-width: 280px; background-color: var(--card-background-color); color: var(--status-warning-color); border: 1px solid var(--sidebar-hover-background-color);">
+                {{ __translator('Add / Select a Business Account to invite Team members.') }}
+            </div>
+        </div>
+        @elseif($isTeamEnabled && $hasTeamAccess)
+        <a href="/account/team" 
+           class="sidebar-menu-item flex items-center px-3 py-2 rounded-md text-sm transition-colors"
+           style="color: var(--sidebar-text-color); {{ request()->is('account/team*') ? 'background-color: var(--sidebar-hover-background-color); border-left: 3px solid var(--brand-primary-color); padding-left: calc(0.75rem - 3px);' : '' }}">
+            <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                      d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+            </svg>
+            {{ __translator('Team') }}
+        </a>
+        @elseif($isTeamEnabled)
+        <div class="relative" x-data="{ showTooltip: false }" @mouseenter="showTooltip = true" @mouseleave="showTooltip = false">
+            <span class="sidebar-menu-item flex items-center px-3 py-2 rounded-md text-sm transition-colors cursor-not-allowed opacity-50"
+                  style="color: var(--sidebar-text-color);">
+                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                          d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+                </svg>
+                {{ __translator('Team') }}
+            </span>
+            <div x-show="showTooltip" 
+                 x-cloak
+                 class="fixed px-3 py-2 rounded-md text-sm z-[9999] shadow-lg"
+                 style="left: 270px; min-width: 280px; background-color: var(--card-background-color); color: var(--status-warning-color); border: 1px solid var(--sidebar-hover-background-color);">
+                {{ __translator('Access denied - contact your account administrator') }}
+            </div>
+        </div>
         @endif
 
     </div>
@@ -190,7 +420,7 @@
     {{-- Member Profile --}}
     <a href="/member/settings" 
        class="sidebar-menu-item flex items-center px-3 py-2 rounded-md text-sm transition-colors"
-       style="color: var(--sidebar-text-color);">
+       style="color: var(--sidebar-text-color); {{ request()->is('member/settings*') ? 'background-color: var(--sidebar-hover-background-color); border-left: 3px solid var(--brand-primary-color); padding-left: calc(0.75rem - 3px);' : '' }}">
         @if(auth()->user()->profile_avatar_image_path)
         <img src="{{ asset('storage/' . auth()->user()->profile_avatar_image_path) }}" 
              alt="{{ auth()->user()->full_name }}" 
@@ -208,23 +438,46 @@
     @if(auth()->user()->is_platform_administrator)
     <a href="/administrator/support-tickets" 
        class="sidebar-menu-item flex items-center px-3 py-2 rounded-md text-sm transition-colors"
-       style="color: var(--sidebar-text-color);">
+       style="color: var(--sidebar-text-color); {{ request()->is('administrator/support-tickets*') ? 'background-color: var(--sidebar-hover-background-color); border-left: 3px solid var(--brand-primary-color); padding-left: calc(0.75rem - 3px);' : '' }}">
         <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                   d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z"/>
         </svg>
         {{ __translator('Support') }}
     </a>
-    @elseif($canAccessSupportTickets ?? false)
-    <a href="/modules/support" 
-       class="sidebar-menu-item flex items-center px-3 py-2 rounded-md text-sm transition-colors"
-       style="color: var(--sidebar-text-color);">
-        <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                  d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z"/>
-        </svg>
-        {{ __translator('Support') }}
-    </a>
+    @else
+        @php
+            $isSupportEnabled = $menuItemEnabled['support'] ?? true;
+            $hasSupportAccess = $canAccessSupportTickets ?? false;
+        @endphp
+        @if($isSupportEnabled && $hasSupportAccess)
+        <a href="/modules/support" 
+           class="sidebar-menu-item flex items-center px-3 py-2 rounded-md text-sm transition-colors"
+           style="color: var(--sidebar-text-color); {{ request()->is('modules/support*') ? 'background-color: var(--sidebar-hover-background-color); border-left: 3px solid var(--brand-primary-color); padding-left: calc(0.75rem - 3px);' : '' }}">
+            <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                      d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z"/>
+            </svg>
+            {{ __translator('Support') }}
+        </a>
+        @elseif($isSupportEnabled)
+        <div class="relative" x-data="{ showTooltip: false }" @mouseenter="showTooltip = true" @mouseleave="showTooltip = false">
+            <span class="sidebar-menu-item flex items-center px-3 py-2 rounded-md text-sm transition-colors cursor-not-allowed opacity-50"
+                  style="color: var(--sidebar-text-color);">
+                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                          d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z"/>
+                </svg>
+                {{ __translator('Support') }}
+            </span>
+            <div x-show="showTooltip" 
+                 x-cloak
+                 class="fixed px-3 py-2 rounded-md text-sm z-[9999] shadow-lg"
+                 style="left: 270px; min-width: 280px; background-color: var(--card-background-color); color: var(--status-warning-color); border: 1px solid var(--sidebar-hover-background-color);">
+                {{ __translator('Access denied - contact your account administrator') }}
+            </div>
+        </div>
+        @endif
     @endif
 
     {{-- Exit / Logout --}}

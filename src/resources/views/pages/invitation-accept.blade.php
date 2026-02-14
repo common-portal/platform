@@ -22,7 +22,6 @@
         <div class="mb-6 p-4 rounded-lg" style="background-color: var(--content-background-color);">
             <p class="text-sm font-medium mb-2">{{ __translator('Invitation Details') }}</p>
             <p class="text-sm opacity-70">{{ __translator('Email') }}: {{ $invitation->invited_email_address }}</p>
-            <p class="text-sm opacity-70">{{ __translator('Sent') }}: {{ $invitation->created_at_timestamp->diffForHumans() }}</p>
         </div>
 
         @auth

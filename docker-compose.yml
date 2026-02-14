@@ -1,12 +1,12 @@
+# Common Portal Platform - Base Docker Compose Configuration
+# Environment-specific settings (ports, container names) go in docker-compose.override.yml
+
 services:
   app:
     build:
       context: .
       dockerfile: docker/Dockerfile.dev
-    container_name: platform-app
     restart: unless-stopped
-    ports:
-      - "8080:80"
     environment:
       - DB_CONNECTION=pgsql
       - DB_HOST=postgres
@@ -24,12 +24,9 @@ services:
         condition: service_started
     volumes:
       - ./src:/var/www/html
-    networks:
-      - platform-network
 
   postgres:
     image: postgres:16-alpine
-    container_name: platform-postgres
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${DB_DATABASE:-platform}
@@ -37,47 +34,32 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD:-secret}
     volumes:
       - pgdata:/var/lib/postgresql/data
-    ports:
-      - "127.0.0.1:5432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-platform} -d ${DB_DATABASE:-platform}"]
       interval: 5s
       timeout: 5s
       retries: 5
-    networks:
-      - platform-network
 
   redis:
     image: redis:7-alpine
-    container_name: platform-redis
     restart: unless-stopped
     command: redis-server /usr/local/etc/redis/redis.conf
     volumes:
       - redisdata:/data
       - ./docker/redis.conf:/usr/local/etc/redis/redis.conf:ro
-    ports:
-      - "127.0.0.1:6379:6379"
-    networks:
-      - platform-network
 
-  # Adminer for local database management (accessed via /adminer path)
   adminer:
     image: adminer:latest
-    container_name: platform-adminer
     restart: unless-stopped
     environment:
       - ADMINER_DEFAULT_SERVER=postgres
     depends_on:
       - postgres
-    networks:
-      - platform-network
 
-  # Queue worker for background jobs (uses same image as app)
   queue:
     build:
       context: .
       dockerfile: docker/Dockerfile.dev
-    container_name: platform-queue
     restart: unless-stopped
     command: php artisan queue:work --sleep=3 --tries=3
     environment:
@@ -94,13 +76,7 @@ services:
       - app
     volumes:
       - ./src:/var/www/html
-    networks:
-      - platform-network
 
 volumes:
   pgdata:
   redisdata:
-
-networks:
-  platform-network:
-    driver: bridge

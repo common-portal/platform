@@ -7,6 +7,7 @@ use App\Services\PlatformMailerService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use PragmaRX\Google2FALaravel\Google2FA;
 
 class MemberController extends Controller
 {
@@ -283,5 +284,59 @@ class MemberController extends Controller
         }
 
         return back()->with('status', __translator('Profile photo removed.'));
+    }
+
+    /**
+     * Enable 2FA - generate secret and show QR code.
+     */
+    public function enableTwoFactor()
+    {
+        $google2fa = app(Google2FA::class);
+        $secret = $google2fa->generateSecretKey();
+
+        auth()->user()->update([
+            'two_factor_secret_key' => $secret,
+            'two_factor_enabled_at_timestamp' => null,
+        ]);
+
+        return back()->with('two_factor_status', __translator('Scan the QR code with your authenticator app, then enter the 6-digit code to activate.'));
+    }
+
+    /**
+     * Confirm 2FA - verify code and activate.
+     */
+    public function confirmTwoFactor(Request $request)
+    {
+        $request->validate([
+            'code' => 'required|string|size:6',
+        ]);
+
+        $member = auth()->user();
+        $google2fa = app(Google2FA::class);
+
+        $valid = $google2fa->verifyKey($member->two_factor_secret_key, $request->code);
+
+        if (!$valid) {
+            return back()->withErrors(['code' => __translator('Invalid code. Please try again.')]);
+        }
+
+        $member->update([
+            'two_factor_enabled_at_timestamp' => now(),
+        ]);
+
+        return back()->with('two_factor_status', __translator('Two-factor authentication is now active.'));
+    }
+
+    /**
+     * Disable 2FA.
+     */
+    public function disableTwoFactor()
+    {
+        auth()->user()->update([
+            'two_factor_secret_key' => null,
+            'two_factor_enabled_at_timestamp' => null,
+        ]);
+
+        return back()->with('two_factor_status', __translator('Two-factor authentication has been disabled.'));
     }
 }

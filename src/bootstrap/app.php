@@ -15,6 +15,12 @@ return Application::configure(basePath: dirname(__DIR__))
         // Trust all proxies (nginx reverse proxy)
         $middleware->trustProxies(at: '*');
         
+        // Exclude logout GET from CSRF to prevent 419 errors on expired sessions
+        $middleware->validateCsrfTokens(except: [
+            '/logout',
+            '/webhooks/*',
+        ]);
+        
         $middleware->web(append: [
             \App\Http\Middleware\ResolveSubdomainTenant::class,
         ]);
@@ -24,5 +30,11 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        // Handle 419 (CSRF token expired) gracefully - redirect back with message
+        $exceptions->renderable(function (\Symfony\Component\HttpKernel\Exception\HttpException $e, $request) {
+            if ($e->getStatusCode() === 419) {
+                return redirect()->route('login-register')
+                    ->with('status', __('Your session has expired. Please try again.'));
+            }
+        });
     })->create();

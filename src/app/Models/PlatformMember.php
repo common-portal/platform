@@ -28,18 +28,31 @@ class PlatformMember extends Authenticatable
         'preferred_language_code',
         'is_platform_administrator',
         'email_verified_at_timestamp',
+        'two_factor_secret_key',
+        'two_factor_enabled_at_timestamp',
     ];
 
     protected $hidden = [
         'hashed_login_password',
+        'two_factor_secret_key',
     ];
 
     protected $casts = [
         'is_platform_administrator' => 'boolean',
         'email_verified_at_timestamp' => 'datetime',
+        'two_factor_secret_key' => 'encrypted',
+        'two_factor_enabled_at_timestamp' => 'datetime',
         'created_at_timestamp' => 'datetime',
         'updated_at_timestamp' => 'datetime',
     ];
+
+    /**
+     * Check if the member has 2FA enabled.
+     */
+    public function hasTwoFactorEnabled(): bool
+    {
+        return !is_null($this->two_factor_enabled_at_timestamp);
+    }
 
     /**
      * Get the password attribute for Laravel auth.

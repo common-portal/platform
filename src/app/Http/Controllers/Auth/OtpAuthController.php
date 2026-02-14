@@ -13,6 +13,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
+use PragmaRX\Google2FALaravel\Google2FA;
 
 class OtpAuthController extends Controller
 {
@@ -175,16 +176,36 @@ class OtpAuthController extends Controller
         // Clear OTP session data
         session()->forget(['otp_email', 'otp_member_id']);
 
+        // Check if member has 2FA enabled
+        if ($member->hasTwoFactorEnabled()) {
+            session(['two_factor_member_id' => $member->id]);
+            return redirect()->route('two-factor.challenge');
+        }
+
         // Log the member in
         Auth::login($member, true);
 
-        // Set active account to first available
-        $firstAccount = $member->tenant_accounts()
-            ->wherePivot('membership_status', 'membership_active')
-            ->first();
+        // Restore last active account, or fall back to first available
+        $lastAccountId = \App\Models\MemberLastActiveAccount::recall($member->id);
+        $restoredAccount = null;
 
-        if ($firstAccount) {
-            session(['active_account_id' => $firstAccount->id]);
+        if ($lastAccountId) {
+            $restoredAccount = $member->tenant_accounts()
+                ->where('tenant_accounts.id', $lastAccountId)
+                ->where('is_soft_deleted', false)
+                ->wherePivot('membership_status', 'membership_active')
+                ->first();
+        }
+
+        if (!$restoredAccount) {
+            $restoredAccount = $member->tenant_accounts()
+                ->where('is_soft_deleted', false)
+                ->wherePivot('membership_status', 'membership_active')
+                ->first();
+        }
+
+        if ($restoredAccount) {
+            session(['active_account_id' => $restoredAccount->id]);
         }
 
         // Check for pending invitation
@@ -225,15 +246,35 @@ class OtpAuthController extends Controller
             return back()->withErrors(['password' => __translator('Invalid password.')]);
         }
 
+        // Check if member has 2FA enabled
+        if ($member->hasTwoFactorEnabled()) {
+            session(['two_factor_member_id' => $member->id]);
+            return redirect()->route('two-factor.challenge');
+        }
+
         Auth::login($member, $request->boolean('remember'));
 
-        // Set active account
-        $firstAccount = $member->tenant_accounts()
-            ->wherePivot('membership_status', 'membership_active')
-            ->first();
+        // Restore last active account, or fall back to first available
+        $lastAccountId = \App\Models\MemberLastActiveAccount::recall($member->id);
+        $restoredAccount = null;
 
-        if ($firstAccount) {
-            session(['active_account_id' => $firstAccount->id]);
+        if ($lastAccountId) {
+            $restoredAccount = $member->tenant_accounts()
+                ->where('tenant_accounts.id', $lastAccountId)
+                ->where('is_soft_deleted', false)
+                ->wherePivot('membership_status', 'membership_active')
+                ->first();
+        }
+
+        if (!$restoredAccount) {
+            $restoredAccount = $member->tenant_accounts()
+                ->where('is_soft_deleted', false)
+                ->wherePivot('membership_status', 'membership_active')
+                ->first();
+        }
+
+        if ($restoredAccount) {
+            session(['active_account_id' => $restoredAccount->id]);
         }
 
         // Check for pending invitation
@@ -302,6 +343,87 @@ class OtpAuthController extends Controller
     }
 
     /**
+     * Show the 2FA challenge form.
+     */
+    public function showTwoFactorChallenge()
+    {
+        if (!session('two_factor_member_id')) {
+            return redirect()->route('login-register');
+        }
+
+        return view('pages.two-factor-challenge');
+    }
+
+    /**
+     * Verify the 2FA challenge code.
+     */
+    public function verifyTwoFactorChallenge(Request $request)
+    {
+        $request->validate([
+            'code' => 'required|string|size:6',
+        ]);
+
+        $memberId = session('two_factor_member_id');
+
+        if (!$memberId) {
+            return redirect()->route('login-register')
+                ->withErrors(['email' => __translator('Session expired. Please start again.')]);
+        }
+
+        $member = PlatformMember::find($memberId);
+
+        if (!$member) {
+            session()->forget('two_factor_member_id');
+            return redirect()->route('login-register')
+                ->withErrors(['email' => __translator('Member not found. Please start again.')]);
+        }
+
+        $google2fa = app(Google2FA::class);
+        $valid = $google2fa->verifyKey($member->two_factor_secret_key, $request->code);
+
+        if (!$valid) {
+            return back()->withErrors(['code' => __translator('Invalid code. Please try again.')]);
+        }
+
+        // Clear 2FA session
+        session()->forget('two_factor_member_id');
+
+        // Log the member in
+        Auth::login($member, true);
+
+        // Restore last active account, or fall back to first available
+        $lastAccountId = \App\Models\MemberLastActiveAccount::recall($member->id);
+        $restoredAccount = null;
+
+        if ($lastAccountId) {
+            $restoredAccount = $member->tenant_accounts()
+                ->where('tenant_accounts.id', $lastAccountId)
+                ->where('is_soft_deleted', false)
+                ->wherePivot('membership_status', 'membership_active')
+                ->first();
+        }
+
+        if (!$restoredAccount) {
+            $restoredAccount = $member->tenant_accounts()
+                ->where('is_soft_deleted', false)
+                ->wherePivot('membership_status', 'membership_active')
+                ->first();
+        }
+
+        if ($restoredAccount) {
+            session(['active_account_id' => $restoredAccount->id]);
+        }
+
+        // Check for pending invitation
+        if ($pendingToken = session('pending_invitation_token')) {
+            session()->forget('pending_invitation_token');
+            return redirect()->route('invitation.accept', ['token' => $pendingToken]);
+        }
+
+        return redirect()->route('home')->with('status', __translator('Welcome back!'));
+    }
+
+    /**
      * Logout the member.
      */
     public function logout(Request $request)
@@ -319,6 +441,6 @@ class OtpAuthController extends Controller
             session(['preferred_language' => $preferredLanguage]);
         }
 
-        return redirect()->route('home');
+        return redirect()->route('login-register');
     }
 }
