@@ -197,6 +197,7 @@ class TenantAccountMembership extends Model
             'can_manage_team_members',
             'can_access_support_tickets',
             'can_initiate_payout',
+            'can_view_fees',
         ];
     }
 
@@ -216,6 +217,7 @@ class TenantAccountMembership extends Model
             'can_manage_team_members' => 'Team Members',
             'can_access_support_tickets' => 'Support Tickets',
             'can_initiate_payout' => 'Payout',
+            'can_view_fees' => 'Fees',
         ];
     }
 
