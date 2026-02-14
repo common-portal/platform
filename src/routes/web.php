@@ -263,8 +263,10 @@ Route::middleware([
         Route::get('/support/{ticket_id}', [ModuleController::class, 'supportShow'])->name('support.show');
         Route::post('/support/{ticket_id}/reply', [ModuleController::class, 'supportReply'])->name('support.reply');
         
-        // Transactions
-        Route::get('/transactions', [ModuleController::class, 'transactions'])->name('transactions');
+        // Transactions Hub
+        Route::get('/transactions', [ModuleController::class, 'transactionsHub'])->name('transactions');
+        Route::get('/transactions/fiat-exchange', [ModuleController::class, 'transactions'])->name('transactions.fiat-exchange');
+        Route::get('/transactions/crypto-exchange', [ModuleController::class, 'cryptoExchangeTransactions'])->name('transactions.crypto-exchange');
         
         // Billing
         Route::get('/billing', [ModuleController::class, 'billing'])->name('billing');

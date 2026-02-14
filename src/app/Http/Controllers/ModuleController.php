@@ -409,7 +409,19 @@ class ModuleController extends Controller
     }
 
     /**
-     * Transactions history page.
+     * Transactions hub page — links to sub-categories.
+     */
+    public function transactionsHub()
+    {
+        if (!$this->checkModulePermission('can_view_transaction_history')) {
+            abort(403, 'You do not have permission to view Transaction History.');
+        }
+
+        return view('pages.modules.transactions-hub');
+    }
+
+    /**
+     * Fiat exchange transactions history page.
      */
     public function transactions(Request $request)
     {
@@ -531,6 +543,74 @@ class ModuleController extends Controller
 
         return view('pages.modules.transactions', [
             'transactions' => $transactions,
+        ]);
+    }
+
+    /**
+     * Crypto exchange (wallet) transactions history page.
+     */
+    public function cryptoExchangeTransactions(Request $request)
+    {
+        if (!$this->checkModulePermission('can_view_transaction_history')) {
+            abort(403, 'You do not have permission to view Transaction History.');
+        }
+
+        $activeAccountId = session('active_account_id');
+
+        if (!$activeAccountId) {
+            if (session('admin_impersonating_from') || (auth()->user() && auth()->user()->is_platform_administrator)) {
+                return redirect()->route('admin.accounts')
+                    ->withErrors(['account' => 'Please impersonate an account first to view transactions.']);
+            }
+            return redirect()->route('home')->withErrors(['account' => 'Please select an account first.']);
+        }
+
+        $account = TenantAccount::find($activeAccountId);
+
+        if (!$account) {
+            return redirect()->route('home')->withErrors(['account' => 'Account not found.']);
+        }
+
+        $query = CryptoWalletTransaction::where('account_hash', $account->record_unique_identifier)
+            ->with('wallet');
+
+        // Filter by wallet
+        if ($request->filled('wallet_hash')) {
+            $wallet = CryptoWallet::where('record_unique_identifier', $request->wallet_hash)
+                ->where('account_hash', $account->record_unique_identifier)
+                ->first();
+            if ($wallet) {
+                $query->where('wallet_id', $wallet->id);
+            }
+        }
+
+        // Filter by direction
+        if ($request->filled('direction') && in_array($request->direction, ['incoming', 'outgoing'])) {
+            $query->where('direction', $request->direction);
+        }
+
+        // Filter by status
+        if ($request->filled('status') && in_array($request->status, ['submitted', 'confirmed', 'finalized', 'failed'])) {
+            $query->where('transaction_status', $request->status);
+        }
+
+        // Filter by currency
+        if ($request->filled('currency') && in_array($request->currency, ['USDT', 'USDC', 'EURC', 'SOL'])) {
+            $query->where('currency', $request->currency);
+        }
+
+        $transactions = $query->orderBy('datetime_created', 'desc')->limit(200)->get();
+
+        // Fetch wallets for the filter dropdown
+        $wallets = CryptoWallet::where('account_hash', $account->record_unique_identifier)
+            ->notDeleted()
+            ->orderBy('wallet_friendly_name')
+            ->get();
+
+        return view('pages.modules.transactions-crypto-exchange', [
+            'transactions' => $transactions,
+            'wallets' => $wallets,
+            'account' => $account,
         ]);
     }
 
