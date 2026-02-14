@@ -9,10 +9,10 @@ return new class extends Migration
 {
     public function up(): void
     {
-        DB::statement("CREATE TYPE transaction_status_enum AS ENUM ('received', 'exchanged', 'settled')");
-        DB::statement("CREATE TYPE settlement_account_type_enum AS ENUM ('crypto', 'fiat')");
-        DB::statement("CREATE TYPE currency_code_enum AS ENUM ('EUR', 'GBP', 'USD', 'USDT', 'USDC', 'EURC', 'GBPC', 'BTC', 'ETH', 'XRP', 'SOL', 'ADA', 'MATIC', 'AVAX', 'DOT', 'LINK', 'UNI', 'LTC', 'BCH', 'XLM', 'ALGO', 'ATOM', 'TRX')");
-        DB::statement("CREATE TYPE network_type_enum AS ENUM ('solana', 'ethereum', 'polygon', 'bsc', 'avalanche', 'arbitrum', 'optimism', 'base', 'tron', 'stellar')");
+        DB::statement("DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'transaction_status_enum') THEN CREATE TYPE transaction_status_enum AS ENUM ('received', 'exchanged', 'settled'); END IF; END $$");
+        DB::statement("DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'settlement_account_type_enum') THEN CREATE TYPE settlement_account_type_enum AS ENUM ('crypto', 'fiat'); END IF; END $$");
+        DB::statement("DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'currency_code_enum') THEN CREATE TYPE currency_code_enum AS ENUM ('EUR', 'GBP', 'USD', 'USDT', 'USDC', 'EURC', 'GBPC', 'BTC', 'ETH', 'XRP', 'SOL', 'ADA', 'MATIC', 'AVAX', 'DOT', 'LINK', 'UNI', 'LTC', 'BCH', 'XLM', 'ALGO', 'ATOM', 'TRX'); END IF; END $$");
+        DB::statement("DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'network_type_enum') THEN CREATE TYPE network_type_enum AS ENUM ('solana', 'ethereum', 'polygon', 'bsc', 'avalanche', 'arbitrum', 'optimism', 'base', 'tron', 'stellar'); END IF; END $$");
 
         Schema::create('transactions', function (Blueprint $table) {
             $table->id();
