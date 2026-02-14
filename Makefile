@@ -29,12 +29,18 @@ shell:
 migrate:
 	docker-compose exec app php artisan migrate
 
-# Fresh migration with seeders
+# ⚠️  DANGEROUS: Drops ALL tables and recreates. NEVER run on production.
+# Blocked by default. Only works in local dev with explicit confirmation.
 fresh:
+	@echo "⚠️  WARNING: migrate:fresh DROPS ALL TABLES and destroys all data!"
+	@echo "This is for LOCAL DEVELOPMENT ONLY."
+	@read -p "Type 'DESTROY' to confirm: " confirm && [ "$$confirm" = "DESTROY" ] || (echo "Aborted." && exit 1)
 	docker-compose exec app php artisan migrate:fresh --seed
 
-# Run seeders
+# ⚠️  Seeders are blocked in production via DatabaseSeeder.php safeguard.
 seed:
+	@echo "⚠️  WARNING: Seeders can overwrite existing data."
+	@echo "In production, seeders are automatically blocked."
 	docker-compose exec app php artisan db:seed
 
 # Run tests

@@ -14,6 +14,14 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        // PRODUCTION SAFEGUARD: Abort if running in production
+        if (app()->environment('production')) {
+            $this->command->error('🚫 SEEDER BLOCKED: Cannot run seeders in production environment.');
+            $this->command->error('   Seeders are for local development only.');
+            $this->command->error('   Use artisan tinker for production data changes.');
+            return;
+        }
+
         // User::factory(10)->withPersonalTeam()->create();
 
         User::factory()->withPersonalTeam()->create([
