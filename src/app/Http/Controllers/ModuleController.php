@@ -844,16 +844,8 @@ class ModuleController extends Controller
             ->orderBy('wallet_friendly_name')
             ->get();
 
-        // Fetch all wallet transactions for this account (eager load wallet for display)
-        $transactions = CryptoWalletTransaction::where('account_hash', $account->record_unique_identifier)
-            ->with('wallet')
-            ->orderBy('datetime_created', 'desc')
-            ->limit(100)
-            ->get();
-
         return view('pages.modules.wallets', [
             'wallets' => $wallets,
-            'transactions' => $transactions,
             'account' => $account,
         ]);
     }
