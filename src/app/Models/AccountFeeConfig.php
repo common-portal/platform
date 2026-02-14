@@ -7,11 +7,11 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use App\Traits\HasRecordUniqueIdentifier;
 
-class IbanAccount extends Model
+class AccountFeeConfig extends Model
 {
     use HasFactory, HasRecordUniqueIdentifier;
 
-    protected $table = 'iban_accounts';
+    protected $table = 'account_fee_configs';
 
     public $timestamps = false;
 
@@ -21,13 +21,10 @@ class IbanAccount extends Model
     protected $fillable = [
         'record_unique_identifier',
         'account_hash',
-        'iban_friendly_name',
-        'iban_ledger',
-        'iban_currency_iso3',
-        'iban_number',
-        'bic_routing',
-        'iban_owner',
-        'iban_host_bank_hash',
+        'currency_code',
+        'fixed_fee',
+        'percentage_fee',
+        'minimum_fee',
         'creator_member_hash',
         'is_active',
         'is_deleted',
@@ -36,55 +33,35 @@ class IbanAccount extends Model
     ];
 
     protected $casts = [
+        'fixed_fee' => 'decimal:5',
+        'percentage_fee' => 'decimal:2',
+        'minimum_fee' => 'decimal:5',
         'is_active' => 'boolean',
         'is_deleted' => 'boolean',
         'datetime_created' => 'datetime',
         'datetime_updated' => 'datetime',
     ];
 
-    /**
-     * Get the tenant account associated with this IBAN.
-     */
     public function tenant_account(): BelongsTo
     {
         return $this->belongsTo(TenantAccount::class, 'account_hash', 'record_unique_identifier');
     }
 
-    /**
-     * Get the creator member.
-     */
     public function creator(): BelongsTo
     {
         return $this->belongsTo(PlatformMember::class, 'creator_member_hash', 'record_unique_identifier');
     }
 
-    /**
-     * Get the host bank for this IBAN.
-     */
-    public function host_bank(): BelongsTo
-    {
-        return $this->belongsTo(IbanHostBank::class, 'iban_host_bank_hash', 'record_unique_identifier');
-    }
-
-    /**
-     * Scope to get non-deleted IBANs.
-     */
     public function scopeNotDeleted($query)
     {
         return $query->where('is_deleted', false);
     }
 
-    /**
-     * Scope to get active IBANs.
-     */
     public function scopeActive($query)
     {
         return $query->where('is_active', true)->where('is_deleted', false);
     }
 
-    /**
-     * Soft delete the IBAN account.
-     */
     public function softDelete(): void
     {
         $this->update([

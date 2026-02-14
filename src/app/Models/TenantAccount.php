@@ -25,6 +25,7 @@ class TenantAccount extends Model
         'branding_logo_image_path',
         'primary_contact_full_name',
         'primary_contact_email_address',
+        'customer_support_email',
         'is_soft_deleted',
         'soft_deleted_at_timestamp',
     ];
