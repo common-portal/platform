@@ -38,7 +38,7 @@
     <div class="rounded-lg p-6 mb-6" style="background-color: #333333;">
         <h2 class="text-lg font-semibold mb-4" style="color: var(--status-warning-color);">{{ __translator('Search Collections') }}</h2>
 
-        <form method="GET" action="{{ route('transactions.directdebit') }}">
+        <form method="GET" action="{{ route('modules.transactions.directdebit') }}">
             <div class="grid grid-cols-2 gap-4 mb-4">
                 <div>
                     <label class="block text-sm font-medium mb-2">{{ __translator('Customer Name') }}</label>
@@ -97,7 +97,7 @@
                         style="background-color: var(--brand-secondary-color); color: #1a1a2e;">
                     {{ __translator('Search') }}
                 </button>
-                <a href="{{ route('transactions.directdebit') }}" class="px-5 py-2 rounded-md text-sm font-semibold"
+                <a href="{{ route('modules.transactions.directdebit') }}" class="px-5 py-2 rounded-md text-sm font-semibold"
                    style="background-color: rgba(255,255,255,0.1); color: #fff; text-decoration: none;">
                     {{ __translator('Clear Filters') }}
                 </a>
@@ -329,7 +329,7 @@
                                                 {{ __translator('Cancel') }}
                                             </button>
                                             <button type="button" @click.stop="
-                                                fetch('{{ route('transactions.directdebit.refund', $collection->id) }}', {
+                                                fetch('{{ route('modules.transactions.directdebit.refund', $collection->id) }}', {
                                                     method: 'POST',
                                                     headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' }
                                                 }).then(r => r.json()).then(data => {
