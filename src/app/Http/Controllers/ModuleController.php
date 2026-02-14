@@ -615,6 +615,140 @@ class ModuleController extends Controller
     }
 
     /**
+     * Payout hub page — links to crypto and fiat payout flows.
+     */
+    public function payoutHub()
+    {
+        if (!$this->checkModulePermission('can_initiate_payout')) {
+            abort(403, 'You do not have permission to initiate Payouts.');
+        }
+
+        return view('pages.modules.payout-hub');
+    }
+
+    /**
+     * Crypto payout form.
+     */
+    public function payoutCrypto()
+    {
+        if (!$this->checkModulePermission('can_initiate_payout')) {
+            abort(403, 'You do not have permission to initiate Payouts.');
+        }
+
+        $activeAccountId = session('active_account_id');
+
+        if (!$activeAccountId) {
+            if (session('admin_impersonating_from') || (auth()->user() && auth()->user()->is_platform_administrator)) {
+                return redirect()->route('admin.accounts')
+                    ->withErrors(['account' => 'Please impersonate an account first.']);
+            }
+            return redirect()->route('home')->withErrors(['account' => 'Please select an account first.']);
+        }
+
+        $account = TenantAccount::find($activeAccountId);
+
+        if (!$account) {
+            return redirect()->route('home')->withErrors(['account' => 'Account not found.']);
+        }
+
+        $wallets = CryptoWallet::where('account_hash', $account->record_unique_identifier)
+            ->notDeleted()
+            ->orderBy('wallet_currency')
+            ->orderBy('wallet_friendly_name')
+            ->get();
+
+        return view('pages.modules.payout-crypto', [
+            'wallets' => $wallets,
+            'account' => $account,
+        ]);
+    }
+
+    /**
+     * Process crypto payout — delegates to walletSend.
+     */
+    public function payoutCryptoStore(Request $request)
+    {
+        if (!$this->checkModulePermission('can_initiate_payout')) {
+            abort(403, 'You do not have permission to initiate Payouts.');
+        }
+
+        $request->validate([
+            'wallet_hash' => 'required|string',
+            'amount' => 'required|numeric|min:0.000001',
+            'destination_address' => 'required|string|min:32|max:255',
+            'memo' => 'nullable|string|max:255',
+        ]);
+
+        // Delegate to the existing walletSend method
+        return $this->walletSend($request->wallet_hash);
+    }
+
+    /**
+     * Fiat payout form.
+     */
+    public function payoutFiat()
+    {
+        if (!$this->checkModulePermission('can_initiate_payout')) {
+            abort(403, 'You do not have permission to initiate Payouts.');
+        }
+
+        $activeAccountId = session('active_account_id');
+
+        if (!$activeAccountId) {
+            if (session('admin_impersonating_from') || (auth()->user() && auth()->user()->is_platform_administrator)) {
+                return redirect()->route('admin.accounts')
+                    ->withErrors(['account' => 'Please impersonate an account first.']);
+            }
+            return redirect()->route('home')->withErrors(['account' => 'Please select an account first.']);
+        }
+
+        $account = TenantAccount::find($activeAccountId);
+
+        if (!$account) {
+            return redirect()->route('home')->withErrors(['account' => 'Account not found.']);
+        }
+
+        // Fetch IBANs for this account
+        $ibans = \App\Models\IbanAccount::where('account_hash', $account->record_unique_identifier)
+            ->where('is_deleted', false)
+            ->orderBy('iban_friendly_name')
+            ->get();
+
+        return view('pages.modules.payout-fiat', [
+            'ibans' => $ibans,
+            'account' => $account,
+        ]);
+    }
+
+    /**
+     * Process fiat payout (Phase 2 — placeholder).
+     */
+    public function payoutFiatStore(Request $request)
+    {
+        if (!$this->checkModulePermission('can_initiate_payout')) {
+            abort(403, 'You do not have permission to initiate Payouts.');
+        }
+
+        $request->validate([
+            'source_iban_id' => 'required|integer',
+            'amount' => 'required|numeric|min:0.01',
+            'currency' => 'required|in:EUR,GBP,USD',
+            'rail' => 'required|in:sepa,swift',
+            'beneficiary_name' => 'required|string|max:255',
+            'destination_iban' => 'required|string|max:34',
+            'bic_swift' => 'nullable|string|max:11',
+            'bank_name' => 'nullable|string|max:255',
+            'reference' => 'nullable|string|max:140',
+        ]);
+
+        // Phase 2: Process fiat payout via banking API
+        return response()->json([
+            'success' => false,
+            'message' => 'Fiat payout processing is not yet available. Coming soon.',
+        ], 501);
+    }
+
+    /**
      * Billing history page.
      */
     public function billing()

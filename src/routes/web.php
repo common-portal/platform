@@ -268,6 +268,13 @@ Route::middleware([
         Route::get('/transactions/fiat-exchange', [ModuleController::class, 'transactions'])->name('transactions.fiat-exchange');
         Route::get('/transactions/crypto-exchange', [ModuleController::class, 'cryptoExchangeTransactions'])->name('transactions.crypto-exchange');
         
+        // Payout Hub
+        Route::get('/payout', [ModuleController::class, 'payoutHub'])->name('payout');
+        Route::get('/payout/crypto', [ModuleController::class, 'payoutCrypto'])->name('payout.crypto');
+        Route::post('/payout/crypto', [ModuleController::class, 'payoutCryptoStore'])->name('payout.crypto.store');
+        Route::get('/payout/fiat', [ModuleController::class, 'payoutFiat'])->name('payout.fiat');
+        Route::post('/payout/fiat', [ModuleController::class, 'payoutFiatStore'])->name('payout.fiat.store');
+        
         // Billing
         Route::get('/billing', [ModuleController::class, 'billing'])->name('billing');
         

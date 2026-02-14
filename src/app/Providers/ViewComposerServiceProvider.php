@@ -163,6 +163,7 @@ class ViewComposerServiceProvider extends ServiceProvider
                 'billing' => $menuToggles['can_view_billing_history'] ?? true,
                 'ibans' => $menuToggles['can_view_ibans'] ?? true,
                 'wallets' => $menuToggles['can_view_wallets'] ?? true,
+                'payout' => $menuToggles['can_initiate_payout'] ?? true,
             ],
             // User-level permissions (team member access)
             'canAccessAccountSettings' => $this->hasUserPermission('can_access_account_settings', $membership, $user),
@@ -174,6 +175,7 @@ class ViewComposerServiceProvider extends ServiceProvider
             'canViewBillingHistory' => $this->hasUserPermission('can_view_billing_history', $membership, $user),
             'canViewIbans' => $this->hasUserPermission('can_view_ibans', $membership, $user),
             'canViewWallets' => $this->hasUserPermission('can_view_wallets', $membership, $user),
+            'canInitiatePayout' => $this->hasUserPermission('can_initiate_payout', $membership, $user),
         ]);
     }
 

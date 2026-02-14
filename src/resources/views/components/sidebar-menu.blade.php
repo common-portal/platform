@@ -190,6 +190,40 @@
         </div>
         @endif
 
+        {{-- Payout (optional module) --}}
+        @php
+            $isPayoutEnabled = $menuItemEnabled['payout'] ?? true;
+            $hasPayoutAccess = $canInitiatePayout ?? false;
+        @endphp
+        @if($isPayoutEnabled && $hasPayoutAccess)
+        <a href="/modules/payout" 
+           class="sidebar-menu-item flex items-center px-3 py-2 rounded-md text-sm transition-colors"
+           style="color: var(--sidebar-text-color); {{ request()->is('modules/payout*') ? 'background-color: var(--sidebar-hover-background-color); border-left: 3px solid var(--brand-primary-color); padding-left: calc(0.75rem - 3px);' : '' }}">
+            <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                      d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+            </svg>
+            {{ __translator('Payout') }}
+        </a>
+        @elseif($isPayoutEnabled)
+        <div class="relative" x-data="{ showTooltip: false }" @mouseenter="showTooltip = true" @mouseleave="showTooltip = false">
+            <span class="sidebar-menu-item flex items-center px-3 py-2 rounded-md text-sm transition-colors cursor-not-allowed opacity-50"
+                  style="color: var(--sidebar-text-color);">
+                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                          d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+                </svg>
+                {{ __translator('Payout') }}
+            </span>
+            <div x-show="showTooltip" 
+                 x-cloak
+                 class="fixed px-3 py-2 rounded-md text-sm z-[9999] shadow-lg"
+                 style="left: 270px; min-width: 280px; background-color: var(--card-background-color); color: var(--status-warning-color); border: 1px solid var(--sidebar-hover-background-color);">
+                {{ __translator('Access denied - contact your account administrator') }}
+            </div>
+        </div>
+        @endif
+
         {{-- Billing (optional module) --}}
         @php
             $isBillingEnabled = $menuItemEnabled['billing'] ?? true;
