@@ -26,6 +26,7 @@ services:
       - DB_SSLMODE=require
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
       - CACHE_DRIVER=redis
       - SESSION_DRIVER=redis
       - QUEUE_CONNECTION=redis
@@ -40,9 +41,10 @@ services:
     image: redis:7-alpine
     container_name: platform-redis
     restart: unless-stopped
-    command: redis-server --appendonly yes
+    command: redis-server /usr/local/etc/redis/redis.conf
     volumes:
       - redisdata:/data
+      - ./docker/redis.conf:/usr/local/etc/redis/redis.conf:ro
     networks:
       - platform-network
 
@@ -65,6 +67,7 @@ services:
       - DB_SSLMODE=require
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
       - QUEUE_CONNECTION=redis
     depends_on:
       - app
