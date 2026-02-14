@@ -33,7 +33,14 @@
         </div>
     </div>
 
-    <h1 class="text-2xl font-bold mb-6">Transaction History</h1>
+    <div class="flex items-center gap-3 mb-6">
+        <a href="{{ route('modules.transactions') }}" class="opacity-70 hover:opacity-100 transition-opacity">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
+        </a>
+        <h1 class="text-2xl font-bold">{{ __translator('Fiat Exchange Transactions') }}</h1>
+    </div>
 
     @if(session('status'))
     <div class="mb-4 p-3 rounded-md text-sm" style="background-color: var(--status-success-color); color: white;">
@@ -45,7 +52,7 @@
     <div class="rounded-lg p-6 mb-6" style="background-color: #333333;">
         <h2 class="text-lg font-semibold mb-4" style="color: var(--status-warning-color);">Search Transactions</h2>
         
-        <form method="GET" action="{{ route('modules.transactions') }}">
+        <form method="GET" action="{{ route('modules.transactions.fiat-exchange') }}">
             {{-- Basic Search Fields (Always Visible) --}}
             <div class="grid grid-cols-2 gap-4 mb-4">
                 <div>
@@ -216,7 +223,7 @@
                         style="background-color: var(--brand-secondary-color); color: white;">
                     Search
                 </button>
-                <a href="{{ route('modules.transactions') }}" class="px-6 py-2 rounded-md font-medium hover:opacity-80" 
+                <a href="{{ route('modules.transactions.fiat-exchange') }}" class="px-6 py-2 rounded-md font-medium hover:opacity-80" 
                    style="background-color: var(--sidebar-hover-background-color);">
                     Clear Filters
                 </a>

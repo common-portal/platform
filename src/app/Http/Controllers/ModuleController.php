@@ -433,7 +433,19 @@ class ModuleController extends Controller
     }
 
     /**
-     * Transactions history page.
+     * Transactions hub page — links to sub-categories.
+     */
+    public function transactionsHub()
+    {
+        if (!$this->checkModulePermission('can_view_transaction_history')) {
+            abort(403, 'You do not have permission to view Transaction History.');
+        }
+
+        return view('pages.modules.transactions-hub');
+    }
+
+    /**
+     * Fiat exchange transactions history page.
      */
     public function transactions(Request $request)
     {
