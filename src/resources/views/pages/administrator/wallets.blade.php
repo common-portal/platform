@@ -407,7 +407,7 @@ function walletData() {
                             @click="if (walletType !== 'gas') walletCurrency = 'EURC'" 
                             class="px-4 py-2 rounded-md font-medium transition-all"
                             :disabled="walletType === 'gas'"
-                            :style="walletCurrency === 'EURC' ? 'background-color: #0052ff; color: white;' : walletType === 'gas' ? 'background-color: var(--content-background-color); opacity: 0.3; cursor: not-allowed;' : 'background-color: var(--content-background-color); opacity: 0.6;'">
+                            :style="walletCurrency === 'EURC' ? 'background-color: #7c3aed; color: white;' : walletType === 'gas' ? 'background-color: var(--content-background-color); opacity: 0.3; cursor: not-allowed;' : 'background-color: var(--content-background-color); opacity: 0.6;'">
                         EURC (Circle)
                     </button>
                     <button type="button" 
@@ -566,7 +566,7 @@ function walletData() {
                             </td>
                             <td class="py-3 px-2">
                                 <span class="px-2 py-1 rounded text-xs font-medium"
-                                      :style="wallet.wallet_currency === 'USDT' ? 'background-color: #26a17b; color: white;' : wallet.wallet_currency === 'EURC' ? 'background-color: #0052ff; color: white;' : wallet.wallet_currency === 'SOL' ? 'background-color: #dc2626; color: white;' : 'background-color: #2775ca; color: white;'"
+                                      :style="wallet.wallet_currency === 'USDT' ? 'background-color: #26a17b; color: white;' : wallet.wallet_currency === 'EURC' ? 'background-color: #7c3aed; color: white;' : wallet.wallet_currency === 'SOL' ? 'background-color: #dc2626; color: white;' : 'background-color: #2775ca; color: white;'"
                                       x-text="wallet.wallet_currency">
                                 </span>
                             </td>

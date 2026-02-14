@@ -138,7 +138,7 @@ function clientWalletData() {
                 @php
                     $badgeStyle = match($wallet->wallet_currency) {
                         'USDT' => 'background-color: #26a17b; color: white;',
-                        'EURC' => 'background-color: #0052ff; color: white;',
+                        'EURC' => 'background-color: #7c3aed; color: white;',
                         'SOL'  => 'background-color: #dc2626; color: white;',
                         default => 'background-color: #2775ca; color: white;',
                     };

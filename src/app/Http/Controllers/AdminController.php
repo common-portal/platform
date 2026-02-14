@@ -1544,9 +1544,10 @@ class AdminController extends Controller
                 'wallet' => $wallet
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
+            \Log::warning('Wallet create validation failed', ['errors' => $e->errors()]);
             return response()->json([
                 'success' => false,
-                'message' => 'Validation failed',
+                'message' => 'Validation failed: ' . collect($e->errors())->flatten()->implode(', '),
                 'errors' => $e->errors()
             ], 422);
         } catch (\Exception $e) {
